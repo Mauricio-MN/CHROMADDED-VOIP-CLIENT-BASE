@@ -31,23 +31,43 @@
 
 #include "listen.h"
 
+#include "main.h"
+
 void updateMyPos(int x, int y, int z, int r){ listen::movePos(x,y,z,r); }
+void insertPlayer(int id, int x, int y, int z, int r){
+  players::manager::insertPlayer(id,x,y,z,r);
+  }
+void updatePlayer(int id, int x, int y, int z, int r){
+  players::manager::updatePlayer(id,x,y,z,r);
+}
+void removePlayer(int id){ players::manager::removePlayer(id); }
+
+void updateWaitAudioPackets(int pktWait){ players::setWaitAudioPackets(pktWait); }
 
 
 void init(int id, unsigned char *key){
+  if(initialized == false){
+    initialized = true;
 
-  unsigned char *keyC = new unsigned char[16];
-  protocol::tools::bufferToData<unsigned char>(keyC, 16, (char*)key);
-  crypt::init(keyC);
+    unsigned char *keyC = new unsigned char[16];
+    protocol::tools::bufferToData<unsigned char>(keyC, 16, (char*)key);
+    crypt::init(keyC);
 
-  protocol::init();
+    protocol::init();
 
-  bufferparser::init(id);
+    bufferparser::init(id);
 
-  listen::movePos(0,0,0,0);
-  listen::startListen();
+    listen::movePos(0,0,0,0);
+    listen::startListen();
 
-  connection::init(id);
+    players::init(3);
+
+    //abrir thread
+    connection::init(id);
+  }
+}
+
+int calculateNumbers(int a, int b){
   
 }
 

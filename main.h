@@ -3,6 +3,7 @@
 
 #include "osSolver.h"
 
+inline bool initialized = false;
 EXPORT void init(int id, int x, int y, int z, int r);
 EXPORT void updateMyPos(int x, int y, int z, int r);
 EXPORT void insertPlayer(int id, int x, int y, int z, int r);
@@ -11,6 +12,8 @@ EXPORT void removePlayer(int id);
 
 EXPORT void enableKeyRec(HereKey key, int n);
 EXPORT void disableKeyRec();
+
+EXPORT void updateWaitAudioPackets(int pktWait);
 
 enum HereKey
     {
