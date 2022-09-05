@@ -62,6 +62,7 @@ void init(int id, unsigned char *key){
 
     players::init(3);
 
+    //abrir thread
     connection::init(id);
   }
 }
