@@ -14,6 +14,8 @@
 
 namespace players{
 
+    inline int waitQueueAudioCount;
+
     typedef struct player{
         int id;
         int x;
@@ -31,27 +33,34 @@ namespace players{
         listen::MyStream stream;
         std::mutex streamMutex;
 
+        std::mutex deleteMeMutex;
+
         void refreshStream(){
-            if(isReadToListen()){
+            std::lock_guard<std::mutex> guard(deleteMeMutex);
+            if(isReadToRep()){
                 if(isLoad == false){
                     isLoad = true;
                     stream.load(player_read_sbuffer());
                 } else {
                     stream.insert(player_read_sbuffer());
                 }
-                if(stream.getStatus() != MyStream::Playing){
+                if(stream.getStatus() != listen::MyStream::Playing){
                     stream.play();
                 }
             }
         }
 
-        bool isReadToListen(){
+        bool isReadToRep(){
             bool out = false;
             if(audioQueueIsEmpty() == false){
                 out = true;
             }else if(audioQueueIsAllEmpty() == false){
-                swap();
-                out = true;
+                if(audioChargingQueueSize() < waitQueueAudioCount){
+                    out = false;
+                } else {
+                    swap();
+                    out = true;
+                }
             } else {
                 out = false;
             }
@@ -105,6 +114,16 @@ namespace players{
             return out;
         }
 
+        int audioChargingQueueSize(){
+            int out = 0;
+            if(audio_select == 1){
+                out = audio_2.size();
+            } else {
+                out = audio_1.size();
+            }
+            return out;
+        }
+
         void swap(){
             audio_select = (audio_select == 1) ? 2 : 1;
         }
@@ -112,16 +131,31 @@ namespace players{
         void push(protocol::data *data){
             if(audio_select == 1){
                 audioMutex_2.lock();
-                audio_2.push(data);
+                audio_2.push(*data);
                 audioMutex_2.unlock();
             } else {
                 audioMutex_1.lock();
-                audio_1.push(data);
+                audio_1.push(*data);
                 audioMutex_1.unlock();
             }
         }
 
+        void updatePlayer(int new_x, int new_y, int new_z, int new_r){
+            std::lock_guard<std::mutex> guard(deleteMeMutex);
+                x = new_x;
+                y = new_y;
+                z = new_z;
+                r = new_r;
+        }
+
     } playerz;
+
+    void init(int waitAudioPackets){
+        waitQueueAudioCount = waitAudioPackets;
+    }
+    void setWaitAudioPackets(int waitAudioPackets){
+        waitQueueAudioCount = waitAudioPackets;
+    }
 
     class manager{
         public:
@@ -135,7 +169,6 @@ namespace players{
                     players[id]->y = y;
                     players[id]->z = z;
                     players[id]->r = r;
-
                 }
                 insertMutex.unlock();
             }
@@ -146,6 +179,14 @@ namespace players{
                 }
                 playerREF = players[id];
                 return true;
+            }
+
+            static bool updatePlayer(int id, int x, int y, int z, int r){
+                if(existPlayer(id)){
+                    player *playerREF = players[id];
+                    playerREF->updatePlayer(x,y,z,r);
+                }
+                return false;
             }
 
             static bool existPlayer(int id){
@@ -159,7 +200,16 @@ namespace players{
                 if (players.find(id) == players.end()){
                     return;
                 }
+                std::lock_guard<std::mutex> guard(players[id]->deleteMeMutex);
                 players.erase(id);
+            }
+
+            static void processDatas(){
+                while(true){
+                    for (auto& it: players) {
+                        it.second->refreshStream();
+                    }
+                }
             }
         
         private:

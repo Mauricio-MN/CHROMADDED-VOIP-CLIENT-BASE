@@ -1,0 +1,60 @@
+{
+	"version": "0.0.1",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "C/C++: Object",
+			"command": "C:\\msys64\\mingw64\\bin\\gcc.exe",
+			"args": [
+				"-fdiagnostics-color=always",
+				"-c",
+				"${file}",
+				"-o",
+				"${fileDirname}\\${fileBasenameNoExtension}.o",
+				"-lwsock32"
+				
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compilador: C:\\msys64\\mingw64\\bin\\gcc.exe"
+		},
+		{
+			"type": "cppbuild",
+			"label": "C/C++: CLIENT",
+			"command": "C:\\msys64\\mingw64\\bin\\g++.exe",
+			"args": [
+				"-fdiagnostics-color=always",
+				"-Wall",
+				"-g",
+				"${file}",
+				"${fileDirname}\\audio.cpp",
+				"${fileDirname}\\cript.cpp",
+				"${fileDirname}\\protocol.cpp",
+				"${fileDirname}\\bufferParser.cpp",
+				"${fileDirname}\\SoundCustomBufferRecorder.cpp",
+				"-o",
+				"${fileDirname}\\${fileBasenameNoExtension}.exe",
+				"-lwsock32",
+				"-lOpenAL32",
+				"-lssl",
+				"-lcrypto",
+				"-lsfml-system",
+				"-lsfml-audio"
+				
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compilador: C:\\msys64\\mingw64\\bin\\g++.exe"
+		}
+	]
+}
