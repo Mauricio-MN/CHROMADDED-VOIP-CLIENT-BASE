@@ -9,6 +9,7 @@
 #include <queue>
 #include <thread>
 #include <mutex>
+#include <future>
 
 #include <SFML/Audio.hpp>
 #include <SFML/System/Time.hpp>
@@ -62,8 +63,9 @@ void init(int id, unsigned char *key){
 
     players::init(3);
 
-    //abrir thread
-    connection::init(id);
+    std::async(connection::init, id);
+
+    
   }
 }
 

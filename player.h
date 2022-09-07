@@ -206,9 +206,13 @@ namespace players{
 
             static void processDatas(){
                 while(true){
+                if(players.size() > 0){
                     for (auto& it: players) {
                         it.second->refreshStream();
                     }
+                } else {
+                    sf::sleep(sf::milliseconds(1));
+                }
                 }
             }
         

@@ -56,7 +56,6 @@ void ProcessData(int id){
           players::manager::insertPlayer(receivedAudioSTC.id, 0, 0, 0, 0);
           players::player *player;
           players::manager::getPlayer(receivedAudioSTC.id, player);
-          player->isRegistered = false;
         }
         break;
       }

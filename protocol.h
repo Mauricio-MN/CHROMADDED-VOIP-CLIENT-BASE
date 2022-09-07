@@ -8,23 +8,23 @@ namespace protocol
 
     void init();
 
-    const int ptc_HandChacke = 0;
-    inline int ptc_HandChacke_ID;
+    const int snd_HandChacke = 0;
+    inline int snd_HandChacke_ID;
 
-    const int ptc_Audio = 1;
-    inline int ptc_Audio_ID_1;
-    inline int ptc_Audio_TYPE_2;
-    inline int ptc_Audio_AUDIO_3;
+    const int snd_Audio = 1;
+    inline int snd_Audio_ID_1;
+    inline int snd_Audio_TYPE_2;
+    inline int snd_Audio_AUDIO_3;
 
-    const int ptc_Disconnect = 3;
-    inline int ptc_Disconnect_ID_1;
+    const int snd_Disconnect = 2;
+    inline int snd_Disconnect_ID_1;
 
-    const int ptc_Pos = 3;
-    inline int ptc_Pos_id_1;
-    inline int ptc_Pos_Map_2;
-    inline int ptc_Pos_X_3;
-    inline int ptc_Pos_Y_4;
-    inline int ptc_Pos_Z_5;
+    const int snd_Pos = 3;
+    inline int snd_Pos_id_1;
+    inline int snd_Pos_Map_2;
+    inline int snd_Pos_X_3;
+    inline int snd_Pos_Y_4;
+    inline int snd_Pos_Z_5;
 
     const int rcv_HandChacke = 0;
     inline int rcv_HandChacke_ID;

@@ -9,19 +9,19 @@ namespace protocol
     void init()
     {
         
-        ptc_HandChacke_ID = 4;
+        snd_HandChacke_ID = 4;
 
-        ptc_Audio_ID_1 = 4;
-        ptc_Audio_TYPE_2 = 1;
-        ptc_Audio_AUDIO_3 = 251;
+        snd_Audio_ID_1 = 4;
+        snd_Audio_TYPE_2 = 1;
+        snd_Audio_AUDIO_3 = 251;
 
-        ptc_Disconnect_ID_1 = 4;
+        snd_Disconnect_ID_1 = 4;
 
-        ptc_Pos_id_1 = 4;
-        ptc_Pos_Map_2 = 4;
-        ptc_Pos_X_3 = 4;
-        ptc_Pos_Y_4 = 4;
-        ptc_Pos_Z_5 = 4;
+        snd_Pos_id_1 = 4;
+        snd_Pos_Map_2 = 4;
+        snd_Pos_X_3 = 4;
+        snd_Pos_Y_4 = 4;
+        snd_Pos_Z_5 = 4;
 
         rcv_HandChacke_ID = 4;
 
@@ -34,35 +34,43 @@ namespace protocol
     namespace tovoipserver
     {
 
-        data constructHandChackeData(int my_id)
+        data* constructGeralData(int my_id, int id_size, char headerNumber)
         {
             data buffer;
-            buffer.size = header_size + ptc_HandChacke_ID;
+            buffer.size = header_size + id_size;
             buffer.buffer = new char[buffer.size];
 
-            tools::transformDataToBufferPos<int>((int *)&ptc_HandChacke, header_size, buffer.buffer, 0);
-            tools::transformDataToBufferPos<int>(&my_id, ptc_HandChacke_ID, buffer.buffer, header_size);
+            tools::transformDataToBufferPos<int>((int *)&headerNumber, header_size, buffer.buffer, 0);
+            tools::transformDataToBufferPos<int>(&my_id, id_size, buffer.buffer, header_size);
 
-            return buffer;
+            return (data*)&buffer;
+        }
+
+        data constructHandChackeData(int my_id){
+            return *constructGeralData(my_id, snd_HandChacke_ID, snd_HandChacke);
+        }
+
+        data constructDisconnectData(int my_id){
+            return *constructGeralData(my_id, snd_Disconnect_ID_1, snd_Disconnect);
         }
 
         data constructPosData(int my_id, int map, int x, int y, int z)
         {
             data buffer;
             int pos_id = header_size;
-            int pos_map = pos_id + ptc_Pos_id_1;
-            int pos_x = pos_map + ptc_Pos_Map_2;
-            int pos_y = pos_x + ptc_Pos_X_3;
-            int pos_z = pos_y + ptc_Pos_Y_4;
-            buffer.size = pos_z + ptc_Pos_Z_5;
+            int pos_map = pos_id + snd_Pos_id_1;
+            int pos_x = pos_map + snd_Pos_Map_2;
+            int pos_y = pos_x + snd_Pos_X_3;
+            int pos_z = pos_y + snd_Pos_Y_4;
+            buffer.size = pos_z + snd_Pos_Z_5;
             buffer.buffer = new char[buffer.size];
 
-            tools::transformDataToBufferPos<int>((int *)&ptc_Pos, header_size, buffer.buffer, 0);
-            tools::transformDataToBufferPos<int>(&my_id, ptc_Pos_id_1, buffer.buffer, pos_id);
-            tools::transformDataToBufferPos<int>(&map, ptc_Pos_Map_2, buffer.buffer, pos_map);
-            tools::transformDataToBufferPos<int>(&x, ptc_Pos_X_3, buffer.buffer, pos_x);
-            tools::transformDataToBufferPos<int>(&y, ptc_Pos_Y_4, buffer.buffer, pos_y);
-            tools::transformDataToBufferPos<int>(&z, ptc_Pos_Z_5, buffer.buffer, pos_z);
+            tools::transformDataToBufferPos<int>((int *)&snd_Pos, header_size, buffer.buffer, 0);
+            tools::transformDataToBufferPos<int>(&my_id, snd_Pos_id_1, buffer.buffer, pos_id);
+            tools::transformDataToBufferPos<int>(&map, snd_Pos_Map_2, buffer.buffer, pos_map);
+            tools::transformDataToBufferPos<int>(&x, snd_Pos_X_3, buffer.buffer, pos_x);
+            tools::transformDataToBufferPos<int>(&y, snd_Pos_Y_4, buffer.buffer, pos_y);
+            tools::transformDataToBufferPos<int>(&z, snd_Pos_Z_5, buffer.buffer, pos_z);
 
             return buffer;
         }
@@ -72,15 +80,15 @@ namespace protocol
             data buffer;
 
             int pos_id = header_size;
-            int pos_type = pos_id + ptc_Audio_ID_1;
-            int pos_audio = pos_type + ptc_Audio_TYPE_2;
+            int pos_type = pos_id + snd_Audio_ID_1;
+            int pos_audio = pos_type + snd_Audio_TYPE_2;
 
             buffer.size = pos_audio + size;
             buffer.buffer = new char[buffer.size];
 
-            tools::transformDataToBufferPos<int>((int *)&ptc_Audio, header_size, buffer.buffer, 0);
-            tools::transformDataToBufferPos<int>(&my_id, ptc_Audio_ID_1, buffer.buffer, pos_id);
-            tools::transformDataToBufferPos<char>(&type, ptc_Audio_TYPE_2, buffer.buffer, pos_type);
+            tools::transformDataToBufferPos<int>((int *)&snd_Audio, header_size, buffer.buffer, 0);
+            tools::transformDataToBufferPos<int>(&my_id, snd_Audio_ID_1, buffer.buffer, pos_id);
+            tools::transformDataToBufferPos<char>(&type, snd_Audio_TYPE_2, buffer.buffer, pos_type);
             tools::transformDataToBufferPos<char>(buffer_audio, size, buffer.buffer, pos_audio);
 
             return buffer;
