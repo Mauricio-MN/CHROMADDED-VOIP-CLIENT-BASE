@@ -30,23 +30,36 @@
 
 #include "connection.h"
 
-#include "listen.h"
+#include "recorder.h"
 
 #include "main.h"
 
-void updateMyPos(int x, int y, int z, int r){ listen::movePos(x,y,z,r); }
-void insertPlayer(int id, int x, int y, int z, int r){
-  players::manager::insertPlayer(id,x,y,z,r);
+void updateMyPos(float x, float y, float z){ recorder::movePos(x,y,z); }
+void updateMyRot(float x, float y, float z){ recorder::moveRot(x,y,z); }
+
+
+void insertPlayer(float id, float x, float y, float z){
+  players::manager::insertPlayer(id,x,y,z);
   }
-void updatePlayer(int id, int x, int y, int z, int r){
-  players::manager::updatePlayer(id,x,y,z,r);
+
+void movePlayer(float id, float x, float y, float z){
+  players::manager::movePlayer(id,x,y,z);
 }
-void removePlayer(int id){ players::manager::removePlayer(id); }
+void updatePlayerAttenuation(int id, float new_at){
+  players::manager::setAttenuation(id, new_at);
+}
+void updatePlayerMinDistance(int id, float new_MD){
+  players::manager::setMinDistance(id, new_MD);
+}
+void removePlayer(int id){ 
+  players::manager::removePlayer(id);
+}
+void updateWaitAudioPackets(int pktWait){
+  players::setWaitAudioPackets(pktWait);
+}
 
-void updateWaitAudioPackets(int pktWait){ players::setWaitAudioPackets(pktWait); }
 
-
-void init(int id, unsigned char *key){
+void init(int id, unsigned char *key, float x, float y, float z, float oneCoordinateCorrespondsToNMeters){
   if(initialized == false){
     initialized = true;
 
@@ -58,12 +71,12 @@ void init(int id, unsigned char *key){
 
     bufferparser::init(id);
 
-    listen::movePos(0,0,0,0);
-    listen::startListen();
+    std::async(connection::init, id);
 
     players::init(3);
 
-    std::async(connection::init, id);
+    recorder::movePos(x,y,z);
+    recorder::startRecorder();
 
     
   }

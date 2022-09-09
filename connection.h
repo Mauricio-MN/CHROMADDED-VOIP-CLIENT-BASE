@@ -4,7 +4,7 @@
 namespace connection {
 
     int init(int id);
-    bool send(char *buffer, size_t size);
+    void send(char *buffer, int size);
 
 }
 

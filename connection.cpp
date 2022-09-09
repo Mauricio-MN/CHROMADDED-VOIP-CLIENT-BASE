@@ -137,7 +137,7 @@ namespace connection
     close(sockfd);
   }
 
-  bool send(char *buffer, size_t size)
+  static void send(char *buffer, int size)
   {
     sendto(sockfd, buffer, size, 0, (struct sockaddr *)NULL, sizeof(servaddr));
   }

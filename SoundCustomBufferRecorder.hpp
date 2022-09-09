@@ -37,7 +37,7 @@
 #include <queue>
 #include <mutex>
 
-
+#define DEFAULT_BUFFER_ARGS (char* buffer, int size)
 namespace sf
 {
 ////////////////////////////////////////////////////////////
@@ -55,12 +55,16 @@ public:
     ~SoundCustomBufferRecorder() override;
 
     mutable std::mutex queueMutex;
+    mutable bool recording = false;
 
     SoundBuffer getBufferFromQueue();
     bool bufferQueueIsNotEmpty();
     void cleanQueue();
 
     void setProcessingIntervalOverride(sf::Time time);
+    void setProcessingBufferFunction(void (*func)DEFAULT_BUFFER_ARGS );
+    void setListen(bool isToListen);
+    void addBufferToQueue(sf::SoundBuffer *buffer);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the sound buffer containing the captured audio data
@@ -109,7 +113,13 @@ private:
     SoundBuffer        m_buffer;  //!< Sound buffer that will contain the recorded data
     mutable std::queue<sf::SoundBuffer> queueBuffer;
 
-    void addBufferToQueue(sf::SoundBuffer buffer);
+    void asyncProcessSamples(sf::SoundBuffer buffer);
+
+    static void doNothingFunctionToBuffers(char* buffer, int size);
+
+    void (*send)DEFAULT_BUFFER_ARGS = &doNothingFunctionToBuffers;
+
+    bool listen = false;
 };
 
 } // namespace sf

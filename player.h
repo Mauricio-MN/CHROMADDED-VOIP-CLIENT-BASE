@@ -8,7 +8,7 @@
 #include <queue>
 
 #include "protocol.h"
-#include "listen.h"
+#include "recorder.h"
 
 #include <SFML/Audio.hpp>
 
@@ -18,10 +18,6 @@ namespace players{
 
     typedef struct player{
         int id;
-        int x;
-        int y;
-        int z;
-        int r;
         bool isLoad = false;
 
         std::queue<protocol::data> audio_1;
@@ -30,10 +26,22 @@ namespace players{
         std::mutex audioMutex_1;
         std::mutex audioMutex_2;
 
-        listen::MyStream stream;
+        recorder::MyStream stream;
         std::mutex streamMutex;
 
         std::mutex deleteMeMutex;
+
+        void move(float new_x, float new_y, float new_z){
+            stream.setPosition(new_x, new_y, new_z);
+        }
+
+        void minDistance(float new_MD){
+            stream.setMinDistance(new_MD);
+        }
+
+        void attenuation(float new_at){
+            stream.setAttenuation(new_at);
+        }
 
         void refreshStream(){
             std::lock_guard<std::mutex> guard(deleteMeMutex);
@@ -44,7 +52,7 @@ namespace players{
                 } else {
                     stream.insert(player_read_sbuffer());
                 }
-                if(stream.getStatus() != listen::MyStream::Playing){
+                if(stream.getStatus() != recorder::MyStream::Playing){
                     stream.play();
                 }
             }
@@ -140,14 +148,6 @@ namespace players{
             }
         }
 
-        void updatePlayer(int new_x, int new_y, int new_z, int new_r){
-            std::lock_guard<std::mutex> guard(deleteMeMutex);
-                x = new_x;
-                y = new_y;
-                z = new_z;
-                r = new_r;
-        }
-
     } playerz;
 
     void init(int waitAudioPackets){
@@ -160,15 +160,12 @@ namespace players{
     class manager{
         public:
 
-            static void insertPlayer(int id, int x, int y, int z, int r){
+            static void insertPlayer(int id, float x, float y, float z){
                 insertMutex.lock();
                 if(players.find(id) == players.end()){
                     players[id] = new player;
                     players[id]->id = id;
-                    players[id]->x = x;
-                    players[id]->y = y;
-                    players[id]->z = z;
-                    players[id]->r = r;
+                    players[id]->move(x,y,z);
                 }
                 insertMutex.unlock();
             }
@@ -181,10 +178,29 @@ namespace players{
                 return true;
             }
 
-            static bool updatePlayer(int id, int x, int y, int z, int r){
+            static bool movePlayer(int id, float x, float y, float z){
                 if(existPlayer(id)){
                     player *playerREF = players[id];
-                    playerREF->updatePlayer(x,y,z,r);
+                    playerREF->move(x,y,z);
+                    return true;
+                }
+                return false;
+            }
+
+            static bool setAttenuation(int id, float new_at){
+                if(existPlayer(id)){
+                    player *playerREF = players[id];
+                    playerREF->attenuation(new_at);
+                    return true;
+                }
+                return false;
+            }
+
+            static bool setMinDistance(int id, float new_MD){
+                if(existPlayer(id)){
+                    player *playerREF = players[id];
+                    playerREF->minDistance(new_MD);
+                    return true;
                 }
                 return false;
             }
