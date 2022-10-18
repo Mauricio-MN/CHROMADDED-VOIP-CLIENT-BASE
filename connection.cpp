@@ -29,21 +29,7 @@
 #define PORT 3366
 #define MAXLINE 1024
 
-class connection
-{
-private:
-  static int max_connection_attempt;
-  static int max_receive_attempt;
-  static int max_send_attempt;
-
-  static int connectionAtmp;
-  static int receiveAtmp;
-  static int my_id;
-  static int sockfd;
-  static int error;
-  static struct sockaddr_in servaddr;
-
-  static void connectInit(){
+  void connection::connectInit(){
     int connectionState = -1;
     while(connectionState < 0){
       connectionState = connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
@@ -60,8 +46,7 @@ private:
     }
   }
 
-public:
-  static void init(int id, char* ip, int ip_size)
+  void connection::init(int id, char* ip, int ip_size)
   {
     connectionAtmp = 0;
     receiveAtmp = 0;
@@ -107,11 +92,11 @@ public:
     connectInit();
   }
 
-  static void closeSocket(){
+  void connection::closeSocket(){
     close(sockfd);
   }
 
-  static void receiveThread(){
+  void connection::receiveThread(){
     // request to send datagram
     // no need to specify server address in sendto
     // connect stores the peers IP and port
@@ -138,11 +123,11 @@ public:
     }
   }
 
-  static int getError(){
+  int connection::getError(){
     return error;
   }
 
-  static void send(char *buffer, int size, bool encrypt)
+  void connection::send(char *buffer, int size, bool encrypt)
   {
     int sendAtmp = 0;
     bool trySend = true;
@@ -170,5 +155,3 @@ public:
 
     }
   }
-
-};
