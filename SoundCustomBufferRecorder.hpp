@@ -22,8 +22,8 @@
 //
 ////////////////////////////////////////////////////////////
 
-#ifndef SFML_SOUNDCUSTOMBUFFERRECORDER_HPP
-#define SFML_SOUNDCUSTOMBUFFERRECORDER_HPP
+#ifndef SFML_SoundCustomBufferRecorder_HPP
+#define SFML_SoundCustomBufferRecorder_HPP
 
 ////////////////////////////////////////////////////////////
 // Headers
@@ -124,7 +124,7 @@ private:
 
 } // namespace sf
 
-#endif // SFML_SOUNDBUFFERRECORDER_HPP
+#endif // SFML_SoundBufferRecorder_HPP
 
 
 ////////////////////////////////////////////////////////////
@@ -148,16 +148,16 @@ private:
 /// if (sf::SoundBufferRecorder::isAvailable())
 /// {
 ///     // Record some audio data
-///     sf::SoundBufferRecorder recorder;
-///     if (!recorder.start())
+///     sf::SoundBufferRecorder soundmanager;
+///     if (!soundmanager.start())
 ///     {
 ///         // Handle error...
 ///     }
 ///     ...
-///     recorder.stop();
+///     soundmanager.stop();
 ///
 ///     // Get the buffer containing the captured audio data
-///     const sf::SoundBuffer& buffer = recorder.getBuffer();
+///     const sf::SoundBuffer& buffer = soundmanager.getBuffer();
 ///
 ///     // Save it to a file (for example...)
 ///     if (!buffer.saveToFile("my_record.ogg"))

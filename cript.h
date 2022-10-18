@@ -12,8 +12,9 @@ namespace crypt{
     using std::string;
     using std::vector;
 
-    void encrypt(char* buffer, size_t size, vector<unsigned char> *ciphertextvect);
-    void decrypt(vector<unsigned char> *ciphertextvect, char* buffer, size_t *size);
+    vector<unsigned char> encrypt(vector<unsigned char> *buffer);
+    vector<unsigned char> decrypt(vector<unsigned char> *ciphertextvect);
+    void updateKey(unsigned char key_bytes[16]);
     int init(unsigned char key_bytes[16]);
 
 }

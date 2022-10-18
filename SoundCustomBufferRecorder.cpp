@@ -70,7 +70,8 @@ bool SoundCustomBufferRecorder::onProcessSamples(const Int16* samples, std::size
     buffer.loadFromSamples(samples, sampleCount, getChannelCount(), getSampleRate());
     //std::thread(SoundCustomBufferRecorder::addBufferToQueue, std::ref(buffer)).detach();
 
-    std::async(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer);
+    //std::async(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer);
+    std::thread(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer).detach();
 
     return true;
 }
@@ -143,6 +144,10 @@ void SoundCustomBufferRecorder::onStop()
 const SoundBuffer& SoundCustomBufferRecorder::getBuffer() const
 {
     return m_buffer;
+}
+
+void SoundCustomBufferRecorder::doNothingFunctionToBuffers(char* buffer, int size){
+    return;
 }
 
 } // namespace sf

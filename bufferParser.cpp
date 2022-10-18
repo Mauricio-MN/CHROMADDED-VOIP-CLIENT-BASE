@@ -11,6 +11,7 @@
 #include <thread>
 #include <mutex>
 #include <future>
+#include <memory>
 
 #include "osimports.h"
 
@@ -22,87 +23,123 @@
 
 namespace bufferparser{
 
-void continuousProcessData(int id)
-{
-  while (true)
-  {
-    ProcessData(id);
+void ProcessData(int id){
+  while(true){
+    continuousProcessDataMutex[id].lock();
+    if (continuousProcessDataQueue[id].empty() == false)
+    {
+        protocol::data buffer(continuousProcessDataQueue[id].front());
+        continuousProcessDataQueue[id].pop();
+        continuousProcessDataMutex[id].unlock();
+
+        switch ((int)(buffer.getBuffer()[0]))
+        {
+        case protocol::rcv_Audio:
+        {
+          protocol::rcv_Audio_stc receivedAudioSTC =
+              protocol::fromvoipserver::constructRCVaudioData(buffer);
+
+          if (players::manager::existPlayer(receivedAudioSTC.id))
+          {
+            players::player *player = players::manager::getPlayer(receivedAudioSTC.id);
+            //player->push(receivedAudioSTC);
+            player->push(receivedAudioSTC.audioData);
+          }
+          else
+          {
+            players::manager::insertPlayer(receivedAudioSTC.id, 0, 0, 0);
+            players::player *player = players::manager::getPlayer(receivedAudioSTC.id);
+          }
+
+          break;
+        }
+        case protocol::rcv_HandChacke:
+        {
+          protocol::rcv_HandChacke_stc receivedHandChackeSTC =
+              protocol::fromvoipserver::constructRCVhandChackeData(buffer);
+
+          break;
+        }
+        default:
+          int a = 0;
+        }
+      } else {
+      continuousProcessDataMutex[id].unlock();
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      }
   }
 }
 
-void ProcessData(int id){
-  continuousProcessDataMutex[id].lock();
-  if (continuousProcessDataQueue[id].empty() == false)
+void parserThread(protocol::data buffer)
+{
+  switch ((int)(buffer.getBuffer()[0]))
+  {
+  case protocol::rcv_Audio:
+  {
+    protocol::rcv_Audio_stc receivedAudioSTC =
+        protocol::fromvoipserver::constructRCVaudioData(buffer);
+
+    if (players::manager::existPlayer(receivedAudioSTC.id))
     {
-      protocol::data buffer = continuousProcessDataQueue[id].front();
-      continuousProcessDataQueue[id].pop();
-      continuousProcessDataMutex[id].unlock();
-
-      switch ((int)(buffer.buffer[0]))
-      {
-      case protocol::rcv_Audio:
-      {
-        protocol::rcv_Audio_stc receivedAudioSTC =
-            protocol::fromvoipserver::constructRCVaudioData(buffer.buffer, buffer.size);
-
-        if (players::manager::existPlayer(receivedAudioSTC.id))
-        {
-          players::player *player;
-          players::manager::getPlayer(receivedAudioSTC.id, player);
-          player->push(&receivedAudioSTC.audioData);
-        }
-        else
-        {
-          players::manager::insertPlayer(receivedAudioSTC.id, 0, 0, 0);
-          players::player *player;
-          players::manager::getPlayer(receivedAudioSTC.id, player);
-        }
-        break;
-      }
-      case protocol::rcv_HandChacke:
-      {
-        protocol::rcv_HandChacke_stc receivedHandChackeSTC =
-            protocol::fromvoipserver::constructRCVhandChackeData(buffer.buffer, buffer.size);
-
-        break;
-      }
-      default:
-        int a = 0;
-      }
-    } else {
-    continuousProcessDataMutex[id].unlock();
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      players::player *player = players::manager::getPlayer(receivedAudioSTC.id);
+      player->push(receivedAudioSTC.audioData);
+      //player->push(receivedAudioSTC);
     }
+    else
+    {
+      players::manager::insertPlayer(receivedAudioSTC.id, 0, 0, 0);
+      players::player *player = players::manager::getPlayer(receivedAudioSTC.id);
+    }
+
+    break;
+  }
+  case protocol::rcv_HandChacke:
+  {
+    protocol::rcv_HandChacke_stc receivedHandChackeSTC =
+        protocol::fromvoipserver::constructRCVhandChackeData(buffer);
+
+    break;
+  }
+  default:
+    int a = 0;
+  }
+  return;
+}
+
+void parserBuffer(protocol::data* buffer){
+  std::thread(parserThread, *buffer).detach();
+}
+
+int getProcessingDataCount(int i){
+  return continuousProcessDataQueue[i].size();
 }
 
 void tempDataWait(int id, protocol::data buffer){
   continuousProcessDataMutex[id].lock();
-  continuousProcessDataQueue->push(buffer);
-
-  if(continuousProcessDataQueue->size() > 3){
-    continuousProcessDataMutex[id].unlock();
-    std::async(ProcessData, id);
-  } else {
-    continuousProcessDataMutex[id].unlock();
-  }
-
+  continuousProcessDataQueue[id].push(buffer);
+  continuousProcessDataMutex[id].unlock();
 }
 
 void parser(protocol::data *buffer){
   selectIdDataWait++;
   if (selectIdDataWait >= TOTAL_THREAD_PARSER) selectIdDataWait = 0;
-  std::async(tempDataWait, selectIdDataWait, *buffer);
+  //std::async(tempDataWait, selectIdDataWait, *buffer);
+  //std::thread(tempDataWait, selectIdDataWait, *buffer).detach();
+  continuousProcessDataMutex[selectIdDataWait].lock();
+  continuousProcessDataQueue[selectIdDataWait].push(buffer);
+  continuousProcessDataMutex[selectIdDataWait].unlock();
 }
 
 void allocContinuousProcessDataThreads(){
   for (int i = 0; i < TOTAL_THREAD_PARSER; i++){
-    std::async(continuousProcessData, i);
+    //std::async(ProcessData, i);
+    std::thread(ProcessData, i).detach();
   }
 }
 
 void init(int id){
     my_id = id;
-    allocContinuousProcessDataThreads();
+    //allocContinuousProcessDataThreads();
 }
 
 }
