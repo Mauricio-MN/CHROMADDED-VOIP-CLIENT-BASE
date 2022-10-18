@@ -36,6 +36,9 @@
 #include <queue>
 #include <future>
 
+#include "connection.h"
+#include "protocol.h"
+
 
 namespace sf
 {
@@ -53,6 +56,8 @@ bool SoundCustomBufferRecorder::onStart()
     m_samples.clear();
     m_buffer = SoundBuffer();
 
+    recording = true;
+
     return true;
 }
 
@@ -65,14 +70,26 @@ bool SoundCustomBufferRecorder::onProcessSamples(const Int16* samples, std::size
     buffer.loadFromSamples(samples, sampleCount, getChannelCount(), getSampleRate());
     //std::thread(SoundCustomBufferRecorder::addBufferToQueue, std::ref(buffer)).detach();
 
-    std::async(&SoundCustomBufferRecorder::addBufferToQueue, this, buffer);
+    //std::async(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer);
+    std::thread(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer).detach();
 
     return true;
 }
 
-void SoundCustomBufferRecorder::addBufferToQueue(sf::SoundBuffer buffer){
-    std::lock_guard<std::mutex> guard(queueMutex);
-    queueBuffer.push(buffer);
+void SoundCustomBufferRecorder::asyncProcessSamples(sf::SoundBuffer buffer){
+    if(listen == true){
+        addBufferToQueue(&buffer);
+    }
+    int bufferByte_size = sizeof(const Int16) * buffer.getSampleCount();
+    char *bufferByte = new char[bufferByte_size];
+    protocol::tools::transformArrayToBuffer<const Int16>(buffer.getSamples(), buffer.getSampleCount(), bufferByte);
+    (*send)(bufferByte, bufferByte_size);
+}
+
+void SoundCustomBufferRecorder::addBufferToQueue(sf::SoundBuffer *buffer){
+    queueMutex.lock();
+    queueBuffer.push(*buffer);
+    queueMutex.unlock();
 }
 
 SoundBuffer SoundCustomBufferRecorder::getBufferFromQueue(){
@@ -102,15 +119,24 @@ void SoundCustomBufferRecorder::setProcessingIntervalOverride(sf::Time time){
     setProcessingInterval(time);
 }
 
+void SoundCustomBufferRecorder::setProcessingBufferFunction(void (*func)DEFAULT_BUFFER_ARGS ){
+    send = func;
+}
+
+void SoundCustomBufferRecorder::setListen(bool isToListen){
+    listen = isToListen;
+}
+
 
 ////////////////////////////////////////////////////////////
 void SoundCustomBufferRecorder::onStop()
 {
-    if (m_samples.empty())
-        return;
+    recording = false;
+    //if (m_samples.empty())
+    //    return;
 
-    if (!m_buffer.loadFromSamples(m_samples.data(), m_samples.size(), getChannelCount(), getSampleRate()))
-        err() << "Failed to stop capturing audio data" << std::endl;
+    //if (!m_buffer.loadFromSamples(m_samples.data(), m_samples.size(), getChannelCount(), getSampleRate()))
+    //   err() << "Failed to stop capturing audio data" << std::endl;
 }
 
 
@@ -118,6 +144,10 @@ void SoundCustomBufferRecorder::onStop()
 const SoundBuffer& SoundCustomBufferRecorder::getBuffer() const
 {
     return m_buffer;
+}
+
+void SoundCustomBufferRecorder::doNothingFunctionToBuffers(char* buffer, int size){
+    return;
 }
 
 } // namespace sf

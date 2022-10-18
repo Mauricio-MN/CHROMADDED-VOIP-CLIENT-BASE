@@ -3,8 +3,8 @@
 
 namespace connection {
 
-    int init(int id);
-    bool send(char *buffer, size_t size);
+    int init(int id, char* ip, int ip_size);
+    void send(char *buffer, int size);
 
 }
 

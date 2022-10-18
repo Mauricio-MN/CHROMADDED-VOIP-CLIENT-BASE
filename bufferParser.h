@@ -19,7 +19,7 @@
 #include "protocol.h"
 #include "player.h"
 
-#define TOTAL_THREAD_PARSER 8
+#define TOTAL_THREAD_PARSER 16
 
 namespace bufferparser{
 
@@ -31,15 +31,19 @@ inline std::thread continuousProcessDataThreads[TOTAL_THREAD_PARSER];
 
 inline int selectIdDataWait = 0;
 
-void continuousProcessData(int id);
+inline void ProcessData(int id);
 
-void ProcessData(int id);
+void parserThread(protocol::data buffer);
+
+void parserBuffer(protocol::data* buffer);
 
 void tempDataWait(int id, protocol::data buffer);
 
 void parser(protocol::data *buffer);
 
 void allocContinuousProcessDataThreads();
+
+int getProcessingDataCount(int i);
 
 void init(int id);
 

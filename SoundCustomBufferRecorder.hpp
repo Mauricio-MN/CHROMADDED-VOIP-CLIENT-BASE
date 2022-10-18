@@ -22,8 +22,8 @@
 //
 ////////////////////////////////////////////////////////////
 
-#ifndef SFML_SOUNDCUSTOMBUFFERRECORDER_HPP
-#define SFML_SOUNDCUSTOMBUFFERRECORDER_HPP
+#ifndef SFML_SoundCustomBufferRecorder_HPP
+#define SFML_SoundCustomBufferRecorder_HPP
 
 ////////////////////////////////////////////////////////////
 // Headers
@@ -37,7 +37,7 @@
 #include <queue>
 #include <mutex>
 
-
+#define DEFAULT_BUFFER_ARGS (char* buffer, int size)
 namespace sf
 {
 ////////////////////////////////////////////////////////////
@@ -55,12 +55,16 @@ public:
     ~SoundCustomBufferRecorder() override;
 
     mutable std::mutex queueMutex;
+    mutable bool recording = false;
 
     SoundBuffer getBufferFromQueue();
     bool bufferQueueIsNotEmpty();
     void cleanQueue();
 
     void setProcessingIntervalOverride(sf::Time time);
+    void setProcessingBufferFunction(void (*func)DEFAULT_BUFFER_ARGS );
+    void setListen(bool isToListen);
+    void addBufferToQueue(sf::SoundBuffer *buffer);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the sound buffer containing the captured audio data
@@ -109,12 +113,18 @@ private:
     SoundBuffer        m_buffer;  //!< Sound buffer that will contain the recorded data
     mutable std::queue<sf::SoundBuffer> queueBuffer;
 
-    void addBufferToQueue(sf::SoundBuffer buffer);
+    void asyncProcessSamples(sf::SoundBuffer buffer);
+
+    static void doNothingFunctionToBuffers(char* buffer, int size);
+
+    void (*send)DEFAULT_BUFFER_ARGS = &doNothingFunctionToBuffers;
+
+    bool listen = false;
 };
 
 } // namespace sf
 
-#endif // SFML_SOUNDBUFFERRECORDER_HPP
+#endif // SFML_SoundBufferRecorder_HPP
 
 
 ////////////////////////////////////////////////////////////
@@ -138,16 +148,16 @@ private:
 /// if (sf::SoundBufferRecorder::isAvailable())
 /// {
 ///     // Record some audio data
-///     sf::SoundBufferRecorder recorder;
-///     if (!recorder.start())
+///     sf::SoundBufferRecorder soundmanager;
+///     if (!soundmanager.start())
 ///     {
 ///         // Handle error...
 ///     }
 ///     ...
-///     recorder.stop();
+///     soundmanager.stop();
 ///
 ///     // Get the buffer containing the captured audio data
-///     const sf::SoundBuffer& buffer = recorder.getBuffer();
+///     const sf::SoundBuffer& buffer = soundmanager.getBuffer();
 ///
 ///     // Save it to a file (for example...)
 ///     if (!buffer.saveToFile("my_record.ogg"))
