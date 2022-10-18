@@ -23,8 +23,6 @@
 
 namespace bufferparser{
 
-inline int my_id;
-
 inline std::queue<protocol::data> continuousProcessDataQueue[TOTAL_THREAD_PARSER];
 inline std::mutex continuousProcessDataMutex[TOTAL_THREAD_PARSER];
 inline std::thread continuousProcessDataThreads[TOTAL_THREAD_PARSER];
@@ -45,7 +43,7 @@ void allocContinuousProcessDataThreads();
 
 int getProcessingDataCount(int i);
 
-void init(int id);
+void init();
 
 }
 

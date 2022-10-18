@@ -46,13 +46,12 @@
     }
   }
 
-  void connection::init(int id, char* ip, int ip_size)
+  void connection::init(char* ip, int ip_size)
   {
     connectionAtmp = 0;
     receiveAtmp = 0;
     error = 0;
 
-    my_id = id;
     char* valid_ip = new char[ip_size];
     protocol::tools::bufferToData(valid_ip, ip_size, ip);
 
@@ -90,6 +89,11 @@
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
     connectInit();
+  }
+
+  void connection::handChacke(){
+    protocol::data buffer = protocol::tovoipserver::constructHandChackeData(players::self::getMyID());
+    send(buffer.getBuffer(), buffer.size, players::self::needEncrypt());
   }
 
   void connection::closeSocket(){

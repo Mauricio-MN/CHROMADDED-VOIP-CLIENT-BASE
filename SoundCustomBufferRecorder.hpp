@@ -115,7 +115,7 @@ private:
 
     void asyncProcessSamples(sf::SoundBuffer buffer);
 
-    static void doNothingFunctionToBuffers(char* buffer, int size);
+    static void doNothingFunctionToBuffers DEFAULT_BUFFER_ARGS;
 
     void (*send)DEFAULT_BUFFER_ARGS = &doNothingFunctionToBuffers;
 

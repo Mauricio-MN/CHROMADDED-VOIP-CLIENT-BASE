@@ -82,9 +82,11 @@ void setVolumeAudio(float volume){
 }
 
 
-void init(int id, char* ip, int ip_size, unsigned char *key, float x, float y, float z, float oneCoordinateCorrespondsToNMeters){
+void init(int id, char* ip, int ip_size, unsigned char *key, float x, float y, float z, float oneCoordinateCorrespondsToNMeters, bool needEncrypt){
   if(initialized == false){
     initialized = true;
+
+    players::self::init(id, needEncrypt);
 
     unsigned char *keyC = new unsigned char[16];
     protocol::tools::bufferToData(keyC, 16, (char*)key);
@@ -95,13 +97,14 @@ void init(int id, char* ip, int ip_size, unsigned char *key, float x, float y, f
 
     players::init(3);
 
-    bufferparser::init(id);
+    bufferparser::init();
 
     soundmanager::listener::movePos(x,y,z);
     soundmanager::recorder::start();
 
     //std::async(connection::init, id, ip, ip_size);
-    std::thread(connection::init, id, ip, ip_size).detach();
+    connection::init(ip, ip_size);
+    std::thread(connection::receiveThread).detach();
 
     delete []keyC;
     

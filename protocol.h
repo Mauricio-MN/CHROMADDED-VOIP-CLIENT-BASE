@@ -108,24 +108,23 @@ namespace protocol
                 }
             }
 
+            data(char *refBuffer, size_t len){
+                if(valid == false){
+                    buffer = new char[len];
+                    size = len;
+                    memcpy(buffer,refBuffer, sizeof(char)*size);
+                    valid = true;
+                    owner = 1;
+                    validAddressOwner = reinterpret_cast<size_t>(&owner);
+                }
+            }
+
             data(){
                 valid = false;
             }
 
             bool isValid(){
                 return valid;
-            }
-
-            bool assign(char *callNewHere, size_t len){
-                if(valid == false){
-                    valid = true;
-                    buffer = callNewHere;
-                    size = len;
-                    owner = 1;
-                    validAddressOwner = reinterpret_cast<size_t>(&owner);
-                    return true;
-                }
-                return false;
             }
         
     };

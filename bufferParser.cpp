@@ -138,7 +138,6 @@ void allocContinuousProcessDataThreads(){
 }
 
 void init(int id){
-    my_id = id;
     //allocContinuousProcessDataThreads();
 }
 

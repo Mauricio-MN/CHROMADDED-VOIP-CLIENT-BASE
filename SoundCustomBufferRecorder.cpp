@@ -146,7 +146,7 @@ const SoundBuffer& SoundCustomBufferRecorder::getBuffer() const
     return m_buffer;
 }
 
-void SoundCustomBufferRecorder::doNothingFunctionToBuffers(char* buffer, int size){
+void SoundCustomBufferRecorder::doNothingFunctionToBuffers DEFAULT_BUFFER_ARGS{
     return;
 }
 

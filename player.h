@@ -10,6 +10,7 @@
 
 #include "protocol.h"
 #include "soundmanager.h"
+#include "globaldefs.h"
 #include <SFML/Audio.hpp>
 
 namespace players{
@@ -145,6 +146,45 @@ namespace players{
 
             static inline std::unordered_map<int, player*> players;
             static inline std::mutex insertMutex;
+    };
+
+    class self{
+    private:
+        static int my_id;
+        static bool encrypt;
+        static AudioType AudType;
+        static std::mutex mutexID;
+    public:
+        static void init(int id, bool needEncrypt){
+            my_id = id;
+            encrypt = needEncrypt;
+            AudType = AudioType::LOCAL;
+        }
+
+        static int getMyID(){
+            return my_id;
+        }
+
+        static void setMyID(int id){
+            mutexID.lock();
+            my_id = id;
+            mutexID.unlock();
+        }
+
+        static bool needEncrypt(){
+            return encrypt;
+        }
+
+        static void setAudioType(AudioType type){
+            AudType = type;
+        }
+
+        static void sendAudio(char* buffer, int size){
+            protocol::data databuff(buffer, size);
+            protocol::data outbuffer = protocol::tovoipserver::constructAudioData(my_id, AudioTypeToChar(AudType), &databuff);
+            connection::send(outbuffer.getBuffer(), outbuffer.size, encrypt);
+        }
+
     };
 
 

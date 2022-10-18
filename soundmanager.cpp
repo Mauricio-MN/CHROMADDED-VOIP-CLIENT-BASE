@@ -7,8 +7,8 @@
 #include "SoundCustomBufferRecorder.hpp"
 
 #include "connection.h"
-
 #include "soundmanager.h"
+#include "player.h"
 
 namespace soundmanager{
 
@@ -37,7 +37,7 @@ void recorder::disableRec(){
 }
 
 void recorder::record(){
-  recordMng(&connection::send);
+  recordMng(&players::self::sendAudio);
 }
 
 void recorder::recordMng(void (*func)DEFAULT_BUFFER_ARGS){

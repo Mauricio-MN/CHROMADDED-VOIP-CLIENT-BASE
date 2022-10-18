@@ -2,20 +2,14 @@
 #define MAIN_H
 
 #include "osSolver.h"
+#include "globaldefs.h"
 
 namespace crmd{
 
-enum AudioType
-    {
-        LOCAL,
-        MYGROUP
-    };
-
 inline bool initialized = false;
 inline bool recordingAudioData = false;
-inline AudioType recordingAudioDataType = AudioType::LOCAL;
 
-EXPORT void init(int id, char* ip, int ip_size, unsigned char *key, float x, float y, float z, float oneCoordinateCorrespondsToNMeters);
+EXPORT void init(int id, char* ip, int ip_size, unsigned char *key, float x, float y, float z, float oneCoordinateCorrespondsToNMeters, bool needEncrypt);
 EXPORT void updateMyPos(float x, float y, float z);
 EXPORT void updateMyRot(float x, float y, float z);
 
