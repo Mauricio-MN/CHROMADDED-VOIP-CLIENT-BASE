@@ -9,7 +9,7 @@ namespace crmd{
 inline bool initialized = false;
 inline bool recordingAudioData = false;
 
-EXPORT void init(int id, char* ip, int ip_size, unsigned char *key, float x, float y, float z, float oneCoordinateCorrespondsToNMeters, bool needEncrypt);
+EXPORT void init(int register_id, int id, char* ip, int ip_size, unsigned char *key, float x, float y, float z, bool needEncrypt);
 EXPORT void updateMyPos(float x, float y, float z);
 EXPORT void updateMyRot(float x, float y, float z);
 
@@ -28,6 +28,10 @@ EXPORT void setVolumeAudio(float volume);
 
 
 EXPORT void updateWaitAudioPacketsCount(int pktWaitCount);
+
+EXPORT bool isConnected(){
+    
+}
 
 }
 

@@ -23,7 +23,7 @@
 
 namespace bufferparser{
 
-inline std::queue<protocol::data> continuousProcessDataQueue[TOTAL_THREAD_PARSER];
+inline std::queue<data::buffer> continuousProcessDataQueue[TOTAL_THREAD_PARSER];
 inline std::mutex continuousProcessDataMutex[TOTAL_THREAD_PARSER];
 inline std::thread continuousProcessDataThreads[TOTAL_THREAD_PARSER];
 
@@ -31,13 +31,13 @@ inline int selectIdDataWait = 0;
 
 inline void ProcessData(int id);
 
-void parserThread(protocol::data buffer);
+void parserThread(data::buffer buffer);
 
-void parserBuffer(protocol::data* buffer);
+void parserBuffer(data::buffer* buffer);
 
-void tempDataWait(int id, protocol::data buffer);
+void tempDataWait(int id, data::buffer buffer);
 
-void parser(protocol::data *buffer);
+void parser(data::buffer *buffer);
 
 void allocContinuousProcessDataThreads();
 

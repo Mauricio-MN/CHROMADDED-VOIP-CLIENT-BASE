@@ -11,9 +11,9 @@ private:
   static int connectionAtmp;
   static int receiveAtmp;
   static int sockfd;
-  static int error;
   static struct sockaddr_in servaddr;
 
+  static bool isConnected;
   static void connectInit();
 
 public:
@@ -28,6 +28,8 @@ public:
   static void receiveThread();
 
   static void closeSocket();
+
+  static bool getIsConnected();
 
 };
 

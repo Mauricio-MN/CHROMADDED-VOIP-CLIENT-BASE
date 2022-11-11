@@ -65,14 +65,15 @@ bool SoundCustomBufferRecorder::onStart()
 ////////////////////////////////////////////////////////////
 bool SoundCustomBufferRecorder::onProcessSamples(const Int16* samples, std::size_t sampleCount)
 {
-    //std::copy(samples, samples + sampleCount, std::back_inserter(m_samples));
-    sf::SoundBuffer buffer;
-    buffer.loadFromSamples(samples, sampleCount, getChannelCount(), getSampleRate());
-    //std::thread(SoundCustomBufferRecorder::addBufferToQueue, std::ref(buffer)).detach();
+    if(processSound){
+        //std::copy(samples, samples + sampleCount, std::back_inserter(m_samples));
+        sf::SoundBuffer buffer;
+        buffer.loadFromSamples(samples, sampleCount, getChannelCount(), getSampleRate());
+        //std::thread(SoundCustomBufferRecorder::addBufferToQueue, std::ref(buffer)).detach();
 
-    //std::async(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer);
-    std::thread(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer).detach();
-
+        //std::async(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer);
+        std::thread(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer).detach();
+    }
     return true;
 }
 
@@ -84,6 +85,13 @@ void SoundCustomBufferRecorder::asyncProcessSamples(sf::SoundBuffer buffer){
     char *bufferByte = new char[bufferByte_size];
     protocol::tools::transformArrayToBuffer<const Int16>(buffer.getSamples(), buffer.getSampleCount(), bufferByte);
     (*send)(bufferByte, bufferByte_size);
+}
+
+void SoundCustomBufferRecorder::enableProcessSound(){
+    processSound = true;
+}
+void SoundCustomBufferRecorder::disableProcessSound(){
+    processSound = false;
 }
 
 void SoundCustomBufferRecorder::addBufferToQueue(sf::SoundBuffer *buffer){

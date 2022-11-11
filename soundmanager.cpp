@@ -25,19 +25,11 @@ namespace listener{
 sf::SoundCustomBufferRecorder recorder::rec;
 
 void recorder::enableRec(){
-  if(!rec.recording){
-      rec.start(SAMPLE_RATE);
-    }
+  
 }
 
 void recorder::disableRec(){
-  if(rec.recording) {
-      rec.stop();
-    }
-}
-
-void recorder::record(){
-  recordMng(&players::self::sendAudio);
+  
 }
 
 void recorder::recordMng(void (*func)DEFAULT_BUFFER_ARGS){
@@ -59,8 +51,8 @@ sf::SoundBuffer recorder::recordForTest(){
   return Trec.getBuffer();
 }
 
-void recorder::start(){
-    record();
+void recorder::init(){
+    recordMng(&players::self::sendAudio);
 }
 
 }

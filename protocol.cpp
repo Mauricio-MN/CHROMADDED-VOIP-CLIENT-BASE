@@ -11,6 +11,7 @@ namespace protocol
     void init()
     {
         
+        snd_HandChacke_REGISTER_ID = 4;
         snd_HandChacke_ID = 4;
 
         snd_Audio_ID_1 = 4;
@@ -31,14 +32,16 @@ namespace protocol
         rcv_Audio_NUMBER_2 = 1;
         rcv_Audio_AUDIO_3 = 249;
 
+        rcv_Disconnect_ID = 4;
+
     }
 
     namespace tovoipserver
     {
 
-        data constructGeralData(int my_id, int id_size, char headerNumber)
+        data::buffer constructGeralData(int my_id, int id_size, char headerNumber)
         {
-            data buffer(header_size + id_size);
+            data::buffer buffer(header_size + id_size);
 
             tools::transformDataToBufferPos(&headerNumber, buffer.getBuffer(), 0);
             tools::transformDataToBufferPos(&my_id, buffer.getBuffer(), header_size);
@@ -46,22 +49,27 @@ namespace protocol
             return buffer;
         }
 
-        data constructHandChackeData(int my_id){
-            return constructGeralData(my_id, snd_HandChacke_ID, snd_HandChacke);
+        data::buffer constructHandChackeData(int register_id, int my_id){
+
+            data::buffer buffer(header_size + snd_HandChacke_REGISTER_ID + snd_HandChacke_ID);
+
+            tools::transformDataToBufferPos(&snd_HandChacke, buffer.getBuffer(), 0);
+            tools::transformDataToBufferPos(&register_id, buffer.getBuffer(), header_size);
+            tools::transformDataToBufferPos(&my_id, buffer.getBuffer(), header_size + snd_HandChacke_REGISTER_ID);
         }
 
-        data constructDisconnectData(int my_id){
+        data::buffer constructDisconnectData(int my_id){
             return constructGeralData(my_id, snd_Disconnect_ID_1, snd_Disconnect);
         }
 
-        data constructPosData(int my_id, int map, int x, int y, int z)
+        data::buffer constructPosData(int my_id, int map, int x, int y, int z)
         {
             int pos_id = header_size;
             int pos_map = pos_id + snd_Pos_id_1;
             int pos_x = pos_map + snd_Pos_Map_2;
             int pos_y = pos_x + snd_Pos_X_3;
             int pos_z = pos_y + snd_Pos_Y_4;
-            data buffer(pos_z + snd_Pos_Z_5);
+            data::buffer buffer(pos_z + snd_Pos_Z_5);
 
             tools::transformDataToBufferPos(&snd_Pos, buffer.getBuffer(), 0);
             tools::transformDataToBufferPos(&my_id, buffer.getBuffer(), pos_id);
@@ -73,13 +81,13 @@ namespace protocol
             return buffer;
         }
 
-        data constructAudioData(int my_id, char type, data *buffer_audio)
+        data::buffer constructAudioData(int my_id, char type, data::buffer *buffer_audio)
         {
 
             int pos_id = header_size;
             int pos_type = pos_id + snd_Audio_ID_1;
             int pos_audio = pos_type + snd_Audio_TYPE_2;
-            data buffer(pos_audio + buffer_audio->size);
+            data::buffer buffer(pos_audio + buffer_audio->size);
 
             tools::transformDataToBufferPos(&snd_Audio, buffer.getBuffer(), 0);
             tools::transformDataToBufferPos(&my_id, buffer.getBuffer(), pos_id);
@@ -94,7 +102,7 @@ namespace protocol
     namespace fromvoipserver
     {
 
-        rcv_Audio_stc constructRCVaudioData(data buffer)
+        rcv_Audio_stc constructRCVaudioData(data::buffer buffer)
         {
 
             int pos_Id = header_size;
@@ -112,7 +120,7 @@ namespace protocol
             return audioDataPK;
         }
 
-        rcv_HandChacke_stc constructRCVhandChackeData(data buffer)
+        rcv_HandChacke_stc constructRCVhandChackeData(data::buffer buffer)
         {
             rcv_HandChacke_stc handchackeData;
 
@@ -121,6 +129,23 @@ namespace protocol
             tools::bufferCutToData<int>(&handchackeData.id, buffer.getBuffer(), pos_Id, rcv_HandChacke_ID);
 
             return handchackeData;
+        }
+
+        /**
+         * @brief 
+         * 
+         * @param buffer data
+         * @return public ID
+         */
+        int constructRCVdisconnectData(data::buffer buffer)
+        {
+            int myID;
+
+            int pos_Id = header_size;
+
+            tools::bufferCutToData<int>(&myID, buffer.getBuffer(), pos_Id, rcv_Disconnect_ID);
+
+            return myID;
         }
 
     }

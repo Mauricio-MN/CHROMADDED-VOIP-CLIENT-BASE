@@ -19,6 +19,7 @@
 #include "bufferParser.h"
 #include "protocol.h"
 #include "connection.h"
+#include "data.h"
 
 #define MSG_OOB 0x1       /* process out-of-band data */
 #define MSG_PEEK 0x2      /* peek at incoming message */
@@ -37,11 +38,11 @@
         connectionAtmp++;
         if(connectionAtmp >= max_connection_attempt){
           connectionState = 2;
-          error = 2;
           printf("\n Error : Connect to VOIP Failed \n");
         }
       } else {
         connectionState = 1;
+        isConnected = true;
       }
     }
   }
@@ -50,7 +51,6 @@
   {
     connectionAtmp = 0;
     receiveAtmp = 0;
-    error = 0;
 
     char* valid_ip = new char[ip_size];
     protocol::tools::bufferToData(valid_ip, ip_size, ip);
@@ -67,7 +67,6 @@
       if (iResult != 0)
       {
         printf("WSAStartup failed: %d\n", iResult);
-        error = 1;
       }
     }
 
@@ -89,15 +88,18 @@
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
     connectInit();
+
+    std::thread(receiveThread).detach();
   }
 
   void connection::handChacke(){
-    protocol::data buffer = protocol::tovoipserver::constructHandChackeData(players::self::getMyID());
+    data::buffer buffer = protocol::tovoipserver::constructHandChackeData(players::self::getMyID());
     send(buffer.getBuffer(), buffer.size, players::self::needEncrypt());
   }
 
   void connection::closeSocket(){
-    close(sockfd);
+    osCloseSocket(sockfd);
+    isConnected = false;
   }
 
   void connection::receiveThread(){
@@ -105,7 +107,7 @@
     // no need to specify server address in sendto
     // connect stores the peers IP and port
     char buffer[512];
-    while (true)
+    while (isConnected)
     {
       // sendto(sockfd, message, message_len, 0, (struct sockaddr *)NULL, sizeof(servaddr));
 
@@ -119,16 +121,14 @@
         continue;
       }
 
-      protocol::data data(n);
 
-      protocol::tools::cutBuffer(data.getBuffer(), buffer, 0, n);
+
+      data::buffer data(n);
+      //protocol::tools::cutBuffer(data.getBuffer(), buffer, 0, n);
+      protocol::tools::transformArrayToBuffer(data.getBuffer(), n, buffer);
 
       bufferparser::parser(&data);
     }
-  }
-
-  int connection::getError(){
-    return error;
   }
 
   void connection::send(char *buffer, int size, bool encrypt)
@@ -140,9 +140,12 @@
       int checkSend = 0;
       if(encrypt){
         unsigned char* reinterpreted = reinterpret_cast<unsigned char*>(buffer);
-        std::vector<unsigned char> decrypted(reinterpreted, reinterpreted + size);
+        std::vector<unsigned char> decrypted(reinterpreted + 1, reinterpreted + size);
         std::vector<unsigned char> encrypted = crypt::encrypt(&decrypted);
-        checkSend = sendto(sockfd, reinterpret_cast<const char*>(encrypted.data()), encrypted.size(), 0, (struct sockaddr *)NULL, sizeof(servaddr));
+        std::vector<unsigned char> outputData;
+        outputData.insert(outputData.end(), reinterpreted[1]);
+        outputData.insert(outputData.end(), encrypted.begin(), encrypted.end());
+        checkSend = sendto(sockfd, reinterpret_cast<const char*>(outputData.data()), encrypted.size(), 0, (struct sockaddr *)NULL, sizeof(servaddr));
       } else {
         checkSend = sendto(sockfd, buffer, size, 0, (struct sockaddr *)NULL, sizeof(servaddr));
       }
@@ -158,4 +161,8 @@
       }
 
     }
+  }
+
+  bool connection::getIsConnected(){
+    return isConnected;
   }

@@ -81,8 +81,12 @@ void setVolumeAudio(float volume){
   sf::Listener::setGlobalVolume(volume);
 }
 
+bool isConnected(){
+  return connection::getIsConnected();
+}
 
-void init(int id, char* ip, int ip_size, unsigned char *key, float x, float y, float z, float oneCoordinateCorrespondsToNMeters, bool needEncrypt){
+
+void init(int register_id, int id, char* ip, int ip_size, unsigned char *key, float x, float y, float z, bool needEncrypt){
   if(initialized == false){
     initialized = true;
 
@@ -100,11 +104,10 @@ void init(int id, char* ip, int ip_size, unsigned char *key, float x, float y, f
     bufferparser::init();
 
     soundmanager::listener::movePos(x,y,z);
-    soundmanager::recorder::start();
+    soundmanager::recorder::init();
 
     //std::async(connection::init, id, ip, ip_size);
     connection::init(ip, ip_size);
-    std::thread(connection::receiveThread).detach();
 
     delete []keyC;
     

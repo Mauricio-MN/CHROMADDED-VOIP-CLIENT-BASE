@@ -27,4 +27,10 @@ inline char AudioTypeToChar(AudioType type){
 
 }
 
+typedef struct coords{
+    int x;
+    int y;
+    int z;
+};
+
 #endif

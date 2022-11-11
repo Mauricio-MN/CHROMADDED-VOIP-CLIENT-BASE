@@ -66,6 +66,9 @@ public:
     void setListen(bool isToListen);
     void addBufferToQueue(sf::SoundBuffer *buffer);
 
+    void enableProcessSound();
+    void disableProcessSound();
+
     ////////////////////////////////////////////////////////////
     /// \brief Get the sound buffer containing the captured audio data
     ///
@@ -120,6 +123,7 @@ private:
     void (*send)DEFAULT_BUFFER_ARGS = &doNothingFunctionToBuffers;
 
     bool listen = false;
+    bool processSound = false;
 };
 
 } // namespace sf

@@ -40,7 +40,7 @@ public:
 
     static void recordMng(void (*func)DEFAULT_BUFFER_ARGS);
 
-    static void start();
+    static void init();
 
     static void enableRec();
 
@@ -50,7 +50,6 @@ public:
 
 private:
     static sf::SoundCustomBufferRecorder rec;
-    static void record();
 };
 
 class NetworkAudioStream : public sf::SoundStream
@@ -70,7 +69,7 @@ public:
     /// Get audio data from the client until playback is stopped
     ///
     ////////////////////////////////////////////////////////////
-    void receive(protocol::data* data)
+    void receive(data::buffer* data)
     {
         // Get waiting audio data
         std::scoped_lock lock(m_mutex);
@@ -102,6 +101,7 @@ private:
     int failCount = 0;
     bool onGetData(sf::SoundStream::Chunk& data) override
     {
+        
 
         if((m_swapSamples.size() < SAMPLE_COUNT*2) && m_swapSamples.size() >= SAMPLE_COUNT){
             m_tempBuffer.clear();
@@ -161,11 +161,11 @@ private:
 
         failCount = 0;
 
-        while (m_swapSamples.size() < SAMPLE_COUNT*3){
-            sf::sleep(sf::microseconds(200));
-        }
-
         m_tempBuffer.clear();
+
+        while (m_swapSamples.size() < SAMPLE_COUNT*3){
+            sf::sleep(sf::milliseconds(40));
+        }
 
         {
             std::scoped_lock lock(m_mutex);

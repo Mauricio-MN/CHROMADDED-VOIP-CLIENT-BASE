@@ -9,17 +9,23 @@
       #include <Windows.h>
 
       #define iswindows true
+      #define getSocketError WSAGetLastError()
+      #define osCloseSocket closesocket
    #else
       //define something for Windows (32-bit only)
       #include <Winsock2.h>
       #include <Windows.h>
 
       #define iswindows true
+      #define getSocketError WSAGetLastError()
+      #define osCloseSocket closesocket
    #endif
    
 #elif __APPLE__
     #define iswindows false
+    #define osCloseSocket close
     #include <TargetConditionals.h>
+    #include <errno.h>
     #if TARGET_IPHONE_SIMULATOR
          // iOS, tvOS, or watchOS Simulator
     #elif TARGET_OS_MACCATALYST
@@ -38,6 +44,8 @@
     #include <sys/socket.h>
     #include <arpa/inet.h>
     #include <netinet/in.h>
+
+    #define osCloseSocket close
 #elif __unix__ // all unices not caught above
     // Unix
     #define iswindows false
@@ -45,6 +53,8 @@
     #include <sys/socket.h>
     #include <arpa/inet.h>
     #include <netinet/in.h>
+
+    #define osCloseSocket close
 #elif defined(_POSIX_VERSION)
     // POSIX
     #define iswindows false
@@ -52,6 +62,8 @@
     #include <sys/socket.h>
     #include <arpa/inet.h>
     #include <netinet/in.h>
+
+    #define osCloseSocket close
 #else
 #   error "Unknown compiler"
 #endif

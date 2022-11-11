@@ -18,17 +18,32 @@
 #include "cript.h"
 #include "protocol.h"
 #include "player.h"
+#include "data.h"
 
 #include "bufferParser.h"
 
 namespace bufferparser{
+
+data::buffer decrypt(data::buffer buffer){
+  data::buffer procbuff(buffer.size - 1);
+  protocol::tools::cutBuffer(procbuff.getBuffer(), buffer.getBuffer(), 1, procbuff.size);
+  unsigned char* reinterpreted = reinterpret_cast<unsigned char*>(procbuff.getBuffer());
+  std::vector<unsigned char> encrypted(reinterpreted + 1, reinterpreted + procbuff.size);
+  std::vector<unsigned char> decrypted;
+  std::vector<unsigned char> decryptval = crypt::decrypt(&encrypted);
+
+  decrypted.insert(decrypted.end(), reinterpreted[0]);
+  decrypted.insert(decrypted.end(), decryptval.begin(), decryptval.end());
+  data::buffer output(reinterpret_cast<char*>(decrypted.data()), decrypted.size());
+  return output;
+}
 
 void ProcessData(int id){
   while(true){
     continuousProcessDataMutex[id].lock();
     if (continuousProcessDataQueue[id].empty() == false)
     {
-        protocol::data buffer(continuousProcessDataQueue[id].front());
+        data::buffer buffer(continuousProcessDataQueue[id].front());
         continuousProcessDataQueue[id].pop();
         continuousProcessDataMutex[id].unlock();
 
@@ -36,8 +51,9 @@ void ProcessData(int id){
         {
         case protocol::rcv_Audio:
         {
+          data::buffer bufferDecrypted = decrypt(buffer);
           protocol::rcv_Audio_stc receivedAudioSTC =
-              protocol::fromvoipserver::constructRCVaudioData(buffer);
+              protocol::fromvoipserver::constructRCVaudioData(bufferDecrypted);
 
           if (players::manager::existPlayer(receivedAudioSTC.id))
           {
@@ -60,6 +76,17 @@ void ProcessData(int id){
 
           break;
         }
+        case protocol::rcv_Disconnect:
+        {
+          int myID =
+              protocol::fromvoipserver::constructRCVdisconnectData(buffer);
+
+          if(myID == players::self::getMyID()){
+            connection::closeSocket();
+          }
+
+          break;
+        }
         default:
           int a = 0;
         }
@@ -70,7 +97,7 @@ void ProcessData(int id){
   }
 }
 
-void parserThread(protocol::data buffer)
+void parserThread(data::buffer buffer)
 {
   switch ((int)(buffer.getBuffer()[0]))
   {
@@ -106,7 +133,7 @@ void parserThread(protocol::data buffer)
   return;
 }
 
-void parserBuffer(protocol::data* buffer){
+void parserBuffer(data::buffer* buffer){
   std::thread(parserThread, *buffer).detach();
 }
 
@@ -114,13 +141,13 @@ int getProcessingDataCount(int i){
   return continuousProcessDataQueue[i].size();
 }
 
-void tempDataWait(int id, protocol::data buffer){
+void tempDataWait(int id, data::buffer buffer){
   continuousProcessDataMutex[id].lock();
   continuousProcessDataQueue[id].push(buffer);
   continuousProcessDataMutex[id].unlock();
 }
 
-void parser(protocol::data *buffer){
+void parser(data::buffer *buffer){
   selectIdDataWait++;
   if (selectIdDataWait >= TOTAL_THREAD_PARSER) selectIdDataWait = 0;
   //std::async(tempDataWait, selectIdDataWait, *buffer);

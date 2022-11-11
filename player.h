@@ -92,7 +92,7 @@ namespace players{
             }
         }
 
-        void push(protocol::data* audio){
+        void push(data::buffer* audio){
             std::lock_guard<std::mutex> guard(deleteMePushMutex);
 
             protocol::tools::bufferToData(samples, audio->size, audio->getBuffer());
@@ -154,11 +154,16 @@ namespace players{
         static bool encrypt;
         static AudioType AudType;
         static std::mutex mutexID;
+        static coords coordinates;
+        static bool isConnected;
     public:
         static void init(int id, bool needEncrypt){
             my_id = id;
             encrypt = needEncrypt;
             AudType = AudioType::LOCAL;
+            coordinates.x = 0;
+            coordinates.y = 0;
+            coordinates.z = 0;
         }
 
         static int getMyID(){
@@ -179,9 +184,22 @@ namespace players{
             AudType = type;
         }
 
+        static void setX(int x){ coordinates.x = x; }
+        static void setY(int y){ coordinates.y = y; }
+        static void setZ(int z){ coordinates.z = z; }
+        static void setCoords(int x, int y, int z){
+            coordinates.x = x;
+            coordinates.y = y;
+            coordinates.z = z;
+        }
+
+        static coords getCoords(){
+            return coordinates;
+        }
+
         static void sendAudio(char* buffer, int size){
-            protocol::data databuff(buffer, size);
-            protocol::data outbuffer = protocol::tovoipserver::constructAudioData(my_id, AudioTypeToChar(AudType), &databuff);
+            data::buffer databuff(buffer, size);
+            data::buffer outbuffer = protocol::tovoipserver::constructAudioData(my_id, AudioTypeToChar(AudType), &databuff);
             connection::send(outbuffer.getBuffer(), outbuffer.size, encrypt);
         }
 
