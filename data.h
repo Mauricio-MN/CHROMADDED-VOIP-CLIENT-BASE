@@ -1,6 +1,11 @@
 #ifndef DATA_H // include guard
 #define DATA_H
 
+#include <stddef.h>
+#include <string.h>
+#include <vector>
+#include <stdexcept>
+
 namespace data
 {
 
@@ -14,79 +19,171 @@ namespace data
     */
     class buffer
     {
-        protected:
-            bool valid = false;
-            char* bufferData;
-            size_t validAddressOwner;
-            int owner;
-        public:
-
-            size_t size;
-
-            char *getBuffer(){
-                if(valid){
-                    return bufferData;
-                }
-                return nullptr;
+        private:
+            void failSize(){
+                throw std::invalid_argument( "received invalid value of size" );
             }
 
-            ~buffer()
-            {
-                if(validAddressOwner == reinterpret_cast<size_t>(&owner)){
-                    delete []bufferData;
-                    valid = false;
+            bool checkDestPos(int pos){
+                if(pos < 0 && pos > bufferDataVec.size() - 1){
+                    failSize();
+                    return true;
                 }
+                return false;
+            }
+
+            bool checkValidInsertSize(int size){
+                if(size < 0){
+                    failSize();
+                    return true;
+                }
+                return false;
+            }
+        protected:
+            std::vector<char> bufferDataVec;
+
+        public:
+
+            size_t size(){
+                return bufferDataVec.size();
+            }
+
+            const std::vector<char>& getVector() const{
+                return bufferDataVec;
+            }
+
+            char* getData(){
+                return bufferDataVec.data();
+            }
+
+            void writeover(int destPos, buffer& Data){
+                if(checkDestPos(destPos)){ return; }
+                else if(Data.size() <= bufferDataVec.size()){
+                        memcpy(bufferDataVec.data() + destPos, Data.getData(), Data.size());
+                } else {
+                    failSize();
+                }
+            }
+
+            void writeover(int destPos, buffer& Data, int size){
+                if(checkValidInsertSize(size)){ return; }
+                if(checkDestPos(destPos)){ return; }
+                else if(destPos + size <= bufferDataVec.size()){
+                    if(Data.size() <= size){
+                        memcpy(bufferDataVec.data() + destPos, Data.getData(), size);
+                    } else {
+                        failSize();
+                    }
+                } else {
+                    failSize();
+                }
+            }
+
+            void writeover(int destPos, char* data, int size){
+                if(checkValidInsertSize(size)){ return; }
+                if(checkDestPos(destPos)){ return; }
+                else if(destPos + size <= bufferDataVec.size()){
+                    memcpy(bufferDataVec.data() + destPos, data, size);
+                } else {
+                    failSize();
+                }
+            }
+
+            template <typename T>
+            void writeover(int destPos, T &data){
+                int size = sizeof(T);
+                if(checkValidInsertSize(size)){ return; }
+                if(checkDestPos(destPos)){ return; }
+                else if(destPos + size <= bufferDataVec.size()){
+                    memcpy(bufferDataVec.data() + destPos, data, size);
+                } else {
+                    failSize();
+                }
+            }
+
+            template <typename T>
+            void writeover(int destPos, T data){
+                writeover(destPos, &data);
+            }
+
+            void insert(char* data, int size){
+                if(checkValidInsertSize(size)){ return; }
+                bufferDataVec.insert(bufferDataVec.end(), data, data + size);
+            }
+
+            void insert(const char* data, int size){
+                if(checkValidInsertSize(size)){ return; }
+                bufferDataVec.insert(bufferDataVec.end(), data, data + size);
+            }
+
+            void insert(buffer& Data, int size){
+                if(checkValidInsertSize(size)){ return; }
+                if(Data.size() <= size){
+                    bufferDataVec.insert(bufferDataVec.end(), Data.getVector().begin(), Data.getVector().begin() + size);
+                } else {
+                    failSize();
+                }
+            }
+
+            void insert(buffer& Data){
+                bufferDataVec.insert(bufferDataVec.end(), Data.getVector().begin(), Data.getVector().end());
+            }
+
+            void insert(const buffer& Data){
+                bufferDataVec.insert(bufferDataVec.end(), Data.getVector().begin(), Data.getVector().end());
+            }
+
+            template <typename T>
+            void insert(T& data){
+                bufferDataVec.insert(bufferDataVec.end(), data, data + sizeof(T));
+            }
+
+            template <typename T>
+            void insertArray(T* data, int size){
+                if(bufferDataVec.size() >= size){
+                    bufferDataVec.insert(bufferDataVec.end(), data, data + (sizeof(T) * size));
+                }
+            }
+
+            template <typename T>
+            T get(int pos){
+                if(bufferDataVec.size() <= pos + sizeof(T)){
+                    T* value = *reinterpret_cast<T*>(bufferDataVec.data() + pos);
+                    return value;
+                }
+                char newData[sizeof(T)];
+                for(int i = 0; i < sizeof(T); i++) newData[i] = 0;
+                return *reinterpret_cast<T*>(&newData);
             }
             
             buffer(size_t len){
-                if(valid == false){
-                    bufferData = new char[len];
-                    size = len;
-                    valid = true;
-                    owner = 1;
-                    validAddressOwner = reinterpret_cast<size_t>(&owner);
-                }
+                    bufferDataVec.resize(len);
             }
 
             buffer(buffer* Data){
-                if(valid == false){
-                    bufferData = new char[Data->size];
-                    size = Data->size;
-                    memcpy(bufferData,Data->bufferData, sizeof(char)*size);
-                    valid = true;
-                    owner = 1;
-                    validAddressOwner = reinterpret_cast<size_t>(&owner);
-                }
+                    bufferDataVec.insert(bufferDataVec.end(), Data->getVector().begin(), Data->getVector().end());
             }
 
             buffer(const buffer& Data){
-                if(valid == false){
-                    bufferData = new char[Data.size];
-                    size = Data.size;
-                    memcpy(bufferData,Data.bufferData, sizeof(char)*size);
-                    valid = true;
-                    owner = 1;
-                    validAddressOwner = reinterpret_cast<size_t>(&owner);
-                }
+                    insert(Data);
             }
 
             buffer(char *refBuffer, size_t len){
-                if(valid == false){
-                    bufferData = new char[len];
-                    size = len;
-                    memcpy(bufferData,refBuffer, sizeof(char)*size);
-                    valid = true;
-                    owner = 1;
-                    validAddressOwner = reinterpret_cast<size_t>(&owner);
-                }
+                    insert(refBuffer, len);
+            }
+
+            buffer(const char *refBuffer, size_t len){
+                    insert(refBuffer, len);
             }
 
             buffer(){
-                valid = false;
             }
 
             bool isValid(){
-                return valid;
+                if(size() > 0 ){
+                    return true;
+                }
+                return false;
             }
         
     };
@@ -101,41 +198,22 @@ namespace data
     */
     class Audio_player_data{
         private:
-            buffer* buff;
-            bool valid = false;
+            buffer buff;
         public:
 
-            size_t size;
-
             void init(Audio_player_data &audiodata){
-                buff = new buffer(audiodata.buff);
-                size = buff->size;
-                valid = true;
+                buff = buffer(audiodata.buff);
             }
 
             Audio_player_data(buffer* audiobuff){
-                buff = new buffer(audiobuff);
-                size = buff->size;
-                valid = true;
+                buff = buffer(audiobuff);
             }
 
             Audio_player_data(){
-                valid = false;
-                buff = nullptr;
             }
 
-            char *getBuffer(){
-                if(valid){
-                    return buff->getBuffer();
-                }
-                return nullptr;
-            }
-
-            void destroy(){
-                if(valid == true){
-                    delete buff;
-                    valid = false;
-                }
+            const std::vector<char>& getvector() const{
+                    return buff.getVector();
             }
             
         private:
@@ -148,9 +226,6 @@ namespace data
             {
                 return nullptr;
             }
-
-            void   operator delete   (void *);
-            void   operator delete[] (void*);
     };
 
     }

@@ -13,11 +13,66 @@
 #include "globaldefs.h"
 #include <SFML/Audio.hpp>
 
-namespace players{
 
-    inline int waitQueueAudioCount;
+namespace player{
 
-    class player{
+    class Self{
+    private:
+        int my_id;
+        int my_reg_id;
+        bool encrypt;
+        AudioType AudType;
+        std::mutex mutexID;
+        std::mutex mutexRegID;
+        coords coordinates;
+
+        void setMap(int map);
+        void setX(int x);
+        void setY(int y);
+        void setZ(int z);
+
+    public:
+
+        Self(int reg_id, int id, bool needEncrypt);
+
+        int getMyID();
+
+        int getMyRegID();
+
+        void setMyID(int id);
+
+        void setMyRegID(int reg_id);
+
+        bool needEncrypt();
+
+        void setAudioType(AudioType type);
+        AudioType getAudioType();
+
+        void setPos(int map, int x, int y, int z);
+        void setCoords(coords coord);
+        void sendPosInfo();
+
+        coords getCoords();
+
+        static void sendAudio(data::buffer &buffer);
+
+    };
+
+    class SelfImpl{
+        private:
+        static bool initialized;
+        static int reg_id_;
+        static int id_;
+        static bool needEncrypt_;
+        public:
+        static Self& getInstance();
+
+        static void frabric(int reg_id, int id, bool needEncrypt);
+
+    };
+}
+
+class Player{
 
     public:
 
@@ -44,11 +99,11 @@ namespace players{
 
     public:
 
-        player(){
+        Player(){
             stream = new soundmanager::NetworkAudioStream();
         }
 
-        ~player(){
+        ~Player(){
         }
 
         void mutexApplyToDelete(){
@@ -92,10 +147,10 @@ namespace players{
             }
         }
 
-        void push(data::buffer* audio){
+        void push(data::buffer &audio){
             std::lock_guard<std::mutex> guard(deleteMePushMutex);
 
-            protocol::tools::bufferToData(samples, audio->size, audio->getBuffer());
+            protocol::tools::bufferToData(samples, audio.size(), audio.getData());
 
             if(echoEffect){
                 excEchoEffect(samples, int16_Size);
@@ -112,6 +167,9 @@ namespace players{
                 //stream->insert(samples, int16_Size);
                 //stream->insert(audio);
                 stream->receive(audio);
+                if(!isPlaying()){
+                    stream->play();
+                }
             }
 
             //checkPlayng();
@@ -119,96 +177,42 @@ namespace players{
 
     };
 
-    void init(int waitAudioPacketsCount_);
+    class PlayersManager
+    {
     
-    void setWaitAudioPackets(int waitAudioPacketsCount_);
-
-    class manager{
-        public:
-
-            static void init();
-
-            static void insertPlayer(int id, float x, float y, float z);
-
-            static player* getPlayer(int id);
-
-            static bool movePlayer(int id, float x, float y, float z);
-
-            static bool setAttenuation(int id, float new_at);
-
-            static bool setMinDistance(int id, float new_MD);
-
-            static bool existPlayer(int id);
-
-            static void removePlayer(int id);
-        
-        private:
-
-            static inline std::unordered_map<int, player*> players;
-            static inline std::mutex insertMutex;
-    };
-
-    class self{
     private:
-        static int my_id;
-        static bool encrypt;
-        static AudioType AudType;
-        static std::mutex mutexID;
-        static coords coordinates;
-        static bool isConnected;
+
+        int waitQueueAudioCount;
+        std::unordered_map<int, Player *> players;
+        std::mutex insertMutex;
+
     public:
-        static void init(int id, bool needEncrypt){
-            my_id = id;
-            encrypt = needEncrypt;
-            AudType = AudioType::LOCAL;
-            coordinates.x = 0;
-            coordinates.y = 0;
-            coordinates.z = 0;
-        }
 
-        static int getMyID(){
-            return my_id;
-        }
+        PlayersManager();
 
-        static void setMyID(int id){
-            mutexID.lock();
-            my_id = id;
-            mutexID.unlock();
-        }
+        void setWaitAudioPackets(int waitAudioPacketsCount_);
+        int getWaitAudioPackets();
 
-        static bool needEncrypt(){
-            return encrypt;
-        }
+        void insertPlayer(int id, float x, float y, float z);
 
-        static void setAudioType(AudioType type){
-            AudType = type;
-        }
+        Player *getPlayer(int id);
 
-        static void setX(int x){ coordinates.x = x; }
-        static void setY(int y){ coordinates.y = y; }
-        static void setZ(int z){ coordinates.z = z; }
-        static void setCoords(int x, int y, int z){
-            coordinates.x = x;
-            coordinates.y = y;
-            coordinates.z = z;
-        }
+        bool movePlayer(int id, float x, float y, float z);
 
-        static coords getCoords(){
-            return coordinates;
-        }
+        bool setAttenuation(int id, float new_at);
 
-        static void sendAudio(char* buffer, int size){
-            data::buffer databuff(buffer, size);
-            data::buffer outbuffer = protocol::tovoipserver::constructAudioData(my_id, AudioTypeToChar(AudType), &databuff);
-            connection::send(outbuffer.getBuffer(), outbuffer.size, encrypt);
-        }
+        bool setMinDistance(int id, float new_MD);
+
+        bool existPlayer(int id);
+
+        void removePlayer(int id);
 
     };
 
-
-
-}
-
-
+    class PlayersManagerImpl
+    {
+    public:
+        static PlayersManager &getInstance();
+    };
 
 #endif

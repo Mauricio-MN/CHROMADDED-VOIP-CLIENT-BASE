@@ -21,30 +21,24 @@
 
 #define TOTAL_THREAD_PARSER 16
 
-namespace bufferparser{
+class Bufferparser{
+private:
 
-inline std::queue<data::buffer> continuousProcessDataQueue[TOTAL_THREAD_PARSER];
-inline std::mutex continuousProcessDataMutex[TOTAL_THREAD_PARSER];
-inline std::thread continuousProcessDataThreads[TOTAL_THREAD_PARSER];
+    void parserThread(data::buffer buffer);
 
-inline int selectIdDataWait = 0;
+    void tempDataWait(int id, data::buffer buffer);
 
-inline void ProcessData(int id);
+public:
 
-void parserThread(data::buffer buffer);
+    Bufferparser();
 
-void parserBuffer(data::buffer* buffer);
+    void parserBuffer(data::buffer* buffer);
 
-void tempDataWait(int id, data::buffer buffer);
+};
 
-void parser(data::buffer *buffer);
-
-void allocContinuousProcessDataThreads();
-
-int getProcessingDataCount(int i);
-
-void init();
-
-}
+class BufferParserImpl{
+    public:
+    static Bufferparser& getInstance();
+};
 
 #endif

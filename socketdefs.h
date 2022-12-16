@@ -39,11 +39,28 @@
 
 #define CRMD_WINDOWS_WSA_NOT_INITIALISED 999
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) || defined(_WIN64)
+    #define windowsSys
+      #include <Winsock2.h>
+      #include <Windows.h>
+#else
+    #define gnuDeafult
+    #include <errno.h>
+#endif
 class errorDefine{
 
     public:
+    #ifdef windowsSys
+        static int getError(){
+            return WSAGetLastError();
+        }
+    #else
+        static int getError(){
+            return errno;
+        }
+    #endif
 
-    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) || defined(_WIN64)
+    #ifdef windowsSys
         static int getError(int error){
             switch (error)
             {

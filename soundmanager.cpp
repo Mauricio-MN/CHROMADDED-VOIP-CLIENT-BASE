@@ -12,37 +12,33 @@
 
 namespace soundmanager{
 
-namespace listener{
-  void movePos(float x, float y, float z){
-      sf::Listener::setPosition(x,y,z);
+  namespace listener{
+    void movePos(float x, float y, float z){
+        sf::Listener::setPosition(x,y,z);
+    }
+
+    void moveRot(float x, float y, float z){
+        sf::Listener::setDirection(x,y,z);
+    }
   }
 
-  void moveRot(float x, float y, float z){
-      sf::Listener::setDirection(x,y,z);
-  }
+Recorder &RecorderImpl::getInstance()
+{
+  static Recorder instance;
+  return instance;
 }
 
-sf::SoundCustomBufferRecorder recorder::rec;
-
-void recorder::enableRec(){
-  
+void Recorder::enableRec(){
+  rec.enableProcessSound();
 }
 
-void recorder::disableRec(){
-  
+void Recorder::disableRec(){
+  rec.disableProcessSound();
 }
 
-void recorder::recordMng(void (*func)DEFAULT_BUFFER_ARGS){
+sf::SoundBuffer Recorder::recordForTest(){
+  rec.stop();
 
-  rec.setChannelCount(SAMPLE_CHANNELS);
-  rec.setProcessingIntervalOverride(sf::milliseconds(50));
-  rec.setListen(DEBUG_AUDIO);
-  rec.setProcessingBufferFunction(func);
-  rec.start(SAMPLE_RATE);
-
-}
-
-sf::SoundBuffer recorder::recordForTest(){
   sf::SoundBufferRecorder Trec;
   Trec.setChannelCount(SAMPLE_CHANNELS);
   Trec.start(SAMPLE_RATE);
@@ -51,8 +47,12 @@ sf::SoundBuffer recorder::recordForTest(){
   return Trec.getBuffer();
 }
 
-void recorder::init(){
-    recordMng(&players::self::sendAudio);
+Recorder::Recorder(){
+  rec.setChannelCount(SAMPLE_CHANNELS);
+  rec.setProcessingIntervalOverride(sf::milliseconds(50));
+  rec.setListen(DEBUG_AUDIO);
+  rec.setProcessingBufferFunction(player::Self::sendAudio);
+  rec.start(SAMPLE_RATE);
 }
 
 }

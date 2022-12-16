@@ -7,18 +7,25 @@
       //define something for Windows (64-bit only)
       #include <Winsock2.h>
       #include <Windows.h>
+      #include <ws2tcpip.h>
 
       #define iswindows true
-      #define getSocketError WSAGetLastError()
       #define osCloseSocket closesocket
+      static int overInetPton(int af, const char *src, void *dst){
+        return inet_pton(af, src, dst);
+      }
+      #define oipn
    #else
       //define something for Windows (32-bit only)
       #include <Winsock2.h>
       #include <Windows.h>
 
       #define iswindows true
-      #define getSocketError WSAGetLastError()
       #define osCloseSocket closesocket
+      static int overInetPton(int af, const char *src, void *dst){
+        return inet_pton(af, src, dst);
+      }
+      #define oipn
    #endif
    
 #elif __APPLE__
@@ -66,6 +73,14 @@
     #define osCloseSocket close
 #else
 #   error "Unknown compiler"
+#endif
+
+#ifndef oipn
+
+    static int overInetPton(int af, const char *src, void *dst){
+        return inet_pton(af, src, dst);
+    }
+
 #endif
 
 #endif

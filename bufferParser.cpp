@@ -19,108 +19,44 @@
 #include "protocol.h"
 #include "player.h"
 #include "data.h"
+#include "opusmanager.h"
 
 #include "bufferParser.h"
 
-namespace bufferparser{
+    Bufferparser& BufferParserImpl::getInstance(){
+      static Bufferparser instance;
+      return instance;
+    }
 
-data::buffer decrypt(data::buffer buffer){
-  data::buffer procbuff(buffer.size - 1);
-  protocol::tools::cutBuffer(procbuff.getBuffer(), buffer.getBuffer(), 1, procbuff.size);
-  unsigned char* reinterpreted = reinterpret_cast<unsigned char*>(procbuff.getBuffer());
-  std::vector<unsigned char> encrypted(reinterpreted + 1, reinterpreted + procbuff.size);
-  std::vector<unsigned char> decrypted;
-  std::vector<unsigned char> decryptval = crypt::decrypt(&encrypted);
-
-  decrypted.insert(decrypted.end(), reinterpreted[0]);
-  decrypted.insert(decrypted.end(), decryptval.begin(), decryptval.end());
-  data::buffer output(reinterpret_cast<char*>(decrypted.data()), decrypted.size());
-  return output;
-}
-
-void ProcessData(int id){
-  while(true){
-    continuousProcessDataMutex[id].lock();
-    if (continuousProcessDataQueue[id].empty() == false)
-    {
-        data::buffer buffer(continuousProcessDataQueue[id].front());
-        continuousProcessDataQueue[id].pop();
-        continuousProcessDataMutex[id].unlock();
-
-        switch ((int)(buffer.getBuffer()[0]))
-        {
-        case protocol::rcv_Audio:
-        {
-          data::buffer bufferDecrypted = decrypt(buffer);
-          protocol::rcv_Audio_stc receivedAudioSTC =
-              protocol::fromvoipserver::constructRCVaudioData(bufferDecrypted);
-
-          if (players::manager::existPlayer(receivedAudioSTC.id))
-          {
-            players::player *player = players::manager::getPlayer(receivedAudioSTC.id);
-            //player->push(receivedAudioSTC);
-            player->push(receivedAudioSTC.audioData);
-          }
-          else
-          {
-            players::manager::insertPlayer(receivedAudioSTC.id, 0, 0, 0);
-            players::player *player = players::manager::getPlayer(receivedAudioSTC.id);
-          }
-
-          break;
-        }
-        case protocol::rcv_HandChacke:
-        {
-          protocol::rcv_HandChacke_stc receivedHandChackeSTC =
-              protocol::fromvoipserver::constructRCVhandChackeData(buffer);
-
-          break;
-        }
-        case protocol::rcv_Disconnect:
-        {
-          int myID =
-              protocol::fromvoipserver::constructRCVdisconnectData(buffer);
-
-          if(myID == players::self::getMyID()){
-            connection::closeSocket();
-          }
-
-          break;
-        }
-        default:
-          int a = 0;
-        }
-      } else {
-      continuousProcessDataMutex[id].unlock();
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      }
-  }
-}
-
-void parserThread(data::buffer buffer)
+void Bufferparser::parserThread(data::buffer buffer)
 {
-  switch ((int)(buffer.getBuffer()[0]))
+
+  using namespace protocolinfo::receive::header;
+  Headers header = static_cast<Headers>((int)(buffer.getData()[0]));
+
+  switch (header)
   {
-  case protocol::rcv_Audio:
+  case Audio:
   {
     protocol::rcv_Audio_stc receivedAudioSTC =
         protocol::fromvoipserver::constructRCVaudioData(buffer);
 
-    if (players::manager::existPlayer(receivedAudioSTC.id))
+    if (PlayersManagerImpl::getInstance().existPlayer(receivedAudioSTC.id))
     {
-      players::player *player = players::manager::getPlayer(receivedAudioSTC.id);
-      player->push(receivedAudioSTC.audioData);
+      Player *player = PlayersManagerImpl::getInstance().getPlayer(receivedAudioSTC.id);
+      data::buffer decodedAud = OpusManagerImpl::getInstance().decode(receivedAudioSTC.audioData);
+      player->push(decodedAud);
       //player->push(receivedAudioSTC);
     }
     else
     {
-      players::manager::insertPlayer(receivedAudioSTC.id, 0, 0, 0);
-      players::player *player = players::manager::getPlayer(receivedAudioSTC.id);
+      PlayersManagerImpl::getInstance().insertPlayer(receivedAudioSTC.id, 0, 0, 0);
+      Player *player = PlayersManagerImpl::getInstance().getPlayer(receivedAudioSTC.id);
     }
 
     break;
   }
-  case protocol::rcv_HandChacke:
+  case HandChacke:
   {
     protocol::rcv_HandChacke_stc receivedHandChackeSTC =
         protocol::fromvoipserver::constructRCVhandChackeData(buffer);
@@ -128,44 +64,16 @@ void parserThread(data::buffer buffer)
     break;
   }
   default:
-    int a = 0;
+    {
+      return;
+    }
   }
   return;
 }
 
-void parserBuffer(data::buffer* buffer){
-  std::thread(parserThread, *buffer).detach();
+void Bufferparser::parserBuffer(data::buffer* buffer){
+  std::thread(&parserThread, this, *buffer).detach();
 }
 
-int getProcessingDataCount(int i){
-  return continuousProcessDataQueue[i].size();
-}
-
-void tempDataWait(int id, data::buffer buffer){
-  continuousProcessDataMutex[id].lock();
-  continuousProcessDataQueue[id].push(buffer);
-  continuousProcessDataMutex[id].unlock();
-}
-
-void parser(data::buffer *buffer){
-  selectIdDataWait++;
-  if (selectIdDataWait >= TOTAL_THREAD_PARSER) selectIdDataWait = 0;
-  //std::async(tempDataWait, selectIdDataWait, *buffer);
-  //std::thread(tempDataWait, selectIdDataWait, *buffer).detach();
-  continuousProcessDataMutex[selectIdDataWait].lock();
-  continuousProcessDataQueue[selectIdDataWait].push(buffer);
-  continuousProcessDataMutex[selectIdDataWait].unlock();
-}
-
-void allocContinuousProcessDataThreads(){
-  for (int i = 0; i < TOTAL_THREAD_PARSER; i++){
-    //std::async(ProcessData, i);
-    std::thread(ProcessData, i).detach();
-  }
-}
-
-void init(int id){
-    //allocContinuousProcessDataThreads();
-}
-
+Bufferparser::Bufferparser(){
 }

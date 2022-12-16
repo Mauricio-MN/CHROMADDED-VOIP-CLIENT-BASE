@@ -36,45 +36,62 @@
 
 namespace crmd{
 
-void updateMyPos(float x, float y, float z){ soundmanager::listener::movePos(x,y,z); }
-void updateMyRot(float x, float y, float z){ soundmanager::listener::moveRot(x,y,z); }
+void updateMyPos(int map, float x, float y, float z){ 
+  soundmanager::listener::movePos(x,y,z); 
+  player::SelfImpl::getInstance().setPos(map, static_cast<int>(x), static_cast<int>(y), static_cast<int>(z));
+}
 
+void updateMyRot(float x, float y, float z){ 
+  soundmanager::listener::moveRot(x,y,z); 
+}
 
 void insertPlayer(float id, float x, float y, float z){
-  players::manager::insertPlayer(id,x,y,z);
+  PlayersManagerImpl::getInstance().insertPlayer(id,x,y,z);
   }
 
 void movePlayer(float id, float x, float y, float z){
-  players::manager::movePlayer(id,x,y,z);
+  PlayersManagerImpl::getInstance().movePlayer(id,x,y,z);
 }
 void updatePlayerAttenuation(int id, float new_at){
-  players::manager::setAttenuation(id, new_at);
+  PlayersManagerImpl::getInstance().setAttenuation(id, new_at);
 }
 void updatePlayerMinDistance(int id, float new_MD){
-  players::manager::setMinDistance(id, new_MD);
+  PlayersManagerImpl::getInstance().setMinDistance(id, new_MD);
 }
 void enablePlayerEchoEffect(int id){
-  if(players::manager::existPlayer(id)){
-    players::manager::getPlayer(id)->echoEffect = true;
+  if(PlayersManagerImpl::getInstance().existPlayer(id)){
+    PlayersManagerImpl::getInstance().getPlayer(id)->echoEffect = true;
   }
 }
 void disablePlayerEchoEffect(int id){
-  if(players::manager::existPlayer(id)){
-    players::manager::getPlayer(id)->echoEffect = true;
+  if(PlayersManagerImpl::getInstance().existPlayer(id)){
+    PlayersManagerImpl::getInstance().getPlayer(id)->echoEffect = true;
   }
 }
 void updatePlayerEchoEffect(int id, int value){
   if(value > 0){
-    if(players::manager::existPlayer(id)){
-      players::manager::getPlayer(id)->echoEffectValue = value;
+    if(PlayersManagerImpl::getInstance().existPlayer(id)){
+      PlayersManagerImpl::getInstance().getPlayer(id)->echoEffectValue = value;
     }
   }
 }
 void removePlayer(int id){ 
-  players::manager::removePlayer(id);
+  PlayersManagerImpl::getInstance().removePlayer(id);
 }
 void updateWaitAudioPacketsCount(int pktWaitCount){
-  players::setWaitAudioPackets(pktWaitCount);
+  PlayersManagerImpl::getInstance().setWaitAudioPackets(pktWaitCount);
+}
+
+void setAudioType(AudioType audioType){
+  player::SelfImpl::getInstance().setAudioType(audioType);
+}
+
+void enableRecAudio(){
+  soundmanager::RecorderImpl::getInstance().enableRec();
+}
+
+void disableRecAudio(){
+  soundmanager::RecorderImpl::getInstance().disableRec();
 }
 
 void setVolumeAudio(float volume){
@@ -82,32 +99,35 @@ void setVolumeAudio(float volume){
 }
 
 bool isConnected(){
-  return connection::getIsConnected();
+  return ConnectionImpl::getInstance().getIsConnected();
+}
+
+int getConnectionError(){ //globaldefs.h errors
+  return ConnectionImpl::getInstance().getError();
+}
+
+void closeSocket(){ //call and wait, call connectTo();
+  ConnectionImpl::getInstance().closeSocket();
+}
+void connectTo(char* ip, int ip_size, int port){
+  ConnectionImpl::getInstance().start(ip, ip_size, port);
 }
 
 
-void init(int register_id, int id, char* ip, int ip_size, unsigned char *key, float x, float y, float z, bool needEncrypt){
+void init(int register_id, int id, char* ip, int ip_size, int port, unsigned char *key, float x, float y, float z, bool needEncrypt){
   if(initialized == false){
     initialized = true;
 
-    players::self::init(id, needEncrypt);
+    player::SelfImpl::frabric(register_id, id, needEncrypt);
 
     unsigned char *keyC = new unsigned char[16];
     protocol::tools::bufferToData(keyC, 16, (char*)key);
-    crypt::init(keyC);
-    delete []keyC;
+    CryptImpl::fabric(keyC);
 
-    protocol::init();
-
-    players::init(3);
-
-    bufferparser::init();
+    ConnectionImpl::fabric(ip, ip_size, port);
 
     soundmanager::listener::movePos(x,y,z);
-    soundmanager::recorder::init();
-
-    //std::async(connection::init, id, ip, ip_size);
-    connection::init(ip, ip_size);
+    soundmanager::RecorderImpl::getInstance();
 
     delete []keyC;
     

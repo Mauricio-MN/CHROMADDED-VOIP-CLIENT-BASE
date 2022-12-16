@@ -82,9 +82,9 @@ void SoundCustomBufferRecorder::asyncProcessSamples(sf::SoundBuffer buffer){
         addBufferToQueue(&buffer);
     }
     int bufferByte_size = sizeof(const Int16) * buffer.getSampleCount();
-    char *bufferByte = new char[bufferByte_size];
-    protocol::tools::transformArrayToBuffer<const Int16>(buffer.getSamples(), buffer.getSampleCount(), bufferByte);
-    (*send)(bufferByte, bufferByte_size);
+    data::buffer buff;
+    buff.insertArray(buffer.getSamples(), buffer.getSampleCount());
+    (*send)(buff);
 }
 
 void SoundCustomBufferRecorder::enableProcessSound(){
@@ -149,7 +149,7 @@ void SoundCustomBufferRecorder::onStop()
 
 
 ////////////////////////////////////////////////////////////
-const SoundBuffer& SoundCustomBufferRecorder::getBuffer() const
+const SoundBuffer& SoundCustomBufferRecorder::getData() const
 {
     return m_buffer;
 }

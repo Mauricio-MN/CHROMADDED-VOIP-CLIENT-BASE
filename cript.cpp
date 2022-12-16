@@ -12,14 +12,26 @@
 #include <iostream>
 #include <cstring>
 
-namespace crypt{
+    bool CryptImpl::initialized;
+    unsigned char CryptImpl::key_bytes_[16];
 
-using std::string;
-using std::vector;
-using std::cout;
-using std::endl;
+    crypt& CryptImpl::getInstance(){
+        if (initialized) {
+            static crypt instance(key_bytes_);
+            return instance;
+        } else {
+            perror("fabric Connection!");
+        }
+    }
 
-void aes_init()
+    void CryptImpl::fabric(unsigned char key_bytes[16]){
+        if (!initialized) {
+            memcpy(key_bytes_, key_bytes, 16);
+            initialized = true;
+        }
+    }
+
+void crypt::aes_init()
 {
     static int init=0;
     if (init==0)
@@ -35,7 +47,7 @@ void aes_init()
     }
 }
  
-std::vector<unsigned char> aes_128_gcm_encrypt(std::string plaintext, std::string key)
+std::vector<unsigned char> crypt::aes_128_gcm_encrypt(std::string plaintext, std::string key)
 {
     aes_init();
  
@@ -62,7 +74,7 @@ std::vector<unsigned char> aes_128_gcm_encrypt(std::string plaintext, std::strin
     return output;
 }
 
-std::vector<unsigned char> aes_128_gcm_encrypt(std::vector<unsigned char> *buffer, std::string key)
+std::vector<unsigned char> crypt::aes_128_gcm_encrypt(std::vector<unsigned char> *buffer, std::string key)
 {
     aes_init();
  
@@ -89,7 +101,7 @@ std::vector<unsigned char> aes_128_gcm_encrypt(std::vector<unsigned char> *buffe
     return output;
 }
  
-std::vector<unsigned char> aes_128_gcm_decrypt(std::vector<unsigned char> *ciphertext, std::string key)
+std::vector<unsigned char> crypt::aes_128_gcm_decrypt(std::vector<unsigned char> *ciphertext, std::string key)
 {
     aes_init();
  
@@ -111,26 +123,20 @@ std::vector<unsigned char> aes_128_gcm_decrypt(std::vector<unsigned char> *ciphe
     return plaintext;
 }
 
-inline string key;
-
-vector<unsigned char> encrypt(vector<unsigned char> *buffer){
+std::vector<unsigned char> crypt::encrypt(std::vector<unsigned char> *buffer){
     return aes_128_gcm_encrypt(buffer, key);
 }
 
-vector<unsigned char> decrypt(vector<unsigned char> *ciphertextvect){
+std::vector<unsigned char> crypt::decrypt(std::vector<unsigned char> *ciphertextvect){
     return aes_128_gcm_decrypt(ciphertextvect, key);
 }
 
 
-void updateKey(unsigned char key_bytes[16]){
-    key = string((char *)key_bytes, sizeof(unsigned char)*16);
-}
- 
-int init(unsigned char key_bytes[16])
-{
-    aes_init();
-    key = string((char *)key_bytes, sizeof(unsigned char)*16);
-    return 1;
+void crypt::updateKey(unsigned char key_bytes[16]){
+    key = std::string((char *)key_bytes, sizeof(unsigned char)*16);
 }
 
+crypt::crypt(unsigned char key_bytes[16]){
+    aes_init();
+    key = std::string((char *)key_bytes, sizeof(unsigned char)*16);
 }
