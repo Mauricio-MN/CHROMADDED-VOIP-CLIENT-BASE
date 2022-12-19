@@ -83,7 +83,7 @@ void SoundCustomBufferRecorder::asyncProcessSamples(sf::SoundBuffer buffer){
     }
     int bufferByte_size = sizeof(const Int16) * buffer.getSampleCount();
     data::buffer buff;
-    buff.insertArray(buffer.getSamples(), buffer.getSampleCount());
+    buff.insertArray((sf::Int16 *)buffer.getSamples(), buffer.getSampleCount());
     (*send)(buff);
 }
 

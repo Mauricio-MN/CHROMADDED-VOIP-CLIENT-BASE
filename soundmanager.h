@@ -95,6 +95,13 @@ public:
 
     }
 
+    void stopEndclear(){
+        std::scoped_lock lock(m_mutex);
+        stop();
+        m_swapSamples.clear();
+        m_tempBuffer.clear();
+    }
+
 private:
 
     void swapSamples(){

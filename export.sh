@@ -83,7 +83,10 @@ CMDBUILD="$COMPILER -fdiagnostics-color=always -Wall -std=c++20
 				-lcrypto
 				-lsfml-system
 				-lsfml-audio
+                -lsfml-window
 				-llibopus"
+
+BUILDSUCCESS="true"
 
 echo $CMDBUILD
 eval $CMDBUILD
@@ -91,6 +94,7 @@ if [ $? -eq 0 ]; then
     echo ""
 else
     echo "BUILD FAILED"
+    BUILDSUCCESS="false"
 fi
 
 #INCLUDE
@@ -133,5 +137,7 @@ includefiles() {
 }
 
 if [[ "$TEST" != "test" ]]; then
-    includefiles
+    if [[ "$BUILDSUCCESS" == "true" ]]; then
+        includefiles
+    fi
 fi

@@ -6,12 +6,13 @@
 #include "singleton.h"
 
 #define CONN_DEBUG_IP [4]{127,0,0,1}
+#define CONN_DEBUG_IP_LOCAL_DECLARE char connDebugIpDeclaration[4]{127,0,0,1};
+#define CONN_DEBUG_IP_LOCAL connDebugIpDeclaration
 #define CONN_DEBUG_PORT   4345
 
 class Connection
 {
 private:
-  int max_connection_attempt;
   int max_receive_attempt;
   int max_send_attempt;
 
@@ -19,7 +20,6 @@ private:
   int receiveAtmp;
   int sockfd;
   struct sockaddr_in* servaddr;
-  data::buffer servaddrData;
 
   bool WSAinitialized;
 
@@ -41,13 +41,15 @@ private:
 
   void safeDeleteThread();
 
-  void binding();
+  void finalcheck();
 
 public:
 
-  Connection(char* ip, int ip_size, int port);
+  Connection(char* ip, int port);
 
-  void start(char* ip, int ip_size, int port);
+  ~Connection();
+
+  void start(char* ip, int port);
 
   void handChacke();
 
@@ -71,13 +73,12 @@ class ConnectionImpl{
   private:
     static bool initialized;
     static char* ip_;
-    static int ip_size_;
     static int port_;
 
   public:
   static Connection& getInstance();
 
-  static void fabric(char* ip, int ip_size, int port);
+  static void fabric(char* ip, int port);
 
 };
 
@@ -86,7 +87,7 @@ static char* ip;
 static int ip_size;
 static int port;
 SINGLETON_F_INSTC_ARGS(Connection)
-ip, ip_size, port
+ip, port
 SINGLETON_F_ARGS
 char* ip_, int ip_size_, int port_
 SINGLETON_F_FUNC

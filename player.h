@@ -13,6 +13,7 @@
 #include "globaldefs.h"
 #include <SFML/Audio.hpp>
 
+#define PLAYER std::shared_ptr<Player>
 
 namespace player{
 
@@ -183,7 +184,7 @@ class Player{
     private:
 
         int waitQueueAudioCount;
-        std::unordered_map<int, Player *> players;
+        std::unordered_map<int, PLAYER> players;
         std::mutex insertMutex;
 
     public:
@@ -195,7 +196,7 @@ class Player{
 
         void insertPlayer(int id, float x, float y, float z);
 
-        Player *getPlayer(int id);
+        PLAYER getPlayer(int id);
 
         bool movePlayer(int id, float x, float y, float z);
 

@@ -109,12 +109,12 @@ int getConnectionError(){ //globaldefs.h errors
 void closeSocket(){ //call and wait, call connectTo();
   ConnectionImpl::getInstance().closeSocket();
 }
-void connectTo(char* ip, int ip_size, int port){
-  ConnectionImpl::getInstance().start(ip, ip_size, port);
+void connectTo(char* ip, int port){
+  ConnectionImpl::getInstance().start(ip, port);
 }
 
 
-void init(int register_id, int id, char* ip, int ip_size, int port, unsigned char *key, float x, float y, float z, bool needEncrypt){
+void init(int register_id, int id, char* ip, int port, unsigned char *key, float x, float y, float z, bool needEncrypt){
   if(initialized == false){
     initialized = true;
 
@@ -124,7 +124,7 @@ void init(int register_id, int id, char* ip, int ip_size, int port, unsigned cha
     protocol::tools::bufferToData(keyC, 16, (char*)key);
     CryptImpl::fabric(keyC);
 
-    ConnectionImpl::fabric(ip, ip_size, port);
+    ConnectionImpl::fabric(ip, port);
 
     soundmanager::listener::movePos(x,y,z);
     soundmanager::RecorderImpl::getInstance();

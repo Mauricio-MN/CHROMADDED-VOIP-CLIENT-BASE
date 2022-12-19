@@ -25,7 +25,7 @@ namespace player
             static Self instance(reg_id_, id_, needEncrypt_);
             return instance;
         } else {
-            perror("fabric player::Seld");
+            perror("fabric player::Self");
         }
     }
 
@@ -142,14 +142,14 @@ namespace player
     void PlayersManager::insertPlayer(int id, float x, float y, float z){
                 insertMutex.lock();
                 if(players.find(id) == players.end()){
-                    players[id] = new Player;
+                    players[id] = std::make_shared<Player>();
                     players[id]->id = id;
                     players[id]->move(x,y,z);
                 }
                 insertMutex.unlock();
             }
 
-    Player* PlayersManager::getPlayer(int id){
+    PLAYER PlayersManager::getPlayer(int id){
                 if(players.find(id) == players.end()){
                     return players[0];
                 }
@@ -158,7 +158,7 @@ namespace player
 
     bool PlayersManager::movePlayer(int id, float x, float y, float z){
                 if(existPlayer(id)){
-                    Player *playerREF = players[id];
+                    PLAYER playerREF = players[id];
                     playerREF->move(x,y,z);
                     return true;
                 }
@@ -167,7 +167,7 @@ namespace player
 
     bool PlayersManager::setAttenuation(int id, float new_at){
                 if(existPlayer(id)){
-                    Player *playerREF = players[id];
+                    PLAYER playerREF = players[id];
                     playerREF->attenuation(new_at);
                     return true;
                 }
@@ -176,7 +176,7 @@ namespace player
 
     bool PlayersManager::setMinDistance(int id, float new_MD){
                 if(existPlayer(id)){
-                    Player *playerREF = players[id];
+                    PLAYER playerREF = players[id];
                     playerREF->minDistance(new_MD);
                     return true;
                 }

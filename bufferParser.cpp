@@ -43,7 +43,7 @@ void Bufferparser::parserThread(data::buffer buffer)
 
     if (PlayersManagerImpl::getInstance().existPlayer(receivedAudioSTC.id))
     {
-      Player *player = PlayersManagerImpl::getInstance().getPlayer(receivedAudioSTC.id);
+      PLAYER player = PlayersManagerImpl::getInstance().getPlayer(receivedAudioSTC.id);
       data::buffer decodedAud = OpusManagerImpl::getInstance().decode(receivedAudioSTC.audioData);
       player->push(decodedAud);
       //player->push(receivedAudioSTC);
@@ -51,7 +51,7 @@ void Bufferparser::parserThread(data::buffer buffer)
     else
     {
       PlayersManagerImpl::getInstance().insertPlayer(receivedAudioSTC.id, 0, 0, 0);
-      Player *player = PlayersManagerImpl::getInstance().getPlayer(receivedAudioSTC.id);
+      PLAYER player = PlayersManagerImpl::getInstance().getPlayer(receivedAudioSTC.id);
     }
 
     break;

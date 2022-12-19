@@ -11,6 +11,7 @@
 #include <mutex>
 #include <memory>
 #include <vector>
+#include <string>
 
 #include "osimports.h"
 
@@ -31,6 +32,23 @@
 #define MSG_CONFIRM 0x0
 
 #define MAXLINE 1024
+#define IPv4Size 4
+
+std::string constructStrIP(char *ip){
+  std::string out;
+  std::stringstream streamout;
+
+  for(int i = 0; i < IPv4Size; i++){
+    streamout << (int)ip[i];
+    if(i < 3){
+      streamout << ".";
+    }
+  }
+
+  streamout >> out;
+
+  return out;
+}
 
 data::buffer decrypt(data::buffer &buffer){
   data::buffer procbuff(buffer.getData() + 1 ,buffer.size() - 1);
@@ -56,25 +74,7 @@ int Connection::getSocket(){
 }
 
 void Connection::startWSA(){
-  if (iswindows && WSAinitialized == false)
-  {
-    WSADATA wsaData;
-
-    int iResult = 0;
-
-    // Initialize Winsock
-    iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-
-    if (iResult != 0)
-    {
-      printf("WSAStartup failed: %d\n", iResult);
-      WSAinitialized = false;
-    }
-    else
-    {
-      WSAinitialized = true;
-    }
-  }
+  WSAinitialized = crossSocketModule::startWSA(WSAinitialized);
 }
 
 void Connection::safeDeleteThread(){
@@ -87,9 +87,8 @@ void Connection::safeDeleteThread(){
   }
 }
 
-Connection::Connection(char *ip, int ip_size, int port)
+Connection::Connection(char *ip, int port)
 {
-  connectionAtmp = 0;
   receiveAtmp = 0;
   countRepeatError = 0;
   needWait = false;
@@ -100,54 +99,42 @@ Connection::Connection(char *ip, int ip_size, int port)
   threadCanRun = true;
   WSAinitialized = false;
   isConnected = false;
-  servaddrData = data::buffer(sizeof(sockaddr_in));
-  servaddr = (sockaddr_in*)servaddrData.getData();
-  memset(&servaddr, 0, sizeof(servaddr));
-  start(ip, ip_size, port);
+
+  servaddr = new struct sockaddr_in;
+  memset(servaddr, 0, sizeof(sockaddr_in));
+  start(ip, port);
 }
 
-  void Connection::start(char *ip, int ip_size, int port){
+Connection::~Connection(){
+  delete servaddr;
+}
 
-    char *valid_ip = new char[ip_size];
-  protocol::tools::bufferToData(valid_ip, ip_size, ip);
+  void Connection::start(char *ip, int port){
 
   startWSA();
 
-  const char *constIP = valid_ip;
-  servaddr->sin_addr.s_addr = inet_addr(constIP);
+  servaddr->sin_addr.s_addr = inet_addr(constructStrIP(ip).c_str());
   servaddr->sin_port = htons(port);
   servaddr->sin_family = AF_INET;
 
-  binding();
+  sockaddr_in testaddr;
 
-    delete[] valid_ip;
+  memset((char*)&testaddr, 0, sizeof(testaddr));
+  testaddr.sin_family = AF_INET; 
+  testaddr.sin_port = htons(443); 
+  testaddr.sin_addr.S_un.S_addr = inet_addr(constructStrIP(ip).c_str());
+
+  finalcheck();
   }
 
-  void Connection::binding(){
-    // create datagram socket
+  void Connection::finalcheck(){
+
     if(sockfd == SOCKET_ERROR || sockfd == 0){
       sockfd = socket(AF_INET, SOCK_DGRAM, 0);
       if(sockfd == SOCKET_ERROR){
         errorHandling();
         return;
-      }
-    }
-
-    int connectionState = -1;
-    while(connectionState < 0){
-      if (iswindows){
-        connectionState = connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
       } else {
-        connectionState = bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
-      }
-      if(connectionState < 0){
-        connectionAtmp++;
-        if(connectionAtmp >= max_connection_attempt){
-          connectionState = 2;
-          printf("\n Error : Connect to VOIP Failed \n");
-        }
-      } else {
-        connectionState = 1;
         isConnected = true;
       }
     }
@@ -164,6 +151,7 @@ Connection::Connection(char *ip, int ip_size, int port)
   void Connection::closeSocket(){
     osCloseSocket(sockfd);
     isConnected = false;
+    safeDeleteThread();
   }
 
   void Connection::receiveThread(){
@@ -172,18 +160,21 @@ Connection::Connection(char *ip, int ip_size, int port)
     // connect stores the peers IP and port
     threadIsRuning = true;
     char buffer[512];
+    int lensrv = sizeof(sockaddr_in);
+
     while (isConnected && threadCanRun)
     {
       // sendto(sockfd, message, message_len, 0, (struct sockaddr *)NULL, sizeof(servaddr));
 
       // waiting for response
-      int lensrv = sizeof(servaddr);
       int n = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&servaddr, &lensrv);
       
       if(n < 1){
         receiveAtmp++;
         errorHandling();
         if(receiveAtmp >= max_receive_attempt){
+          threadIsRuning = false;
+          isConnected = false;
           return;
         }
         continue;
@@ -220,9 +211,9 @@ Connection::Connection(char *ip, int ip_size, int port)
         outputData.insert(outputData.end(), reinterpreted[0]);
         outputData.insert(outputData.end(), encrypted.begin(), encrypted.end());
 
-        checkSend = sendto(sockfd, reinterpret_cast<const char*>(outputData.data()), outputData.size(), 0, (struct sockaddr *)NULL, sizeof(servaddr));
+        checkSend = sendto(sockfd, reinterpret_cast<const char*>(outputData.data()), outputData.size(), 0, (struct sockaddr *)servaddr, sizeof(sockaddr_in));
       } else {
-        checkSend = sendto(sockfd, buffer.getData(), buffer.size(), 0, (struct sockaddr *)NULL, sizeof(servaddr));
+        checkSend = sendto(sockfd, buffer.getData(), buffer.size(), 0, (struct sockaddr *)servaddr, sizeof(sockaddr_in));
       }
 
       if(checkSend < 0){
@@ -230,8 +221,8 @@ Connection::Connection(char *ip, int ip_size, int port)
         errorHandling();
         if(sendAtmp >= max_send_attempt){
           trySend = false;
-          sf::sleep(sf::milliseconds(1));
         }
+        sf::sleep(sf::milliseconds(1));
       } else {
         trySend = false;
       }
@@ -255,7 +246,7 @@ Connection::Connection(char *ip, int ip_size, int port)
     std::lock_guard<std::mutex> guard(errorMutex);
 
     int recLastError = lastError;
-    lastError = errorDefine::getError();
+    lastError = crossSocketModule::getError();
     maxAttempt = -1;
 
     if(lastError == recLastError){
@@ -285,7 +276,7 @@ Connection::Connection(char *ip, int ip_size, int port)
       break;
     case CRMD_IO_INCOMPLETE:
       closeSocket();
-      binding();
+      finalcheck();
       errorSeverity = ERROR_MEDIUM;
       needWait = true;
       maxAttempt = 5;
@@ -306,7 +297,7 @@ Connection::Connection(char *ip, int ip_size, int port)
       break;
     case CRMD_RESOURCE_TEMP_UNAVAILABLE:
       closeSocket();
-      binding();
+      finalcheck();
       errorSeverity = ERROR_MEDIUM;
       needWait = true;
       maxAttempt = 10;
@@ -343,12 +334,12 @@ Connection::Connection(char *ip, int ip_size, int port)
       errorSeverity = ERROR_MEDIUM;
       break;
     case CRMD_NETW_DROP_CONN_ON_RESET:
-      binding();
+      finalcheck();
       errorSeverity = ERROR_MEDIUM;
       break;
     case CRMD_CONNECTION_ABORTED:
       closeSocket();
-      binding();
+      finalcheck();
       errorSeverity = ERROR_MEDIUM;
       needWait = true;
       maxAttempt = 3;
@@ -356,7 +347,7 @@ Connection::Connection(char *ip, int ip_size, int port)
       break;
     case CRMD_CONNECTION_RESET_BY_PEER:
       closeSocket();
-      binding();
+      finalcheck();
       errorSeverity = ERROR_MEDIUM;
       needWait = true;
       maxAttempt = 3;
@@ -364,7 +355,7 @@ Connection::Connection(char *ip, int ip_size, int port)
       break;
     case CRMD_NO_BUFFER_SPACE:
       closeSocket();
-      binding();
+      finalcheck();
       errorSeverity = ERROR_MEDIUM;
       needWait = true;
       maxAttempt = 3;
@@ -374,7 +365,7 @@ Connection::Connection(char *ip, int ip_size, int port)
       errorSeverity = ERROR_LOW;
       break;
     case CRMD_IS_NOT_CONNECTED:
-      binding();
+      finalcheck();
       break;
     case CRMD_SHUTDOWN:
       errorSeverity = ERROR_SERIOUS;
@@ -384,7 +375,7 @@ Connection::Connection(char *ip, int ip_size, int port)
       break;
     case CRMD_REFUSED:
       closeSocket();
-      binding();
+      finalcheck();
       errorSeverity = ERROR_MEDIUM;
       needWait = true;
       maxAttempt = 3;
@@ -392,7 +383,7 @@ Connection::Connection(char *ip, int ip_size, int port)
       break;
     case CRMD_HOST_DOWN:
       closeSocket();
-      binding();
+      finalcheck();
       errorSeverity = ERROR_ADDRESS_PROBLEM;
       needWait = true;
       maxAttempt = 10;
@@ -452,22 +443,20 @@ Connection::Connection(char *ip, int ip_size, int port)
 
   bool ConnectionImpl::initialized = false;
   char *ConnectionImpl::ip_ = nullptr;
-  int ConnectionImpl::ip_size_ = 0;
   int ConnectionImpl::port_ = 0;
 
   Connection& ConnectionImpl::getInstance(){
     if(initialized){
-      static Connection instance(ip_, ip_size_, port_);
+      static Connection instance(ip_, port_);
       return instance;
     } else {
       perror("fabric Connection!");
     }
   }
 
-  void ConnectionImpl::fabric(char* ip, int ip_size, int port){
+  void ConnectionImpl::fabric(char* ip, int port){
     if(initialized == false){
       ip_ = ip;
-      ip_size_ = ip_size;
       port_ = port;
       initialized = true;
     }
@@ -480,7 +469,20 @@ Connection::Connection(char *ip, int ip_size, int port)
   void FakeServerSocket::init()
   {
 
-    ConnectionImpl::getInstance().startWSA();
+    if (iswindows)
+    {
+      WSADATA wsaData;
+
+      int iResult = 0;
+
+      // Initialize Winsock
+      iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+      if (iResult != 0)
+      {
+        printf("WSAStartup failed: %d\n", iResult);
+      }
+    }
 
     // Creating socket file descriptor
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -524,7 +526,7 @@ Connection::Connection(char *ip, int ip_size, int port)
                    &len);
       if(n < 0){
         perror("receive failed");
-        int error = errorDefine::getError();
+        int error = crossSocketModule::getError();
         continue;
       }
 
@@ -535,7 +537,7 @@ Connection::Connection(char *ip, int ip_size, int port)
              len);
       if(sndmsg < 0){
         perror("send failed");
-        int error = errorDefine::getError();
+        int error = crossSocketModule::getError();
         continue;
       }
     }

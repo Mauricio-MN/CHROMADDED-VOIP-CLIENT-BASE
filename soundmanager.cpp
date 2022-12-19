@@ -42,7 +42,7 @@ sf::SoundBuffer Recorder::recordForTest(){
   sf::SoundBufferRecorder Trec;
   Trec.setChannelCount(SAMPLE_CHANNELS);
   Trec.start(SAMPLE_RATE);
-  sf::sleep(sf::milliseconds(10000));
+  sf::sleep(sf::milliseconds(5000));
   Trec.stop();
   return Trec.getBuffer();
 }

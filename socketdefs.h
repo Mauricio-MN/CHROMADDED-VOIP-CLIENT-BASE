@@ -47,16 +47,44 @@
     #define gnuDeafult
     #include <errno.h>
 #endif
-class errorDefine{
+class crossSocketModule{
 
     public:
     #ifdef windowsSys
         static int getError(){
             return WSAGetLastError();
         }
+
+        //return true if initialized
+        static boolean startWSA(bool WSAisInitialized){
+            if (WSAisInitialized == false)
+            {
+                WSADATA wsaData;
+
+                int iResult = 0;
+
+                // Initialize Winsock
+                iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+                if (iResult != 0)
+                {
+                printf("WSAStartup failed: %d\n", iResult);
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+        }
+
     #else
         static int getError(){
             return errno;
+        }
+
+        static boolean startWSA(bool WSAisInitialized){
+            return true;
         }
     #endif
 

@@ -113,7 +113,7 @@ namespace data
 
             void insert(const char* data, int size){
                 if(checkValidInsertSize(size)){ return; }
-                bufferDataVec.insert(bufferDataVec.end(), data, data + size);
+                bufferDataVec.insert(bufferDataVec.end(), (char*)data, ((char*)data) + size);
             }
 
             void insert(buffer& Data, int size){
@@ -135,14 +135,13 @@ namespace data
 
             template <typename T>
             void insert(T& data){
-                bufferDataVec.insert(bufferDataVec.end(), data, data + sizeof(T));
+                bufferDataVec.insert(bufferDataVec.end(), reinterpret_cast<char*>(data), reinterpret_cast<char*>(data) + sizeof(T));
             }
 
             template <typename T>
             void insertArray(T* data, int size){
-                if(bufferDataVec.size() >= size){
-                    bufferDataVec.insert(bufferDataVec.end(), data, data + (sizeof(T) * size));
-                }
+                if(checkValidInsertSize(size)){ return; }
+                    bufferDataVec.insert(bufferDataVec.end(), reinterpret_cast<char*>(data), reinterpret_cast<char*>(data) + (sizeof(T) * size));
             }
 
             template <typename T>
@@ -157,26 +156,32 @@ namespace data
             }
             
             buffer(size_t len){
+                bufferDataVec.reserve(256);
                     bufferDataVec.resize(len);
             }
 
             buffer(buffer* Data){
+                bufferDataVec.reserve(256);
                     bufferDataVec.insert(bufferDataVec.end(), Data->getVector().begin(), Data->getVector().end());
             }
 
             buffer(const buffer& Data){
+                bufferDataVec.reserve(256);
                     insert(Data);
             }
 
             buffer(char *refBuffer, size_t len){
+                bufferDataVec.reserve(256);
                     insert(refBuffer, len);
             }
 
             buffer(const char *refBuffer, size_t len){
+                bufferDataVec.reserve(256);
                     insert(refBuffer, len);
             }
 
             buffer(){
+                bufferDataVec.reserve(256);
             }
 
             bool isValid(){
