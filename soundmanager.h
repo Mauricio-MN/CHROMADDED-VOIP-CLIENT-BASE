@@ -68,7 +68,7 @@ public:
     /// Default constructor
     ///
     ////////////////////////////////////////////////////////////
-    NetworkAudioStream() : m_offset(0), m_updateOffset(false)
+    NetworkAudioStream() : m_offset(0), m_updateOffset(false), m_circular_buffer(SAMPLE_RATE * 10)
     {
         // Set the sound parameters
         initialize(SAMPLE_CHANNELS, SAMPLE_RATE);
@@ -81,17 +81,18 @@ public:
     void receive(data::buffer &data)
     {
         // Get waiting audio data
-        std::scoped_lock lock(m_mutex);
+        //std::scoped_lock lock(m_mutex);
         const sf::Int16* samples = reinterpret_cast<const sf::Int16*>(data.getData());
         //m_swapSamples.insert(m_swapSamples.end(), samples, samples + (data.size() / sizeof(sf::Int16)) );
-        //m_
+        m_circular_buffer.Push(samples, (data.size() / sizeof(sf::Int16)));
     }
 
     void insert(sf::SoundBuffer data)
     {
         // Get waiting audio data
-        std::scoped_lock lock(m_mutex);
+        //std::scoped_lock lock(m_mutex);
         const sf::Int16* samples = data.getSamples();
+        m_circular_buffer.Push(samples, data.getSampleCount());
         //m_swapSamples.insert(m_swapSamples.end(), samples, samples + data.getSampleCount());
 
     }
@@ -121,6 +122,27 @@ private:
     int selectedSpeed = 0;
     bool onGetData(sf::SoundStream::Chunk& data) override
     {
+
+        m_circular_temp.clear();
+
+        auto buffer = m_circular_buffer.Pop(SAMPLE_RATE*10);
+
+        if(buffer.size() <= 0){
+            int count = 0;
+            while(m_circular_buffer.Size() < 5){
+                sf::sleep(sf::milliseconds(40 * 5));
+                count++;
+                if(count >= 10){
+                    return false;
+                }
+            }
+        }
+
+        m_circular_temp.insert(m_circular_temp.begin(), buffer.begin(), buffer.end());
+        data.samples = m_circular_temp.data();
+        data.sampleCount = m_circular_temp.size();
+
+        return true;
 
         int wait = 0;
         int lastSize = m_swapSamples.size();
@@ -281,6 +303,7 @@ private:
     bool                      m_updateOffset;
     bool                      m_updateOffsetRCV;
     CircularBuffer<std::int16_t> m_circular_buffer;
+    std::vector<std::int16_t> m_circular_temp;
 };
 
 
