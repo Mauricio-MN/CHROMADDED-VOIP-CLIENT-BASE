@@ -160,14 +160,15 @@ Connection::~Connection(){
     // connect stores the peers IP and port
     threadIsRuning = true;
     char buffer[512];
-    int lensrv = sizeof(sockaddr_in);
 
     while (isConnected && threadCanRun)
     {
       // sendto(sockfd, message, message_len, 0, (struct sockaddr *)NULL, sizeof(servaddr));
 
       // waiting for response
-      int n = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&servaddr, &lensrv);
+      
+      int len = sizeof(sockaddr_in);
+      int n = recvfrom(sockfd, buffer, 512, 0, (struct sockaddr *)&servaddr, &len);
       
       if(n < 1){
         receiveAtmp++;
@@ -247,6 +248,7 @@ Connection::~Connection(){
 
     int recLastError = lastError;
     lastError = crossSocketModule::getError();
+    lastError = crossSocketModule::getError(lastError);
     maxAttempt = -1;
 
     if(lastError == recLastError){
