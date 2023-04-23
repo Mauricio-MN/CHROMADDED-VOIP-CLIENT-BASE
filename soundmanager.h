@@ -17,6 +17,7 @@
 #include "connection.h"
 #include "protocol.h"
 #include "smbPitchShift.h"
+#include "structure/CircularBuffer.h"
 
 #define SAMPLE_RATE 16000
 #define SAMPLE_BITS 16
@@ -82,8 +83,8 @@ public:
         // Get waiting audio data
         std::scoped_lock lock(m_mutex);
         const sf::Int16* samples = reinterpret_cast<const sf::Int16*>(data.getData());
-        m_swapSamples.insert(m_swapSamples.end(), samples, samples + (data.size() / sizeof(sf::Int16)) );
-
+        //m_swapSamples.insert(m_swapSamples.end(), samples, samples + (data.size() / sizeof(sf::Int16)) );
+        //m_
     }
 
     void insert(sf::SoundBuffer data)
@@ -91,7 +92,7 @@ public:
         // Get waiting audio data
         std::scoped_lock lock(m_mutex);
         const sf::Int16* samples = data.getSamples();
-        m_swapSamples.insert(m_swapSamples.end(), samples, samples + data.getSampleCount());
+        //m_swapSamples.insert(m_swapSamples.end(), samples, samples + data.getSampleCount());
 
     }
 
@@ -279,6 +280,7 @@ private:
     std::size_t               m_offset;
     bool                      m_updateOffset;
     bool                      m_updateOffsetRCV;
+    CircularBuffer<std::int16_t> m_circular_buffer;
 };
 
 
