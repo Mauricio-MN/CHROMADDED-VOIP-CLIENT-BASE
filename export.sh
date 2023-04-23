@@ -1,3 +1,27 @@
+function needs_recompile() {
+  local OBJ="$1"
+  local FILE="$2"
+  local DEP="$3"
+
+  if [[ ! -e $OBJ ]]; then
+    return 0  # O arquivo de objeto não existe, precisa ser recompilado
+  fi
+
+  if [[ $OBJ -ot $FILE || $OBJ -ot $DEP ]]; then
+    return 0  # O arquivo de objeto é mais antigo do que o arquivo .cpp ou .d, precisa ser recompilado
+  fi
+
+  # Verificar se algum arquivo de cabeçalho listado no arquivo .d foi modificado
+  while read -r DEPFILE; do
+    if [[ $OBJ -ot $DEPFILE ]]; then
+      echo "$DEPFILE att"
+      return 0  # O arquivo de objeto é mais antigo do que o arquivo de cabeçalho, precisa ser recompilado
+    fi
+  done < <(tr '\ ' '\n' < "$DEP")
+
+  return 1  # O arquivo de objeto está atualizado e não precisa ser recompilado
+}
+
 EXTNAME=""
 COMPILER=""
 
@@ -31,11 +55,32 @@ elif [[ "$OSTYPE" == "freebsd"* ]]; then
         COMPILER="g++"
 fi
 
+
+# Lê o argumento passado no formato "NOME=VALOR"
+for arg in "$@"
+do
+    # Verifica se o argumento é do formato "NOME=VALOR"
+    if [[ $arg == *"="* ]]; then
+        # Extrai o nome e o valor do argumento
+        name="${arg%=*}"
+        value="${arg#*=}"
+        
+        if [[ $name == "CLEAN" ]]; then
+            if [[ $value == "true" ]]; then
+                rm -r $FOLDER/obj/release/*
+                rm -r $FOLDER/obj/debug/*
+            fi
+        fi
+
+    fi
+done
+
 #BUILD GNU
 
 TESTARG=""
 TEST=$1
 BUILDNAME=""
+BUILDNAMENOEXT="crmd"
 FPIC=""
 SHARED=""
 G=""
@@ -47,44 +92,61 @@ if [[ "$EXTNAME" == "dll" ]]; then
 fi
 
 if [[ "$TEST" == "test" ]]; then
-    TESTARG=$FOLDER/../test.cpp
+    TESTARG=../test.cpp
+    BUILDNAMENOEXT="test"
     if [[ "$EXTNAME" == "dll" ]]; then
-        BUILDNAME="../test.exe"
+        BUILDNAME="../$BUILDNAMENOEXT.exe"
     else
-        BUILDNAME="../test"
+        BUILDNAME="../$BUILDNAMENOEXT"
     fi
     G="-g"
 else
+    if [[ "$TEST" == "android" ]]; then
+        EXTNAME="so"
+        COMPILER="g++"
+    fi
     BUILDNAME="crmd."$EXTNAME
     FPIC="-fPIC"
     SHARED="-shared"
     G=""
 fi
 
-CMDBUILD="$COMPILER -fdiagnostics-color=always -Wall -std=c++20
-                $G
-				$FOLDER/connection.cpp
-				$FOLDER/cript.cpp
-				$FOLDER/protocol.cpp
-				$FOLDER/soundmanager.cpp
-				$FOLDER/bufferParser.cpp
-				$FOLDER/player.cpp
-				$FOLDER/SoundCustomBufferRecorder.cpp
-				$FOLDER/smbPitchShift.cpp
-				$FOLDER/opusmanager.cpp
-				$FOLDER/crmd.cpp
-				$TESTARG
-				-o
-				$FOLDER/$BUILDNAME
-                $FPIC
-                $SHARED
-				$WINLIBS
-				-lssl
-				-lcrypto
-				-lsfml-system
-				-lsfml-audio
-                -lsfml-window
-				-llibopus"
+ENDOBJ="$FOLDER/bin/release/$BUILDNAME"
+ENDOBJFOLDER="$FOLDER/bin/release"
+
+LIBS="-lssl -lcrypto -lsfml-system -lsfml-audio -lsfml-window -llibopus"
+ARGS="$ARGS -static-libstdc++ -static-libgcc -DSFML_STATIC"
+
+CPPS="connection.cpp
+				cript.cpp
+				protocol.cpp
+				soundmanager.cpp
+				bufferParser.cpp
+				player.cpp
+				SoundCustomBufferRecorder.cpp
+				smbPitchShift.cpp
+				opusmanager.cpp
+				crmd.cpp
+
+                $TESTARG"
+OBJS=""
+# Compilar cada arquivo .cpp individualmente
+for FILE in $CPPS; do
+  OBJ="${FILE%.cpp}.o"
+  DEP="${FILE%.cpp}.d"
+  OBJ_DIR=$(dirname "$FILE")
+  mkdir -p "$FOLDER/obj/release/$OBJ_DIR"
+  if needs_recompile "$FOLDER/obj/release/$OBJ" "$FOLDER/$FILE" "$FOLDER/obj/release/$DEP"; then
+    echo "Compile $OBJ"
+    $COMPILER -c $G -Wall -std=c++20 -MMD -MP $ARGS $FPIC $WINLIBS $LIBS $FOLDER/$FILE -o $FOLDER/obj/release/$OBJ
+  else
+    echo "$OBJ OK"
+  fi
+  OBJS="$OBJS $FOLDER/obj/release/$OBJ"
+done
+
+# Construir a biblioteca compartilhada final
+CMDBUILD="$COMPILER $G -std=c++20 $ARGS $OBJS $SHARED $FPIC $WINLIBS $LIBS -o $ENDOBJ"
 
 BUILDSUCCESS="true"
 
@@ -114,7 +176,7 @@ darwincheck () {
     else
         if [[ "$OSTYPE" == "darwin"* ]]; then
             echo "Tryng dynamic lib copy"
-            cp -R $FOLDER/crmd.dylib $FOLDER/include/
+            cp -R $ENDOBJFOLDER/$BUILDNAMENOEXT.dylib $FOLDER/include/
             check "crmd.dylib"
         else
             echo $FAILMSG $1
@@ -123,7 +185,7 @@ darwincheck () {
 }
 
 includefiles() {
-    cp -R $FOLDER/crmd.$EXTNAME $FOLDER/include/
+    cp -R $ENDOBJ $FOLDER/include/
     darwincheck "crmd."$EXTNAME
 
     cp -R $FOLDER/crmd.h       $FOLDER/include/
