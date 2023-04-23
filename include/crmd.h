@@ -9,7 +9,7 @@ namespace crmd{
 inline bool initialized = false;
 inline bool recordingAudioData = false;
 
-EXPORT void init(int register_id, int id, char* ip, int ip_size, int port, unsigned char *key, float x, float y, float z, bool needEncrypt);
+EXPORT void init(int register_id, int id, char* ip, int port, unsigned char *key, float x, float y, float z, bool needEncrypt);
 EXPORT void updateMyPos(int map, float x, float y, float z);
 EXPORT void updateMyRot(float x, float y, float z);
 
@@ -36,7 +36,7 @@ EXPORT bool isConnected();
 EXPORT int getConnectionError(); //globaldefs.h errors
 
 EXPORT void closeSocket(); //call and wait(100/1000 ms), call connectTo();
-EXPORT void connectTo(char* ip, int ip_size);
+EXPORT void connectTo(char* ip, int port);
 
 }
 
