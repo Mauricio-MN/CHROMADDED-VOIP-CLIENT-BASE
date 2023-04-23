@@ -22,8 +22,8 @@ private:
     std::vector<T> buffer_;
     size_t head_ = 0;
     size_t tail_ = 0;
-    mutable std::mutex mutex_;
-    sem_t sem_;
+    mutable std::mutex mutex_push;
+    mutable std::mutex mutex_pop;
 };
 
 #include "CircularBuffer.cpp"
