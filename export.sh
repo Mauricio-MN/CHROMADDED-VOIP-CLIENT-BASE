@@ -111,6 +111,8 @@ else
     G=""
 fi
 
+BUILDSUCCESS="true"
+
 ENDOBJ="$FOLDER/bin/release/$BUILDNAME"
 ENDOBJFOLDER="$FOLDER/bin/release"
 
@@ -139,6 +141,9 @@ for FILE in $CPPS; do
   if needs_recompile "$FOLDER/obj/release/$OBJ" "$FOLDER/$FILE" "$FOLDER/obj/release/$DEP"; then
     echo "Compile $OBJ"
     $COMPILER -c $G -Wall -std=c++20 -MMD -MP $ARGS $FPIC $WINLIBS $LIBS $FOLDER/$FILE -o $FOLDER/obj/release/$OBJ
+    if [ $? -eq 0 ]; then
+        BUILDSUCCESS="false"
+    fi
   else
     echo "$OBJ OK"
   fi
@@ -146,9 +151,12 @@ for FILE in $CPPS; do
 done
 
 # Construir a biblioteca compartilhada final
-CMDBUILD="$COMPILER $G -std=c++20 $ARGS $OBJS $SHARED $FPIC $WINLIBS $LIBS -o $ENDOBJ"
+if [[ "$BUILDSUCCESS" == "false" ]]; then
+    echo "BUILD FAILED"
+    exit
+fi
 
-BUILDSUCCESS="true"
+CMDBUILD="$COMPILER $G -std=c++20 $ARGS $OBJS $SHARED $FPIC $WINLIBS $LIBS -o $ENDOBJ"
 
 echo $CMDBUILD
 eval $CMDBUILD
