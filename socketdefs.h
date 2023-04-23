@@ -7,6 +7,7 @@
 #define CRMD_IO_INCOMPLETE             40
 #define CRMD_PERMISSION_DENIED         50
 #define CRMD_BAD_ADDRESS               60
+#define CRMD_INVALID_ARGUMENT          65 //Microsoft
 #define CRMD_MANY_SOCKETS              70
 #define CRMD_RESOURCE_TEMP_UNAVAILABLE 80
 #define CRMD_NOW_IN_PROGRESS           90
@@ -52,7 +53,7 @@ class crossSocketModule{
     public:
     #ifdef windowsSys
         static int getError(){
-            return WSAGetLastError();
+            return getError(WSAGetLastError());
         }
 
         //return true if initialized
@@ -76,11 +77,12 @@ class crossSocketModule{
                     return true;
                 }
             }
+            return true;
         }
 
     #else
         static int getError(){
-            return errno;
+            return getError(errno);
         }
 
         static boolean startWSA(bool WSAisInitialized){
@@ -104,6 +106,8 @@ class crossSocketModule{
                 return CRMD_PERMISSION_DENIED;
             case 10014:
                 return CRMD_BAD_ADDRESS;
+            case 10022:
+                return CRMD_INVALID_ARGUMENT;
             case 10024:
                 return CRMD_MANY_SOCKETS;
             case 10035:
