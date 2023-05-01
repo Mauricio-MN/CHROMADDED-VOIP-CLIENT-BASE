@@ -25,6 +25,7 @@ EXPORT void removePlayer(int id);
 EXPORT void setAudioType(AudioType audioType);
 EXPORT void enableRecAudio();
 EXPORT void disableRecAudio();
+EXPORT float getMicVolume();
 
 EXPORT void setVolumeAudio(float volume);
 
