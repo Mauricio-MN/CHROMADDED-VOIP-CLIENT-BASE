@@ -116,7 +116,7 @@ BUILDSUCCESS="true"
 ENDOBJ="$FOLDER/bin/release/$BUILDNAME"
 ENDOBJFOLDER="$FOLDER/bin/release"
 
-LIBS="-lssl -lcrypto -lsfml-system -lsfml-audio -lsfml-window -llibopus"
+LIBS="-lssl -lcrypto -lsfml-system -lsfml-audio -lsfml-window -llibopus -lboost_system-mt"
 ARGS="$ARGS -static-libstdc++ -static-libgcc -DSFML_STATIC"
 
 CPPS="connection.cpp
@@ -133,6 +133,7 @@ CPPS="connection.cpp
                 $TESTARG"
 OBJS=""
 # Compilar cada arquivo .cpp individualmente
+COUNT=0
 for FILE in $CPPS; do
   OBJ="${FILE%.cpp}.o"
   DEP="${FILE%.cpp}.d"
@@ -140,15 +141,28 @@ for FILE in $CPPS; do
   mkdir -p "$FOLDER/obj/release/$OBJ_DIR"
   if needs_recompile "$FOLDER/obj/release/$OBJ" "$FOLDER/$FILE" "$FOLDER/obj/release/$DEP"; then
     echo "Compile $OBJ"
+    #{
     $COMPILER -c $G -Wall -std=c++20 -MMD -MP $ARGS $FPIC $WINLIBS $LIBS $FOLDER/$FILE -o $FOLDER/obj/release/$OBJ
-    if [ $? -eq 0 ]; then
+    if [ $? -ne 0 ]; then
         BUILDSUCCESS="false"
+        echo "BUILD FAILED"
+        exit;
     fi
+    #} &
+
   else
     echo "$OBJ OK"
   fi
   OBJS="$OBJS $FOLDER/obj/release/$OBJ"
+
+  COUNT+=1
+  if [[ $COUNT == 10 ]]; then
+    #wait
+    $COUNT=0
+  fi
 done
+
+wait
 
 # Construir a biblioteca compartilhada final
 if [[ "$BUILDSUCCESS" == "false" ]]; then
