@@ -62,7 +62,7 @@ std::vector<unsigned char> crypt::aes_128_gcm_encrypt(std::string plaintext, std
  
     int actual_size=0, final_size=0;
     EVP_CIPHER_CTX* e_ctx = EVP_CIPHER_CTX_new();
-    //EVP_CIPHER_CTX_ctrl(e_ctx, EVP_CTRL_GCM_SET_IVLEN, 16, NULL);
+    EVP_CIPHER_CTX_ctrl(e_ctx, EVP_CTRL_GCM_SET_IVLEN, 16, NULL);
     EVP_EncryptInit(e_ctx, EVP_aes_128_gcm(), (const unsigned char*)key.c_str(), iv);
     EVP_EncryptUpdate(e_ctx, &output[32], &actual_size, (const unsigned char*)plaintext.data(), plaintext.length() );
     EVP_EncryptFinal(e_ctx, &output[32+actual_size], &final_size);
@@ -89,7 +89,7 @@ std::vector<unsigned char> crypt::aes_128_gcm_encrypt(std::vector<unsigned char>
  
     int actual_size=0, final_size=0;
     EVP_CIPHER_CTX* e_ctx = EVP_CIPHER_CTX_new();
-    //EVP_CIPHER_CTX_ctrl(e_ctx, EVP_CTRL_GCM_SET_IVLEN, 16, NULL);
+    EVP_CIPHER_CTX_ctrl(e_ctx, EVP_CTRL_GCM_SET_IVLEN, 16, NULL);
     EVP_EncryptInit(e_ctx, EVP_aes_128_gcm(), (const unsigned char*)key.c_str(), iv);
     EVP_EncryptUpdate(e_ctx, &output[32], &actual_size, (const unsigned char*)buffer->data(), buffer->size() );
     EVP_EncryptFinal(e_ctx, &output[32+actual_size], &final_size);

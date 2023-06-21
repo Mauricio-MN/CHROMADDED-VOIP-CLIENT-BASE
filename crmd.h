@@ -9,6 +9,15 @@ namespace crmd{
 inline bool initialized = false;
 inline bool recordingAudioData = false;
 
+/*
+register_id -> O id de registro é um id secreto combinado entre Game Server e VOIP server a cada nova autenticação.
+id          -> Id público fixo.
+ip          -> Ip do servidor VOIP.
+port        -> Porta do servidor VOIP.
+key         -> Chave de criptografia combinada entre (GameServer e API) e (API e Servidor VOIP) para cada jogador.
+x, y, z,    -> Coordenadas em metros do jogador.
+needEncrypt -> True = precisa encriptar, False = não precisa
+*/
 EXPORT void init(int register_id, int id, char* ip, int port, unsigned char *key, float x, float y, float z, bool needEncrypt);
 EXPORT void updateMyPos(int map, float x, float y, float z);
 EXPORT void updateMyRot(float x, float y, float z);
@@ -26,6 +35,7 @@ EXPORT void setAudioType(AudioType audioType);
 EXPORT void enableRecAudio();
 EXPORT void disableRecAudio();
 EXPORT float getMicVolume();
+EXPORT float setMicVolume();
 
 EXPORT void setVolumeAudio(float volume);
 

@@ -1,4 +1,5 @@
 #include "opusmanager.h"
+#include "protocolTools.h"
 
     OpusManager& OpusManagerImpl::getInstance(){
         static OpusManager instance;
@@ -26,12 +27,9 @@
     data::buffer OpusManager::decode(data::buffer &buffer){
         opus_int16* decodedSamples = new opus_int16[640];
         int decodedLen = opus_decode(decoder, reinterpret_cast<const unsigned char*>(buffer.getData()), buffer.size(), decodedSamples, 640, 0);
-        
-        int bufferLen = sizeof(opus_int16) / sizeof(char) * decodedLen;
-        char* outBuffer = new char[bufferLen];
+        int bufferLen = decodedLen * sizeof(opus_int16);
 
-        protocol::tools::transformArrayToBuffer(decodedSamples, decodedLen, outBuffer);
-        data::buffer outDataBuffer(outBuffer, bufferLen);
-        delete[] outBuffer;
+        data::buffer outDataBuffer(reinterpret_cast<const char*>(decodedSamples), bufferLen);
+        delete[] decodedSamples;
         return outDataBuffer;
     }

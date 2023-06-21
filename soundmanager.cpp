@@ -49,7 +49,7 @@ sf::SoundBuffer Recorder::recordForTest(){
 
 Recorder::Recorder(){
   rec.setChannelCount(SAMPLE_CHANNELS);
-  rec.setProcessingIntervalOverride(sf::milliseconds(50));
+  rec.setProcessingIntervalOverride(sf::milliseconds(40));
   rec.setListen(DEBUG_AUDIO);
   rec.setProcessingBufferFunction(player::Self::sendAudio);
   rec.start(SAMPLE_RATE);

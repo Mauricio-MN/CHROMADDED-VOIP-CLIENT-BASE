@@ -7,6 +7,7 @@
 #include "protocol.h"
 #include "soundmanager.h"
 #include "player.h"
+#include "connection.h"
 
 #include <SFML/Audio.hpp>
 

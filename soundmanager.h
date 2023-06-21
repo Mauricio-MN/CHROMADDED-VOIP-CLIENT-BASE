@@ -14,10 +14,10 @@
 
 #include "SoundCustomBufferRecorder.hpp"
 
-#include "connection.h"
-#include "protocol.h"
 #include "smbPitchShift.h"
 #include "structure/CircularBuffer.h"
+#include "structure/ringbuffer.hpp"
+//#include <boost/circular_buffer.hpp>
 
 #define SAMPLE_RATE 16000
 #define SAMPLE_BITS 16
@@ -68,7 +68,7 @@ public:
     /// Default constructor
     ///
     ////////////////////////////////////////////////////////////
-    NetworkAudioStream() : m_offset(0), m_updateOffset(false), m_circular_buffer(SAMPLE_RATE * 10)
+    NetworkAudioStream() : m_offset(0), m_updateOffset(false), m_circular_buffer(SAMPLE_RATE * 10), m_circular_temp(SAMPLE_RATE * 10), m_hyper_buffer(SAMPLE_RATE * 10)
     {
         // Set the sound parameters
         initialize(SAMPLE_CHANNELS, SAMPLE_RATE);
@@ -83,8 +83,52 @@ public:
         // Get waiting audio data
         //std::scoped_lock lock(m_mutex);
         const sf::Int16* samples = reinterpret_cast<const sf::Int16*>(data.getData());
+        int samplesCount = (data.size() / sizeof(sf::Int16));
+        //std::vector<sf::Int16> vect(samples, samples + data.size());
+        //**m_circular_buffer.write(samples, (data.size() / sizeof(sf::Int16)) );
+        //**m_hyper_buffer.write(samples, (data.size() / sizeof(sf::Int16)));
+        auto avaliable = m_r_buffer.writeAvailable();
+
+        auto writed = 0;
+
+        if(avaliable > 0){
+            if(avaliable >= samplesCount){
+                writed = m_r_buffer.writeBuff(samples, samplesCount);
+            } else {
+                writed = m_r_buffer.writeBuff(samples, avaliable);
+            }
+        }
+        if(writed == samplesCount) return;
+
+        int pos = writed;
+        int toWrite = samplesCount - writed;
+        int tryng = 0;
+        auto avaliableNow = m_r_buffer.writeAvailable();
+
+        while(avaliableNow < toWrite){
+
+            if(avaliableNow > 0 && avaliableNow < samplesCount){
+                writed = m_r_buffer.writeBuff(samples + pos, avaliableNow);
+                pos += writed;
+                toWrite -= writed;
+            }
+
+            if(tryng >= SAMPLE_RATE){
+                break;
+            }
+            tryng++;
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            avaliableNow = m_r_buffer.writeAvailable();
+        }
+        //last try
+        if(m_r_buffer.writeAvailable() >= toWrite){
+            m_r_buffer.writeBuff(samples + pos, toWrite);
+        }
+
         //m_swapSamples.insert(m_swapSamples.end(), samples, samples + (data.size() / sizeof(sf::Int16)) );
-        m_circular_buffer.Push(samples, (data.size() / sizeof(sf::Int16)));
+        //m_circular_buffer.Push(vect);
+        //m_circular_buffer.Push(samples, (data.size() / sizeof(sf::Int16)));
     }
 
     void insert(sf::SoundBuffer data)
@@ -92,7 +136,13 @@ public:
         // Get waiting audio data
         //std::scoped_lock lock(m_mutex);
         const sf::Int16* samples = data.getSamples();
-        m_circular_buffer.Push(samples, data.getSampleCount());
+        //std::vector<sf::Int16> vect(samples, samples + (data.getSampleCount() / sizeof(sf::Int16)));
+        //**m_circular_buffer.write(samples, data.getSampleCount());
+        //**m_hyper_buffer.write((sf::Int16*)samples, data.getSampleCount());
+
+        data::buffer buffer((const char*)samples, data.getSampleCount() * sizeof(sf::Int16));
+        receive(buffer);
+        //m_circular_buffer.Push(samples, data.getSampleCount());
         //m_swapSamples.insert(m_swapSamples.end(), samples, samples + data.getSampleCount());
 
     }
@@ -122,14 +172,78 @@ private:
     int selectedSpeed = 0;
     bool onGetData(sf::SoundStream::Chunk& data) override
     {
+        m_offset = 0;
 
-        m_circular_temp.clear();
+        auto avaliable = m_r_buffer.readAvailable();
+        if(avaliable > 0){
+            auto readed = m_r_buffer.readBuff(m_circular_temp.data(), SAMPLE_COUNT);
+            data.samples = m_circular_temp.data();
+            data.sampleCount = readed;
+            return true;
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(40 * 5));
+            if(m_r_buffer.readAvailable() <= 0){
+                std::this_thread::sleep_for(std::chrono::milliseconds(40 * 5));
+                if(m_r_buffer.readAvailable() <= 0){
+                    return false;
+                }
+            }
+        }
+        return false;
+        /*
+        size_t readSize = m_hyper_buffer.read(m_circular_temp.data(), m_circular_temp.size());
+        if(readSize > 0){
+            data.samples = m_circular_temp.data();
+            data.sampleCount = readSize;
+            return true;
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(40 * 5));
+            return false;
+        }
 
-        auto buffer = m_circular_buffer.Pop(SAMPLE_RATE*10);
+        int trynum = 5;
+        while(trynum > 0){
+            bool tryread = m_circular_buffer.read(m_circular_temp.data(), trynum);
+            if(tryread){
+                data.samples = m_circular_temp.data();
+                data.sampleCount = trynum;
+                return true;
+            }
+            trynum--;
+        }
 
-        if(buffer.size() <= 0){
+        return false;*/
+
+        /*
+        for(auto item : temp){
+            m_circular_temp.insert(m_circular_temp.end(),item.begin(), item.end());
+        }
+
+        data.samples = m_circular_temp.data();
+            data.sampleCount = m_circular_temp.size();
+        */
+
+        /*if(!buffer.empty()){
             int count = 0;
-            while(m_circular_buffer.Size() < 5){
+            while(m_circular_buffer.Size() < SAMPLE_COUNT * 5){
+                sf::sleep(sf::milliseconds(40 * 5));
+                count++;
+                if(count >= 10){
+                    return false;
+                }
+            }
+        }*/
+
+        //m_circular_temp.insert(m_circular_temp.begin(), buffer.begin(), buffer.end());
+
+        /*
+        if(!m_circular_temp.empty()){
+            data.samples = m_circular_temp.data();
+            data.sampleCount = m_circular_temp.size();
+            return true;
+        } else {
+            int count = 0;
+            while(m_circular_buffer.Size() < SAMPLE_COUNT * 5){
                 sf::sleep(sf::milliseconds(40 * 5));
                 count++;
                 if(count >= 10){
@@ -138,11 +252,7 @@ private:
             }
         }
 
-        m_circular_temp.insert(m_circular_temp.begin(), buffer.begin(), buffer.end());
-        data.samples = m_circular_temp.data();
-        data.sampleCount = m_circular_temp.size();
-
-        return true;
+        return false;
 
         int wait = 0;
         int lastSize = m_swapSamples.size();
@@ -171,6 +281,7 @@ private:
             }
             selectedSpeed = 3;
         }
+        */
         
         /*
         if((selectedSpeed == 1 && m_swapSamples.size() >= SAMPLE_COUNT) || m_swapSamples.size() >= SAMPLE_COUNT*SPEED_AUDIO_COUNT){
@@ -282,14 +393,23 @@ private:
     ////////////////////////////////////////////////////////////
     void onSeek(sf::Time timeOffset) override
     {
-        m_offset = static_cast<std::size_t>(timeOffset.asMilliseconds()) * getSampleRate() * getChannelCount() / 1000;
-        if (!canIgnoreMutex) {
+        //m_offset = static_cast<std::size_t>(timeOffset.asMilliseconds()) * getSampleRate() * getChannelCount() / 1000;
+        m_offset = static_cast<std::size_t>(timeOffset.asSeconds() * getSampleRate() * getChannelCount());
+        /*if(m_circular_temp.size() < 3){
+            if(m_circular_buffer.Size() > 2){
+                auto temp = m_circular_buffer.Pop(3);
+                for(auto item : temp){
+                    m_circular_temp.insert(m_circular_temp.end(),item.begin(), item.end());
+                }
+            }
+        }*/
+        /*if (!canIgnoreMutex) {
             if (m_tempBuffer.size() - m_offset <= SAMPLE_COUNT * 2) {
                 if (m_swapSamples.size() >= SAMPLE_COUNT * 2) {
                     std::thread(&NetworkAudioStream::tryIgnoreMutex, this).detach();
                 }
             }
-        }
+        }*/
     }
 
     ////////////////////////////////////////////////////////////
@@ -302,7 +422,10 @@ private:
     std::size_t               m_offset;
     bool                      m_updateOffset;
     bool                      m_updateOffsetRCV;
-    CircularBuffer<std::int16_t> m_circular_buffer;
+    //boost::circular_buffer<std::vector<std::int16_t>> m_circular_buffer;
+    ConcurrentCircularBuffer<sf::Int16> m_circular_buffer;
+    hyperBuffer<sf::Int16> m_hyper_buffer;
+    jnk0le::Ringbuffer<sf::Int16, 131072> m_r_buffer;
     std::vector<std::int16_t> m_circular_temp;
 };
 

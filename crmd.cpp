@@ -94,6 +94,13 @@ void disableRecAudio(){
   soundmanager::RecorderImpl::getInstance().disableRec();
 }
 
+float getMicVolume(){
+  soundmanager::RecorderImpl::getInstance().
+  
+}
+
+float setMicVolume();
+
 void setVolumeAudio(float volume){
   sf::Listener::setGlobalVolume(volume);
 }
