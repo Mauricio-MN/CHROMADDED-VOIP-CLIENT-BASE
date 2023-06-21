@@ -65,14 +65,15 @@ bool SoundCustomBufferRecorder::onStart()
 ////////////////////////////////////////////////////////////
 bool SoundCustomBufferRecorder::onProcessSamples(const Int16* samples, std::size_t sampleCount)
 {
-    //std::copy(samples, samples + sampleCount, std::back_inserter(m_samples));
-    sf::SoundBuffer buffer;
-    buffer.loadFromSamples(samples, sampleCount, getChannelCount(), getSampleRate());
-    //std::thread(SoundCustomBufferRecorder::addBufferToQueue, std::ref(buffer)).detach();
+    if(processSound){
+        //std::copy(samples, samples + sampleCount, std::back_inserter(m_samples));
+        sf::SoundBuffer buffer;
+        buffer.loadFromSamples(samples, sampleCount, getChannelCount(), getSampleRate());
+        //std::thread(SoundCustomBufferRecorder::addBufferToQueue, std::ref(buffer)).detach();
 
-    //std::async(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer);
-    std::thread(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer).detach();
-
+        //std::async(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer);
+        std::thread(&SoundCustomBufferRecorder::asyncProcessSamples, this, buffer).detach();
+    }
     return true;
 }
 
@@ -81,9 +82,16 @@ void SoundCustomBufferRecorder::asyncProcessSamples(sf::SoundBuffer buffer){
         addBufferToQueue(&buffer);
     }
     int bufferByte_size = sizeof(const Int16) * buffer.getSampleCount();
-    char *bufferByte = new char[bufferByte_size];
-    protocol::tools::transformArrayToBuffer<const Int16>(buffer.getSamples(), buffer.getSampleCount(), bufferByte);
-    (*send)(bufferByte, bufferByte_size);
+    data::buffer buff;
+    buff.insertArray((sf::Int16 *)buffer.getSamples(), buffer.getSampleCount());
+    (*send)(buff);
+}
+
+void SoundCustomBufferRecorder::enableProcessSound(){
+    processSound = true;
+}
+void SoundCustomBufferRecorder::disableProcessSound(){
+    processSound = false;
 }
 
 void SoundCustomBufferRecorder::addBufferToQueue(sf::SoundBuffer *buffer){
@@ -141,12 +149,12 @@ void SoundCustomBufferRecorder::onStop()
 
 
 ////////////////////////////////////////////////////////////
-const SoundBuffer& SoundCustomBufferRecorder::getBuffer() const
+const SoundBuffer& SoundCustomBufferRecorder::getData() const
 {
     return m_buffer;
 }
 
-void SoundCustomBufferRecorder::doNothingFunctionToBuffers(char* buffer, int size){
+void SoundCustomBufferRecorder::doNothingFunctionToBuffers DEFAULT_BUFFER_ARGS{
     return;
 }
 

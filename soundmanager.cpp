@@ -7,60 +7,52 @@
 #include "SoundCustomBufferRecorder.hpp"
 
 #include "connection.h"
-
 #include "soundmanager.h"
+#include "player.h"
 
 namespace soundmanager{
 
-namespace listener{
-  void movePos(float x, float y, float z){
-      sf::Listener::setPosition(x,y,z);
+  namespace listener{
+    void movePos(float x, float y, float z){
+        sf::Listener::setPosition(x,y,z);
+    }
+
+    void moveRot(float x, float y, float z){
+        sf::Listener::setDirection(x,y,z);
+    }
   }
 
-  void moveRot(float x, float y, float z){
-      sf::Listener::setDirection(x,y,z);
-  }
+Recorder &RecorderImpl::getInstance()
+{
+  static Recorder instance;
+  return instance;
 }
 
-sf::SoundCustomBufferRecorder recorder::rec;
-
-void recorder::enableRec(){
-  if(!rec.recording){
-      rec.start(SAMPLE_RATE);
-    }
+void Recorder::enableRec(){
+  rec.enableProcessSound();
 }
 
-void recorder::disableRec(){
-  if(rec.recording) {
-      rec.stop();
-    }
+void Recorder::disableRec(){
+  rec.disableProcessSound();
 }
 
-void recorder::record(){
-  recordMng(&connection::send);
-}
+sf::SoundBuffer Recorder::recordForTest(){
+  rec.stop();
 
-void recorder::recordMng(void (*func)DEFAULT_BUFFER_ARGS){
-
-  rec.setChannelCount(SAMPLE_CHANNELS);
-  rec.setProcessingIntervalOverride(sf::milliseconds(50));
-  rec.setListen(DEBUG_AUDIO);
-  rec.setProcessingBufferFunction(func);
-  rec.start(SAMPLE_RATE);
-
-}
-
-sf::SoundBuffer recorder::recordForTest(){
   sf::SoundBufferRecorder Trec;
   Trec.setChannelCount(SAMPLE_CHANNELS);
   Trec.start(SAMPLE_RATE);
-  sf::sleep(sf::milliseconds(10000));
+  sf::sleep(sf::milliseconds(5000));
   Trec.stop();
   return Trec.getBuffer();
 }
 
-void recorder::start(){
-    record();
+Recorder::Recorder(){
+  rec.setChannelCount(SAMPLE_CHANNELS);
+  rec.setProcessingIntervalOverride(sf::milliseconds(40));
+  rec.setListen(DEBUG_AUDIO);
+  rec.setProcessingBufferFunction(player::Self::sendAudio);
+  rec.start(SAMPLE_RATE);
 }
 
 }

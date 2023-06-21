@@ -37,7 +37,9 @@
 #include <queue>
 #include <mutex>
 
-#define DEFAULT_BUFFER_ARGS (char* buffer, int size)
+#include "data.h"
+
+#define DEFAULT_BUFFER_ARGS (data::buffer &buffer)
 namespace sf
 {
 ////////////////////////////////////////////////////////////
@@ -66,6 +68,9 @@ public:
     void setListen(bool isToListen);
     void addBufferToQueue(sf::SoundBuffer *buffer);
 
+    void enableProcessSound();
+    void disableProcessSound();
+
     ////////////////////////////////////////////////////////////
     /// \brief Get the sound buffer containing the captured audio data
     ///
@@ -77,7 +82,7 @@ public:
     /// \return Read-only access to the sound buffer
     ///
     ////////////////////////////////////////////////////////////
-    const SoundBuffer& getBuffer() const;
+    const SoundBuffer& getData() const;
 
 protected:
     ////////////////////////////////////////////////////////////
@@ -115,11 +120,12 @@ private:
 
     void asyncProcessSamples(sf::SoundBuffer buffer);
 
-    static void doNothingFunctionToBuffers(char* buffer, int size);
+    static void doNothingFunctionToBuffers DEFAULT_BUFFER_ARGS;
 
     void (*send)DEFAULT_BUFFER_ARGS = &doNothingFunctionToBuffers;
 
     bool listen = false;
+    bool processSound = false;
 };
 
 } // namespace sf
@@ -137,7 +143,7 @@ private:
 ///
 /// It has the same simple interface as its base class (start(), stop())
 /// and adds a function to retrieve the recorded sound buffer
-/// (getBuffer()).
+/// (getData()).
 ///
 /// As usual, don't forget to call the isAvailable() function
 /// before using this class (see sf::SoundRecorder for more details
@@ -157,7 +163,7 @@ private:
 ///     soundmanager.stop();
 ///
 ///     // Get the buffer containing the captured audio data
-///     const sf::SoundBuffer& buffer = soundmanager.getBuffer();
+///     const sf::SoundBuffer& buffer = soundmanager.getData();
 ///
 ///     // Save it to a file (for example...)
 ///     if (!buffer.saveToFile("my_record.ogg"))

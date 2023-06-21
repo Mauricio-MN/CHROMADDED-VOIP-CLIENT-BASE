@@ -10,13 +10,70 @@
 
 #include "protocol.h"
 #include "soundmanager.h"
+#include "globaldefs.h"
 #include <SFML/Audio.hpp>
 
-namespace players{
+#define PLAYER std::shared_ptr<Player>
 
-    inline int waitQueueAudioCount;
+namespace player{
 
-    class player{
+    class Self{
+    private:
+        int my_id;
+        int my_reg_id;
+        bool encrypt;
+        AudioType AudType;
+        std::mutex mutexID;
+        std::mutex mutexRegID;
+        coords coordinates;
+
+        void setMap(int map);
+        void setX(int x);
+        void setY(int y);
+        void setZ(int z);
+
+    public:
+
+        Self(int reg_id, int id, bool needEncrypt);
+
+        int getMyID();
+
+        int getMyRegID();
+
+        void setMyID(int id);
+
+        void setMyRegID(int reg_id);
+
+        bool needEncrypt();
+
+        void setAudioType(AudioType type);
+        AudioType getAudioType();
+
+        void setPos(int map, int x, int y, int z);
+        void setCoords(coords coord);
+        void sendPosInfo();
+
+        coords getCoords();
+
+        static void sendAudio(data::buffer &buffer);
+
+    };
+
+    class SelfImpl{
+        private:
+        static bool initialized;
+        static int reg_id_;
+        static int id_;
+        static bool needEncrypt_;
+        public:
+        static Self& getInstance();
+
+        static void frabric(int reg_id, int id, bool needEncrypt);
+
+    };
+}
+
+class Player{
 
     public:
 
@@ -43,11 +100,11 @@ namespace players{
 
     public:
 
-        player(){
+        Player(){
             stream = new soundmanager::NetworkAudioStream();
         }
 
-        ~player(){
+        ~Player(){
         }
 
         void mutexApplyToDelete(){
@@ -91,10 +148,10 @@ namespace players{
             }
         }
 
-        void push(protocol::data* audio){
+        void push(data::buffer &audio){
             std::lock_guard<std::mutex> guard(deleteMePushMutex);
 
-            protocol::tools::bufferToData(samples, audio->size, audio->getBuffer());
+            protocol::tools::bufferToData(samples, audio.size(), audio.getData());
 
             if(echoEffect){
                 excEchoEffect(samples, int16_Size);
@@ -111,6 +168,9 @@ namespace players{
                 //stream->insert(samples, int16_Size);
                 //stream->insert(audio);
                 stream->receive(audio);
+                if(!isPlaying()){
+                    stream->play();
+                }
             }
 
             //checkPlayng();
@@ -118,39 +178,42 @@ namespace players{
 
     };
 
-    void init(int waitAudioPacketsCount_);
+    class PlayersManager
+    {
     
-    void setWaitAudioPackets(int waitAudioPacketsCount_);
+    private:
 
-    class manager{
-        public:
+        int waitQueueAudioCount;
+        std::unordered_map<int, PLAYER> players;
+        std::mutex insertMutex;
 
-            static void init();
+    public:
 
-            static void insertPlayer(int id, float x, float y, float z);
+        PlayersManager();
 
-            static player* getPlayer(int id);
+        void setWaitAudioPackets(int waitAudioPacketsCount_);
+        int getWaitAudioPackets();
 
-            static bool movePlayer(int id, float x, float y, float z);
+        void insertPlayer(int id, float x, float y, float z);
 
-            static bool setAttenuation(int id, float new_at);
+        PLAYER getPlayer(int id);
 
-            static bool setMinDistance(int id, float new_MD);
+        bool movePlayer(int id, float x, float y, float z);
 
-            static bool existPlayer(int id);
+        bool setAttenuation(int id, float new_at);
 
-            static void removePlayer(int id);
-        
-        private:
+        bool setMinDistance(int id, float new_MD);
 
-            static inline std::unordered_map<int, player*> players;
-            static inline std::mutex insertMutex;
+        bool existPlayer(int id);
+
+        void removePlayer(int id);
+
     };
 
-
-
-}
-
-
+    class PlayersManagerImpl
+    {
+    public:
+        static PlayersManager &getInstance();
+    };
 
 #endif
