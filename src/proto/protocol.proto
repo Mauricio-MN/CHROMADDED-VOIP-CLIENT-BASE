@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option java_package = "pasaud.voip.protocol";
+package protocol;
+
+import "google/protobuf/timestamp.proto";
+
+// [START messages]
+message Client {
+  optional int32 secret_id = 1; // Secret ID to connect
+  int32 id = 2;  // Unique public ID number for this person.
+  optional bytes audio = 3;
+  optional int32 audioNum = 4;
+  optional int32 coordX = 5;
+  optional int32 coordY = 6;
+  optional int32 coordZ = 7;
+  optional int32 mapNum = 8;
+  optional int32 blockPlayer_id = 9;
+  optional int32 talkInRoom_id = 10;
+  optional bool  talkLocal = 11;
+  optional int32 sampleTime = 12;
+
+  optional google.protobuf.Timestamp packetTime = 13;
+
+  int32 integrityCheck = 14;
+}
+
+
+message Server {
+  optional bool handShake = 1;
+  int32 id = 2;  // Unique public ID number for this person.
+  optional bytes audio = 3;
+  optional int32 audioNum = 4;
+  optional int32 coordX = 5;
+  optional int32 coordY = 6;
+  optional int32 coordZ = 7;
+  optional int32 mapNum = 8;
+  optional int32 sampleTime = 9;
+  optional bool notConnected = 10;
+
+  int32 integrityCheck = 11;
+}
