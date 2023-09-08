@@ -166,17 +166,22 @@ class Player{
             }
         }
 
+        void deleteSoundStream(){
+            std::lock_guard<std::mutex> guard(deleteMePushMutex);
+            soundStream->stop();
+            delete soundStream;
+            streamIsValid = false;
+            pushClock.restart();
+        }
+
         void actCheck(){
             if(pushClock.getElapsedTime().asSeconds() >= 10){
-                soundStream->stop();
-                delete soundStream;
-                streamIsValid = false;
+                deleteSoundStream();
             }
         }
 
         void restartSoundStream(sf::Time sampleTime){
-            soundStream->stop();
-            delete soundStream;
+            deleteSoundStream();
             startSoundStream(sampleTime);
         }
 
@@ -186,7 +191,7 @@ class Player{
             pushClock.restart();
         }
 
-        void push(data::buffer &audio){
+        void push(data::buffer &audio, int sampleTime = 40){
             std::lock_guard<std::mutex> guard(deleteMePushMutex);
 
             if(!streamIsValid){
