@@ -45,7 +45,7 @@ all: $(BINDIR_REAL)/crmd.dll
 ifeq ($(DYNAMIC),true)
 $(BINDIR_REAL)/crmd.dll: $(OBJS_CPP) $(OBJS_CC)
 	mkdir -p $(BINDIR_REAL)
-	$(CC) $(CFLAGS) -fPIC $(TYPELIB_FLAG) $(LDFLAGS) $(OBJS_CPP) $(OBJS_CC) -o $@ $(LIBS) -Wl,--out-implib,$(BINDIR_REAL)/crmd.a
+	$(CC) $(CFLAGS) -fPIC $(TYPELIB_FLAG) $(LDFLAGS) $(OBJS_CPP) $(OBJS_CC) -o $@ $(LIBS) -Wl,--out-implib,$(BINDIR_REAL)/crmd.a $(SDIR)/crmd.def
 	@ldd $@ | grep "=> /" | grep -vE "/c/(Windows|WINDOWS|Windows)/?|\.\.?$$" | awk '{print $$3}' | xargs -I '{}' cp -uf '{}' $(BINDIR_REAL)/ || true
 else
 $(BINDIR_REAL)/crmd.dll: $(OBJS_CPP) $(OBJS_CC)
