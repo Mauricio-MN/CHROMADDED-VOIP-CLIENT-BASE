@@ -42,11 +42,11 @@ void updateMyRot(float x, float y, float z){
   soundmanager::listener::moveRot(x,y,z); 
 }
 
-void insertPlayer(float id, float x, float y, float z){
+void insertPlayer(int id, float x, float y, float z){
   PlayersManagerImpl::getInstance().insertPlayer(id,x,y,z);
   }
 
-void movePlayer(float id, float x, float y, float z){
+void movePlayer(int id, float x, float y, float z){
   PlayersManagerImpl::getInstance().movePlayer(id,x,y,z);
 }
 void updatePlayerAttenuation(int id, float new_at){
