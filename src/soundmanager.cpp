@@ -6,7 +6,6 @@
 
 #include "SoundCustomBufferRecorder.hpp"
 
-#include "connection.h"
 #include "soundmanager.h"
 #include "player.h"
 

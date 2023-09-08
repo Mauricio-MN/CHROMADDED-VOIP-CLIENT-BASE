@@ -22,21 +22,18 @@
 
 #include "cript.h"
 
-#include "protocol.h"
-
 #include "player.h"
-
-#include "bufferParser.h"
 
 #include "socketUdp.h"
 
 #include "soundmanager.h"
 
 #include "crmd.h"
+#include "crmdprivate.h"
 
 namespace crmd{
 
-void updateMyPos(int map, float x, float y, float z){ 
+void updateMyPos(int map, float x, float y, float z){
   soundmanager::listener::movePos(x,y,z); 
   player::SelfImpl::getInstance().setPos(map, static_cast<int>(x), static_cast<int>(y), static_cast<int>(z));
 }
@@ -82,8 +79,15 @@ void updateWaitAudioPacketsCount(int pktWaitCount){
   PlayersManagerImpl::getInstance().setWaitAudioPackets(pktWaitCount);
 }
 
-void setAudioType(AudioType audioType){
-  player::SelfImpl::getInstance().setAudioType(audioType);
+void setTalkRoom(int id){
+  player::SelfImpl::getInstance().setTalkRoom(id);
+}
+
+void talkInRomm(){
+  player::SelfImpl::getInstance().talkRoom();
+}
+void talkInLocal(){
+  player::SelfImpl::getInstance().talkLocal();
 }
 
 void enableRecAudio(){
@@ -100,7 +104,7 @@ float getMicVolume(){
 }
 
 float setMicVolume(){
-
+  
 }
 
 void setVolumeAudio(float volume){
@@ -119,32 +123,32 @@ void closeSocket(){ //call and wait, call connectTo();
   socketUdpImpl::getInstance().close();
 }
 
-void connectTo(char* ip, size_t ip_size, unsigned short port){
-  connectTo(std::string(ip, ip_size), port);
+void connectTo(char* ip, int ip_size, unsigned short port){
+  const char* ipC = static_cast<const char*>(ip);
+  std::string ipStr(ipC, ipC + ip_size);
+  connect(ipStr, port);
 }
 
-void connectTo(std::string ip, unsigned short port){
+void connect(std::string ip, unsigned short port){
   sf::IpAddress ipaddress(ip);
-  socketUdpImpl::fabric(ipaddress, port);
+  socketUdpImpl::refabric(ipaddress, port);
 }
 
 
-void init(int register_id, int id, char* ip, size_t ip_size, unsigned short port, unsigned char *key, float x, float y, float z, bool needEncrypt){
+void init(int register_id, int id, char* ip, int ip_size, unsigned short port, unsigned char *key, float x, float y, float z, bool needEncrypt){
   if(initialized == false){
     initialized = true;
 
     player::SelfImpl::frabric(register_id, id, needEncrypt);
 
-    unsigned char *keyC = new unsigned char[16];
-    protocol::tools::bufferToData(keyC, 16, (char*)key);
-    CryptImpl::fabric(keyC);
+    data::buffer keyBuff(key, 16);
+
+    CryptImpl::fabric((unsigned char*)(keyBuff.getData()));
 
     connectTo(ip, ip_size, port);
 
     soundmanager::listener::movePos(x,y,z);
     soundmanager::RecorderImpl::getInstance();
-
-    delete []keyC;
     
   }
 }

@@ -6,11 +6,26 @@
 #include <vector>
 #include <stdexcept>
 
+#define ERROR_NO_ERROR        0
+#define ERROR_LOW             10
+#define ERROR_MEDIUM          20 //
+#define ERROR_SERIOUS         30
+#define ERROR_ADDRESS_PROBLEM 40
+#define ERROR_MAX_ATTEMPT     50
+#define ERROR_UNKNOW          999
+
+struct coords{
+    int x;
+    int y;
+    int z;
+    int map;
+};
+
 namespace data
 {
 
 /**
-    * Implementation of buffer class
+    * Implementation of generic buffer class
     *
     * Initialize by reference generate a copy class and copy buffer with new owner,
     * just end of scope for owner(first) object delete the buffer,
@@ -39,6 +54,7 @@ namespace data
                 }
                 return false;
             }
+
         protected:
             std::vector<char> bufferDataVec;
 
@@ -53,6 +69,10 @@ namespace data
             }
 
             char* getData(){
+                return bufferDataVec.data();
+            }
+
+            void* getGenericData(){
                 return bufferDataVec.data();
             }
 
@@ -145,6 +165,12 @@ namespace data
             }
 
             template <typename T>
+            void insertArray(const T* data, int size){
+                if(checkValidInsertSize(size)){ return; }
+                    bufferDataVec.insert(bufferDataVec.end(), reinterpret_cast<const char*>(data), reinterpret_cast<const char*>(data) + (sizeof(T) * size));
+            }
+
+            template <typename T>
             T get(int pos){
                 if(bufferDataVec.size() <= pos + sizeof(T)){
                     T* value = *reinterpret_cast<T*>(bufferDataVec.data() + pos);
@@ -153,6 +179,10 @@ namespace data
                 char newData[sizeof(T)];
                 for(int i = 0; i < sizeof(T); i++) newData[i] = 0;
                 return *reinterpret_cast<T*>(&newData);
+            }
+
+            buffer copy(){
+                return buffer(this);
             }
             
             buffer(size_t len){
@@ -182,6 +212,16 @@ namespace data
 
             buffer(){
                 bufferDataVec.reserve(256);
+            }
+
+            buffer(void *refBuffer, size_t len){
+                bufferDataVec.reserve(256);
+                    insertArray(refBuffer, len);
+            }
+
+            buffer(const void *refBuffer, size_t len){
+                bufferDataVec.reserve(256);
+                    insertArray(refBuffer, len);
             }
 
             bool isValid(){

@@ -16,13 +16,10 @@
 #include "osimports.h"
 
 #include "cript.h"
-#include "protocol.h"
 #include "player.h"
 #include "data.h"
 #include "opusmanager.h"
 #include "socketUdp.h"
-
-#include "protoParse.h"
 
     protocolParser& protocolParserImpl::getInstance(){
       static protocolParser instance;

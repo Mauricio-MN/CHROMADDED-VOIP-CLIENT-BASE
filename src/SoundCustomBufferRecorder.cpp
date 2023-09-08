@@ -36,9 +36,6 @@
 #include <queue>
 #include <future>
 
-#include "connection.h"
-#include "protocol.h"
-
 
 namespace sf
 {

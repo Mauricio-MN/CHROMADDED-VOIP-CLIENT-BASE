@@ -1,5 +1,4 @@
 #include "opusmanager.h"
-#include "protocolTools.h"
 
     int OpusManagerImpl::sampleRate = SAMPLE_RATE;
     OpusManager* OpusManagerImpl::instance = nullptr;
@@ -61,4 +60,4 @@
         data::buffer outDataBuffer(reinterpret_cast<const char*>(decodedSamples), bufferLen);
         delete[] decodedSamples;
         return outDataBuffer;
-    }s
+    }

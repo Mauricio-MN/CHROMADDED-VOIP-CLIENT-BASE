@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <queue>
 
-#include "protocol.h"
 #include "soundmanager.h"
 #include "player.h"
 #include "socketUdp.h"
@@ -45,7 +44,8 @@ namespace player
         my_reg_id = id;
         my_id = id;
         encrypt = needEncrypt;
-        AudType = AudioType::LOCAL;
+        talkRomm = 0;
+        talkInLocal = true;
         coordinates.x = 0;
         coordinates.y = 0;
         coordinates.z = 0;
@@ -61,10 +61,6 @@ namespace player
     int Self::getMyRegID()
     {
         return my_reg_id;
-    }
-
-    AudioType Self::getAudioType(){
-        return AudType;
     }
 
     void Self::setMyID(int id)
@@ -94,9 +90,18 @@ namespace player
         return encrypt;
     }
 
-    void Self::setAudioType(AudioType type)
-    {
-        AudType = type;
+    void  Self::setTalkRoom(int room_id){
+        talkRomm = room_id;
+    }
+
+    void  Self::talkLocal(){
+        talkInLocal = true;
+    }
+
+    void  Self::talkRoom(){
+        if(talkRomm != 0){
+            talkInLocal = false;
+        }
     }
 
     void Self::setX(int x) { coordinates.x = x; }

@@ -16,7 +16,6 @@
 #include "osimports.h"
 
 #include "cript.h"
-#include "protocol.h"
 #include "player.h"
 
 #include "proto/protocol.pb.h"
@@ -43,7 +42,7 @@ class protocolParserImpl{
     static protocolParser& getInstance();
 };
 
-protocol::Client constructValidBufferSend(){
+inline protocol::Client constructValidBufferSend(){
     protocol::Client client;
     client.set_integritycheck(956532);
 }

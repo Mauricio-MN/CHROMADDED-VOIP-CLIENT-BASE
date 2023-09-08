@@ -8,9 +8,7 @@
 #include <queue>
 #include <memory>
 
-#include "protocol.h"
 #include "soundmanager.h"
-#include "globaldefs.h"
 #include <SFML/Audio.hpp>
 
 #define PLAYER std::shared_ptr<Player>
@@ -21,9 +19,10 @@ namespace player{
     private:
         int my_id;
         int my_reg_id;
+        int talkRomm;
+        bool talkInLocal;
         bool encrypt;
         bool connected;
-        AudioType AudType;
         std::mutex mutexID;
         std::mutex mutexRegID;
         coords coordinates;
@@ -50,8 +49,10 @@ namespace player{
 
         bool needEncrypt();
 
-        void setAudioType(AudioType type);
-        AudioType getAudioType();
+        void setTalkRoom(int room_id);
+
+        void talkLocal();
+        void talkRoom();
 
         void setPos(int map, int x, int y, int z);
         void setCoords(coords coord);

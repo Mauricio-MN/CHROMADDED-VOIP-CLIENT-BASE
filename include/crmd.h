@@ -2,7 +2,6 @@
 #define MAIN_H
 
 #include "osSolver.h"
-#include "globaldefs.h"
 
 namespace crmd{
 

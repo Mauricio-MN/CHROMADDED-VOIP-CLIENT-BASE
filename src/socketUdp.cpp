@@ -4,7 +4,7 @@
   bool socketUdpImpl::initialized = false;
   sf::IpAddress socketUdpImpl::ip_ = nullptr;
   unsigned short socketUdpImpl::port_ = 0;
-  socketUdp* instance = new socketUdp();
+  socketUdp* socketUdpImpl::instance = new socketUdp();
 
   socketUdp& socketUdpImpl::getInstance(){
     if(initialized){

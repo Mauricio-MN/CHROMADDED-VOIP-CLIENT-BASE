@@ -39,12 +39,12 @@
 
 #include "data.h"
 
-sf::Time sampleCountGetTime(int sampleCount, int sampleRate = 16000){
+inline sf::Time sampleCountGetTime(int sampleCount, int sampleRate = 16000){
     int mill = (int)(sampleCount) * 1000 / sampleRate;
     return sf::milliseconds(mill);
 }
 
-int sampleTimeGetCount(sf::Time time, int sampleRate = 16000){
+inline int sampleTimeGetCount(sf::Time time, int sampleRate = 16000){
     int sampleCount = time.asMilliseconds() * sampleRate / 1000;
     return sampleCount;
 }
