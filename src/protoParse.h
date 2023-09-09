@@ -17,6 +17,10 @@
 
 #include "cript.h"
 #include "player.h"
+#include <thread>
+#include <queue>
+//#include <mutex>
+#include <shared_mutex>
 
 #include "proto/protocol.pb.h"
 
@@ -25,13 +29,21 @@
 class protocolParser{
 private:
 
-    void parserThread(protocol::Server serverReceived);
+    void parser_Thread();
 
     void tempDataWait(int id, data::buffer buffer);
+
+    std::vector<std::thread> parserThread;
+    bool runThreads;
+
+    std::queue<protocol::Server> queueProtocol;
+    std::shared_mutex queueMutex;
 
 public:
 
     protocolParser();
+
+    ~protocolParser();
 
     void parse(protocol::Server *serverReceived);
 
