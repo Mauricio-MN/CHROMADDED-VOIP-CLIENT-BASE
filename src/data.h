@@ -233,45 +233,5 @@ namespace data
         
     };
 
-    /**
-    * Implementation of audio buffer class
-    *
-    * Initialize by reference generate a copy class of 'data' and copy buffer with new owner,
-    * !IMPORTANT! no 'new' allocator.
-    * Call '.destroy()' on end off responsability.
-    * 
-    */
-    class Audio_player_data{
-        private:
-            buffer buff;
-        public:
-
-            void init(Audio_player_data &audiodata){
-                buff = buffer(audiodata.buff);
-            }
-
-            Audio_player_data(buffer* audiobuff){
-                buff = buffer(audiobuff);
-            }
-
-            Audio_player_data(){
-            }
-
-            const std::vector<char>& getvector() const{
-                    return buff.getVector();
-            }
-            
-        private:
-            void * operator new(size_t size)
-            {
-                return nullptr;
-            }
-
-            void * operator new[] (size_t size)
-            {
-                return nullptr;
-            }
-    };
-
     }
 #endif
