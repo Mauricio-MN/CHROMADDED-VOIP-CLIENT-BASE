@@ -21,6 +21,7 @@
 #include "soundmanager.h"
 #include "SoundCustomBufferRecorder.hpp"
 #include "opusmanager.h"
+#include "proto/protocol.pb.h"
 
 bool sucess = true;
 void sucessMSG(const char* module, const char* testFunction){
@@ -128,7 +129,7 @@ void waitListenSoundStream(soundmanager::NetworkAudioStream &stream){
     sf::sleep(sf::milliseconds(1));
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::X))
     {
-      stream.stopEndclear();
+      stream.stop();
       continue;
     }
   }
@@ -153,44 +154,22 @@ void test_BufferParser_listen(){
 
   PlayersManagerImpl::getInstance().insertPlayer(3,1,1,1);
 
-                                      //header    //id     //number  //sound
-  char* packetAudioHeader = new char[6]{1,          3,0,0,0, 3};
-  int   packetAudioHeader_size = 6;
-
-  data::buffer packetAudio;
-  packetAudio.insertArray(packetAudioHeader, 6);
-  packetAudio.insert(bufferAudio);
-
-  protocol::rcv_Audio_stc check_stc = protocol::fromvoipserver::constructRCVaudioData(packetAudio);
-
-  int isProblemInSTC = false;
-  for(int i = 0; i < (int)check_stc.audioData.size() ; i++){
-    if(check_stc.audioData.getData()[i] != bufferAudio.getData()[i]){
-      isProblemInSTC = true;
-      break;
-    }
-  }
-
-  if(isProblemInSTC){
-    fail("Problem in buffer audio", "check_stc", "normal data", "data::buffer||//tools || ProtocolInfo::rcv_Audio_stc");
-  }
-
   int samplesCount = bufferAudio.size() / sizeof(sf::Int16);
   sf::Int16 *bufferSamples = new sf::Int16[samplesCount];
-  protocol::tools::bufferToData(bufferSamples, bufferAudio.size(), bufferAudio.getData());
 
   std::cout << "test opus encode/decode" << std::endl;
+  soundmanager::NetworkAudioStream opusStream(sf::milliseconds(SAMPLE_TIME_DEFAULT), SAMPLE_CHANNELS, SAMPLE_RATE, SAMPLE_BITS);
 
-  soundmanager::NetworkAudioStream opusStream;
+  int sampleSize = opusStream.getSampleSize();
 
   int finalLen = 0;
-  for (int i = 0; i < audio_size - 640; i += 640)
+  for (int i = 0; i < audio_size - sampleSize; i += sampleSize)
   {
 
     data::buffer encBuffer = OpusManagerImpl::getInstance().encode((sf::Int16 *)audio + i);
     data::buffer decBuffer = OpusManagerImpl::getInstance().decode(encBuffer);
 
-    if(decBuffer.size() != 640 * sizeof(sf::Int16)){
+    if(decBuffer.size() != sampleSize * sizeof(sf::Int16)){
       fail("Problem in buffer audio", "encBuffer/decBuffer", "valid size", "OpusManagerImpl::getInstance().encode/decode");
       break;
     }
@@ -218,13 +197,17 @@ void test_BufferParser_listen(){
 
   std::cout << "test listen audio packets" << std:: endl;
 
+  player::SelfImpl::frabric(3, 3, true);
+
   for(int i = 0; i < samplesCount - 640; i += 640){
     data::buffer encBuffer = OpusManagerImpl::getInstance().encode(bufferSamples + i);
     data::buffer ptcData(encBuffer.size() + 6);
 
-    protocol::tools::mergeDatasArray(packetAudioHeader, packetAudioHeader_size, (char*)encBuffer.getData(), encBuffer.size(), (char*)ptcData.getData());
-    //bufferparser::getInstance()->parser(&ptcData);
-    BufferParserImpl::getInstance().parserBuffer(&ptcData);
+    protocol::Server cBuffer;
+
+    cBuffer.set_id()
+
+    protocolParserImpl::getInstance().parse(&ptcData);
 
     sf::sleep(sf::milliseconds(38));
   }
@@ -234,23 +217,10 @@ void test_BufferParser_listen(){
   while(actPlayer->isPlaying()){
     sf::sleep(sf::milliseconds(1));
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)){
-      actPlayer->soundStream->stopEndclear();
+      actPlayer->soundStream->stop();
       continue;
     }
   }
-  
-  
-  std::cout << "test listen auido packets end" << std:: endl;
-  
-  std::cout << "test connection packets:" << std:: endl;
-  
-  FakeServerSocket::init();
-  
-  CONN_DEBUG_IP_LOCAL_DECLARE
-  ConnectionImpl::fabric(reinterpret_cast<char*>(CONN_DEBUG_IP_LOCAL), CONN_DEBUG_PORT);
-  ConnectionImpl::getInstance();
-
-  player::SelfImpl::frabric(3, 3, true);
 
   for(int i = 0; i < samplesCount - 640; i = i+640){
     data::buffer encBuffer = OpusManagerImpl::getInstance().encode(bufferSamples + i);
