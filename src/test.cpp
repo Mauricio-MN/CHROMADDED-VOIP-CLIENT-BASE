@@ -22,6 +22,7 @@
 #include "SoundCustomBufferRecorder.hpp"
 #include "opusmanager.h"
 #include "proto/protocol.pb.h"
+#include "memusage.h"
 
 bool sucess = true;
 void sucessMSG(const char* module, const char* testFunction){
@@ -201,13 +202,13 @@ void test_BufferParser_listen(){
 
   for(int i = 0; i < samplesCount - 640; i += 640){
     data::buffer encBuffer = OpusManagerImpl::getInstance().encode(bufferSamples + i);
-    data::buffer ptcData(encBuffer.size() + 6);
 
     protocol::Server cBuffer;
 
-    cBuffer.set_id()
+    cBuffer.set_id(2);
+    cBuffer.set_audio(encBuffer.getData(), encBuffer.size());
 
-    protocolParserImpl::getInstance().parse(&ptcData);
+    protocolParserImpl::getInstance().parse(&cBuffer);
 
     sf::sleep(sf::milliseconds(38));
   }
@@ -221,30 +222,6 @@ void test_BufferParser_listen(){
       continue;
     }
   }
-
-  for(int i = 0; i < samplesCount - 640; i = i+640){
-    data::buffer encBuffer = OpusManagerImpl::getInstance().encode(bufferSamples + i);
-    data::buffer ptcData;
-
-    ptcData.insert(packetAudioHeader, packetAudioHeader_size);
-    ptcData.insert(encBuffer);
-
-    ConnectionImpl::getInstance().send(ptcData, player::SelfImpl::getInstance().needEncrypt());
-
-    sf::sleep(sf::milliseconds(38));
-  }
-
-  std::cout << "listen start, tap X to jump." << std::endl;
-
-  while(actPlayer->isPlaying()){
-    sf::sleep(sf::milliseconds(1));
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)){
-      actPlayer->soundStream->stopEndclear();
-      continue;
-    }
-  }
-
-  std::cout << "test connection packets end" << std:: endl;
 
   std::cout << "listening test ended. audio ok? (Y,N)";
   char* defaultCharExp = strdup("B");
@@ -286,22 +263,6 @@ void test_data_structure_memory(){
         data::buffer bufferC(bufferA);
         data::buffer bufferD(&bufferB);
         test_data_structure_memory_aux(bufferD);
-
-        
-        data::Audio_player_data playerDataA(&bufferD);
-        data::Audio_player_data playerDataB(playerDataA);
-        data::Audio_player_data playerDataC;
-        playerDataC.init(playerDataB);
-
-        
-        protocol::rcv_Audio_stc audioStcA(100);
-        protocol::rcv_Audio_stc audioStcB(audioStcA);
-        protocol::rcv_Audio_stc audioStcC(&audioStcB);
-
-        protocol::rcv_HandChacke_stc handStcA;
-        handStcA.id = 10;
-        
-
       }
 
         sf::sleep(sf::milliseconds(1));
@@ -322,10 +283,6 @@ void test_data_structure_memory(){
 
 int main(){
 
-  testProtocolTools();
-
-  testProtocol();
-
   testCrypt();
 
   testPlayers(); //parcial
@@ -337,15 +294,15 @@ int main(){
   return 1;
 
   //geral test -> use debug audio in server
-  unsigned char *key = new unsigned char[16];
-  strcpy( (char*) key, "abcdefghijklmnop" );
-
-  CONN_DEBUG_IP_LOCAL_DECLARE;
+  unsigned char *key = new unsigned char[32];
+  strcpy( (char*) key, "abcdefghijklmnopqsrtuvwxyz123456" );
   
   int myID = 0;
   int regID = 123;
 
-  crmd::init(regID, myID, CONN_DEBUG_IP_LOCAL, 443, key, 0,0,0, true);
+  std::string ip("127.0.0.1");
+
+  crmd::init(regID, myID, ip.data(), ip.size(), 443, key, 0,0,0, true);
   if(!crmd::initialized){
     fail("try initialize lib", "crmd::initialized", "true", "crmd::init()");
   }
