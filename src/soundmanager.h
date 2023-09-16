@@ -22,7 +22,7 @@
 #define SAMPLE_RATE 16000
 #define SAMPLE_BITS 16
 
-#define SAMPLE_TIME_DEFAULT 40
+#define SAMPLE_TIME_DEFAULT 20
 
 #define SAMPLE_CHANNELS 1
 
@@ -85,6 +85,10 @@ public:
         sampleBits = _sampleBits;
 
         initialize(sampleChannels, sampleRate);
+    }
+
+    int getSampleSize(){
+        return sampleCount;
     }
 
     ////////////////////////////////////////////////////////////
