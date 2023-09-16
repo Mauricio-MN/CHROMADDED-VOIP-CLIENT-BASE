@@ -8,6 +8,7 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
 #include <functional>
 #include <type_traits>
@@ -15,6 +16,7 @@
 //
 namespace service{
 
+//***Bom funcionamento de contextos é agarantido até 8 caracteres, depois disso é feito hashing
 class Context{
 private:
     size_t contextID;
@@ -23,8 +25,17 @@ private:
     std::thread garbageCollector_thread;
 protected:
     Context(std::string _name):hasher(){
+        if(_name.size() > 8){
+            contextID = hasher(name);
+        } else {
+            if(_name.size() < 8){
+                int sizeStr = 8 - _name.size();
+                char* addStr = new char[sizeStr];
+                _name.append(addStr, sizeStr);
+            }
+            contextID = (size_t)*_name.data();
+        }
         name = _name;
-        contextID = hasher(name);
     }
 
 public:
@@ -39,6 +50,8 @@ public:
         return name;
     }
 };
+
+#define CONTEXT std::shared_ptr<service::Context>
 
 class ContextManager {
 private:
@@ -58,14 +71,14 @@ public:
         }
     }
 
-    // Método para obter uma instância única da classe Context
-    std::shared_ptr<Context> GetContext(std::string name) {
-        size_t contextID = std::hash<std::string>{}(name);
+    // Método para registrar um contexto
+    std::shared_ptr<Context> registerContext(Context context) {
+        size_t contextID = context.getContext();
 
         auto it = contextMap.find(contextID);
         if (it == contextMap.end()) {
             // Crie um novo contexto se ele não existir
-            auto novoContexto = std::make_shared<Context>(name);
+            auto novoContexto = std::make_shared<Context>(context);
             contextMap[contextID] = novoContexto;
             return novoContexto;
         }
@@ -101,9 +114,6 @@ private:
     }
 };
 
-//opcional
-static ContextManager g_ContextManager;
-
 //ServiceProvider é uma Interface de gerenciamento de dependencias, portanto conhece classe chamada e chamadora (ou suas interfaces)
 //Deve ser implementada como <classe Chamada>Service mas referenciar somente a Interface, conhecendo as demais apenas a fim de instanciamento
 //Classe Chamadora conhece somente a interface da classe chamada e o provedor de dependencia (ServiceProvider)
@@ -114,22 +124,30 @@ static ContextManager g_ContextManager;
 //Classe A precisa necessáriamente receber um shared_pointer de contexto.
 //Quando as classes abandonam um contexto ele logo invalida um objeto de ServiceProvider.
 //Um contexto não nomeado gerado fora de ContextManager é automaticamente inválidado em pouco tempo
+//Para obter diferentes comportamentos de uma interface ou mais basta passar um contexto via método, assim a classe que invoca os serviços não fica dependente da implementação prevista a ela, ou use um mapeamento de implementação com classes vazias.
+//***Cada ServiceProvider possui um ContextManager que verifica seus conextos e quando eles não estão mais em uso apaga os objetos ligados a ele sem afetar os outros ServiceProvider's, então os contextos podem ser passados entre ServiceProvider's sem problemas, mas devem ser usados como <CONTEXT>(shared pointers) fora deles.
+//***Bom funcionamento de contextos é agarantido até 8 caracteres
+//
+// '''Algumas desvantagens: Dependencias fixas de ServiceProvider e Context, provavel diminuição de desempenho, quase toda sobrecarga de dependencia recai em ServiceProvider.
+// '''Algumas vantagens: Dependencias apenas de Interfaces (fora ServiceProvider e Context), menos objetos sendo passados como parametros (apenas o contexto basta), chamada de métodos com reflexão (mais de um objeto por contexto).
 template <class T>
 class ServiceProvider{
 private:
     std::unordered_map<size_t,std::vector<T>> objs;
-    std::unordered_map<size_t,std::mutex> mutexes;
+    std::unordered_map<size_t,std::shared_mutex> mutexes;
     std::thread garbageCollector_thread;
     bool collect;
-public:
-    //Add new instance by context and class calling
-    ServiceProvider(){
-        garbageCollector_thread = std::thread(&ContextManager::RemoveContextNotUsed_thread,this);
-        collect = true;
-    }
 
-    ServiceProvider(ContextManager& manager){
-        garbageCollector_thread = std::thread(&ContextManager::RemoveContextNotUsed_thread,this, std::ref(manager));
+    ContextManager ctxtMng;
+
+    //Turn context valid on this service
+    CONTEXT registerContext(Context& context){
+        ctxtMng.registerContext(context);
+    }
+public:
+    
+    ServiceProvider(){
+        garbageCollector_thread = std::thread(&ServiceProvider::checkContexts_thread,std::ref(ctxtMng));
         collect = true;
     }
 
@@ -141,41 +159,53 @@ public:
     }
 
     template <class CallClass>
-    void addInstance(Context& context, CallClass& callClass){
+    CONTEXT addInstance(Context& context, CallClass& callClass){
+        CONTEXT resultRef = registerContext(context);
+
         if(objs.find(context.getContext()) == objs.end()){
             std::vector<T> classVect;
             classVect.push_back(getNewInstance(callClass));
             objs[context.getContext()] = classVect;
-            mutexes[context.getContext()] = std::mutex();
+            mutexes[context.getContext()] = std::shared_mutex();
         } else {
             std::vector<T>& classT = objs[context.getContext()];
             classT.push_back(getNewInstance(callClass));
         }
+
+        return resultRef;
     }
 
     template <typename AlternativeClass>
-    void addInstance(Context& contexts){
+    CONTEXT addInstance(Context& contexts){
+        CONTEXT resultRef = registerContext(context);
+
         if(objs.find(context.getContext()) == objs.end()){
             std::vector<T> classVect;
             classVect.push_back(getNewInstance<AlternativeClass>());
             objs[context.getContext()] = classVect;
-            mutexes[context.getContext()] = std::mutex();
+            mutexes[context.getContext()] = std::shared_mutex();
         } else {
             std::vector<T>& classT = objs[context.getContext()];
             classT.push_back(getNewInstance<AlternativeClass>());
         }
+
+        return resultRef;
     }
 
-    void addInstance(Context& context, T& obj){
+    CONTEXT addInstance(Context& context, T& obj){
+        CONTEXT resultRef = registerContext(context);
+
         if(objs.find(context.getContext()) == objs.end()){
             std::vector<T> classVect;
             classVect.push_back(obj);
             objs[context.getContext()] = classVect;
-            mutexes[context.getContext()] = std::mutex();
+            mutexes[context.getContext()] = std::shared_mutex();
         } else {
             std::vector<T>& classT = objs[context.getContext()];
             classT.push_back(obj);
         }
+
+        return resultRef;
     }
 
     template <typename Method, typename... Args>
@@ -183,11 +213,13 @@ public:
         if(objs.find(context.getContext()) == objs.end()){
             std::__throw_logic_error("no instace class for context" + context.getName());
         } else {
-            std::lock_guard lock(mutexes[context.getContext()]);
-
-            for (T& instance : objs[context.getContext()]) {
-                (instance.*method)(args...);
+            mutexes[context.getContext()].lock_shared();
+            if(objs.find(context.getContext()) != objs.end()){
+                for (T& instance : objs[context.getContext()]) {
+                    (instance.*method)(args...);
+                }
             }
+            mutexes[context.getContext()].unlock_shared();
         }
     }
 
@@ -196,11 +228,14 @@ public:
         if(objs.find(context.getContext()) == objs.end()){
             std::__throw_logic_error("no instace class for context" + context.getName());
         } else {
-            std::lock_guard lock(mutexes[context.getContext()]);
+            mutexes[context.getContext()].lock_shared();
             std::vector<typename std::result_of<Method(T, Args...)>::type> result;
-            for (T& instance : objs[context.getContext()]) {
-                result.push_back((instance.*method)(args...));
+            if(objs.find(context.getContext()) != objs.end()){
+                for (T& instance : objs[context.getContext()]) {
+                    result.push_back((instance.*method)(args...));
+                }
             }
+             mutexes[context.getContext()].unlock_shared();
             return result;
         }
     }
@@ -232,33 +267,37 @@ public:
 
     void erase(size_t contextId){
         auto it = objs.find(contextId);
-        auto itM = mutexes.find(contextId);
         if (it != objs.end()) {
-            std::lock_guard lock(mutexes[context.getContext()]);
+            std::lock_guard lock(mutexes[contextId]);
 
             objs.erase(it);
-        }
-        if (itM != mutexes.end()) {
-            mutexes.erase(itM);
         }
     }
 
 private:
 
     void checkContexts_thread(){
-        checkContexts_thread(g_ContextManager);
-    }
-
-    void checkContexts_thread(ContextManager& manager){
         while(collect){
             for (const auto& pair : objs) {
-                if (!manager.isValidContext(pair.first)) {
+                if (!ctxtMng.isValidContext(pair.first)) {
                     erase(pair.first);
                 }
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }
+
+    void checkMutexes_thread(){
+        while(collect){
+            for (const auto& pair : mutexes) {
+                if (!ctxtMng.isValidContext(pair.first)) {
+                    erase(pair.first);
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+    }
+
 };
 
 }
@@ -305,16 +344,15 @@ public:
 };
 
 //teste.h/.cpp
-//#include "iuser.h"
-//#include "userservice.h"
+//#include "userservice.h" //<- "isuer.h" ja incluído
 class Teste_Alt{
 };
 
 class Teste{
     private:
-    std::shared_ptr<service::Context> context;
+    CONTEXT context;
     public:
-    Teste(std::shared_ptr<service::Context> _context, int user_Id){
+    Teste(CONTEXT _context, int user_Id){
         context = _context;
         g_UserService.addInstance(*context.get(), *this);
         //Outra classe instanciada para funcionar com Teste_Alt.
