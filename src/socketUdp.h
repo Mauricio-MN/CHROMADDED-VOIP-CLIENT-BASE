@@ -41,28 +41,15 @@ class socketUdp{
     return decrypt(data);
     }
 
-    bool isGoodIntegrity(protocol::Server &server){
-        if(server.integritycheck() != 956532){
-            return false;
-        }
-        return true;
-    }
-
     bool deserialize(protocol::Server &server, sf::Packet &packet){
-        bool isParsed = server.ParseFromArray(packet.getData(),packet.getDataSize());
-        bool falsePos = !isParsed;
-        if(isParsed){
-            falsePos = !isGoodIntegrity(server);
-        }
-        if(falsePos){
+        if(player::SelfImpl::getInstance().needEncrypt()){
             data::buffer buffer = decrypt((char*)packet.getData(), packet.getDataSize());
-            bool parse = server.ParseFromArray(buffer.getData(), buffer.size());
-            if(parse){
-                falsePos = !isGoodIntegrity(server);
-            }
+            bool isParsed = server.ParseFromArray(buffer.getData(), buffer.size());
+            return isParsed;
+        } else {
+            bool isParsed = server.ParseFromArray(packet.getData(),packet.getDataSize());
+            return isParsed;
         }
-        if(falsePos) return false;
-        return true;
     }
 
     public:
@@ -124,8 +111,6 @@ class socketUdp{
             std::vector<unsigned char> encrypted = CryptImpl::getInstance().encrypt(&vecBuffer);
             status = socket.send(encrypted.data(), encrypted.size(), recipient, port);
             data = encrypted.data();
-        } else {
-            socket.send(buffer.data(), buffer.size(), recipient, port);
         }
         if(status != sf::Socket::Status::Done){
             return false;
