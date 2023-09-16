@@ -54,9 +54,4 @@ class protocolParserImpl{
     static protocolParser& getInstance();
 };
 
-inline protocol::Client constructValidBufferSend(){
-    protocol::Client client;
-    client.set_integritycheck(956532);
-}
-
 #endif
