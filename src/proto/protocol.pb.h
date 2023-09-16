@@ -195,7 +195,6 @@ class Client final :
     kTalkInRoomIdFieldNumber = 10,
     kTalkLocalFieldNumber = 11,
     kSampleTimeFieldNumber = 12,
-    kIntegrityCheckFieldNumber = 14,
   };
   // optional bytes audio = 3;
   bool has_audio() const;
@@ -372,15 +371,6 @@ class Client final :
   void _internal_set_sampletime(int32_t value);
   public:
 
-  // int32 integrityCheck = 14;
-  void clear_integritycheck();
-  int32_t integritycheck() const;
-  void set_integritycheck(int32_t value);
-  private:
-  int32_t _internal_integritycheck() const;
-  void _internal_set_integritycheck(int32_t value);
-  public:
-
   // @@protoc_insertion_point(class_scope:protocol.Client)
  private:
   class _Internal;
@@ -404,7 +394,6 @@ class Client final :
     int32_t talkinroom_id_;
     bool talklocal_;
     int32_t sampletime_;
-    int32_t integritycheck_;
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_protocol_2eproto;
@@ -533,6 +522,7 @@ class Server final :
 
   enum : int {
     kAudioFieldNumber = 3,
+    kPacketTimeFieldNumber = 11,
     kIdFieldNumber = 2,
     kAudioNumFieldNumber = 4,
     kCoordXFieldNumber = 5,
@@ -542,7 +532,6 @@ class Server final :
     kCoordZFieldNumber = 7,
     kMapNumFieldNumber = 8,
     kSampleTimeFieldNumber = 9,
-    kIntegrityCheckFieldNumber = 11,
   };
   // optional bytes audio = 3;
   bool has_audio() const;
@@ -561,6 +550,24 @@ class Server final :
   inline PROTOBUF_ALWAYS_INLINE void _internal_set_audio(const std::string& value);
   std::string* _internal_mutable_audio();
   public:
+
+  // optional .google.protobuf.Timestamp packetTime = 11;
+  bool has_packettime() const;
+  private:
+  bool _internal_has_packettime() const;
+  public:
+  void clear_packettime();
+  const ::PROTOBUF_NAMESPACE_ID::Timestamp& packettime() const;
+  PROTOBUF_NODISCARD ::PROTOBUF_NAMESPACE_ID::Timestamp* release_packettime();
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* mutable_packettime();
+  void set_allocated_packettime(::PROTOBUF_NAMESPACE_ID::Timestamp* packettime);
+  private:
+  const ::PROTOBUF_NAMESPACE_ID::Timestamp& _internal_packettime() const;
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* _internal_mutable_packettime();
+  public:
+  void unsafe_arena_set_allocated_packettime(
+      ::PROTOBUF_NAMESPACE_ID::Timestamp* packettime);
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* unsafe_arena_release_packettime();
 
   // int32 id = 2;
   void clear_id();
@@ -675,15 +682,6 @@ class Server final :
   void _internal_set_sampletime(int32_t value);
   public:
 
-  // int32 integrityCheck = 11;
-  void clear_integritycheck();
-  int32_t integritycheck() const;
-  void set_integritycheck(int32_t value);
-  private:
-  int32_t _internal_integritycheck() const;
-  void _internal_set_integritycheck(int32_t value);
-  public:
-
   // @@protoc_insertion_point(class_scope:protocol.Server)
  private:
   class _Internal;
@@ -695,6 +693,7 @@ class Server final :
     ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr audio_;
+    ::PROTOBUF_NAMESPACE_ID::Timestamp* packettime_;
     int32_t id_;
     int32_t audionum_;
     int32_t coordx_;
@@ -704,7 +703,6 @@ class Server final :
     int32_t coordz_;
     int32_t mapnum_;
     int32_t sampletime_;
-    int32_t integritycheck_;
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_protocol_2eproto;
@@ -1175,33 +1173,13 @@ inline void Client::set_allocated_packettime(::PROTOBUF_NAMESPACE_ID::Timestamp*
   // @@protoc_insertion_point(field_set_allocated:protocol.Client.packetTime)
 }
 
-// int32 integrityCheck = 14;
-inline void Client::clear_integritycheck() {
-  _impl_.integritycheck_ = 0;
-}
-inline int32_t Client::_internal_integritycheck() const {
-  return _impl_.integritycheck_;
-}
-inline int32_t Client::integritycheck() const {
-  // @@protoc_insertion_point(field_get:protocol.Client.integrityCheck)
-  return _internal_integritycheck();
-}
-inline void Client::_internal_set_integritycheck(int32_t value) {
-  
-  _impl_.integritycheck_ = value;
-}
-inline void Client::set_integritycheck(int32_t value) {
-  _internal_set_integritycheck(value);
-  // @@protoc_insertion_point(field_set:protocol.Client.integrityCheck)
-}
-
 // -------------------------------------------------------------------
 
 // Server
 
 // optional bool handShake = 1;
 inline bool Server::_internal_has_handshake() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000010u) != 0;
   return value;
 }
 inline bool Server::has_handshake() const {
@@ -1209,7 +1187,7 @@ inline bool Server::has_handshake() const {
 }
 inline void Server::clear_handshake() {
   _impl_.handshake_ = false;
-  _impl_._has_bits_[0] &= ~0x00000008u;
+  _impl_._has_bits_[0] &= ~0x00000010u;
 }
 inline bool Server::_internal_handshake() const {
   return _impl_.handshake_;
@@ -1219,7 +1197,7 @@ inline bool Server::handshake() const {
   return _internal_handshake();
 }
 inline void Server::_internal_set_handshake(bool value) {
-  _impl_._has_bits_[0] |= 0x00000008u;
+  _impl_._has_bits_[0] |= 0x00000010u;
   _impl_.handshake_ = value;
 }
 inline void Server::set_handshake(bool value) {
@@ -1317,7 +1295,7 @@ inline void Server::set_allocated_audio(std::string* audio) {
 
 // optional int32 audioNum = 4;
 inline bool Server::_internal_has_audionum() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool Server::has_audionum() const {
@@ -1325,7 +1303,7 @@ inline bool Server::has_audionum() const {
 }
 inline void Server::clear_audionum() {
   _impl_.audionum_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000002u;
+  _impl_._has_bits_[0] &= ~0x00000004u;
 }
 inline int32_t Server::_internal_audionum() const {
   return _impl_.audionum_;
@@ -1335,7 +1313,7 @@ inline int32_t Server::audionum() const {
   return _internal_audionum();
 }
 inline void Server::_internal_set_audionum(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.audionum_ = value;
 }
 inline void Server::set_audionum(int32_t value) {
@@ -1345,7 +1323,7 @@ inline void Server::set_audionum(int32_t value) {
 
 // optional int32 coordX = 5;
 inline bool Server::_internal_has_coordx() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000004u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
 inline bool Server::has_coordx() const {
@@ -1353,7 +1331,7 @@ inline bool Server::has_coordx() const {
 }
 inline void Server::clear_coordx() {
   _impl_.coordx_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000004u;
+  _impl_._has_bits_[0] &= ~0x00000008u;
 }
 inline int32_t Server::_internal_coordx() const {
   return _impl_.coordx_;
@@ -1363,7 +1341,7 @@ inline int32_t Server::coordx() const {
   return _internal_coordx();
 }
 inline void Server::_internal_set_coordx(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000004u;
+  _impl_._has_bits_[0] |= 0x00000008u;
   _impl_.coordx_ = value;
 }
 inline void Server::set_coordx(int32_t value) {
@@ -1373,7 +1351,7 @@ inline void Server::set_coordx(int32_t value) {
 
 // optional int32 coordY = 6;
 inline bool Server::_internal_has_coordy() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000020u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000040u) != 0;
   return value;
 }
 inline bool Server::has_coordy() const {
@@ -1381,7 +1359,7 @@ inline bool Server::has_coordy() const {
 }
 inline void Server::clear_coordy() {
   _impl_.coordy_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000020u;
+  _impl_._has_bits_[0] &= ~0x00000040u;
 }
 inline int32_t Server::_internal_coordy() const {
   return _impl_.coordy_;
@@ -1391,7 +1369,7 @@ inline int32_t Server::coordy() const {
   return _internal_coordy();
 }
 inline void Server::_internal_set_coordy(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000020u;
+  _impl_._has_bits_[0] |= 0x00000040u;
   _impl_.coordy_ = value;
 }
 inline void Server::set_coordy(int32_t value) {
@@ -1401,7 +1379,7 @@ inline void Server::set_coordy(int32_t value) {
 
 // optional int32 coordZ = 7;
 inline bool Server::_internal_has_coordz() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000040u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool Server::has_coordz() const {
@@ -1409,7 +1387,7 @@ inline bool Server::has_coordz() const {
 }
 inline void Server::clear_coordz() {
   _impl_.coordz_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000040u;
+  _impl_._has_bits_[0] &= ~0x00000080u;
 }
 inline int32_t Server::_internal_coordz() const {
   return _impl_.coordz_;
@@ -1419,7 +1397,7 @@ inline int32_t Server::coordz() const {
   return _internal_coordz();
 }
 inline void Server::_internal_set_coordz(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000040u;
+  _impl_._has_bits_[0] |= 0x00000080u;
   _impl_.coordz_ = value;
 }
 inline void Server::set_coordz(int32_t value) {
@@ -1429,7 +1407,7 @@ inline void Server::set_coordz(int32_t value) {
 
 // optional int32 mapNum = 8;
 inline bool Server::_internal_has_mapnum() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000080u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000100u) != 0;
   return value;
 }
 inline bool Server::has_mapnum() const {
@@ -1437,7 +1415,7 @@ inline bool Server::has_mapnum() const {
 }
 inline void Server::clear_mapnum() {
   _impl_.mapnum_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000080u;
+  _impl_._has_bits_[0] &= ~0x00000100u;
 }
 inline int32_t Server::_internal_mapnum() const {
   return _impl_.mapnum_;
@@ -1447,7 +1425,7 @@ inline int32_t Server::mapnum() const {
   return _internal_mapnum();
 }
 inline void Server::_internal_set_mapnum(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000080u;
+  _impl_._has_bits_[0] |= 0x00000100u;
   _impl_.mapnum_ = value;
 }
 inline void Server::set_mapnum(int32_t value) {
@@ -1457,7 +1435,7 @@ inline void Server::set_mapnum(int32_t value) {
 
 // optional int32 sampleTime = 9;
 inline bool Server::_internal_has_sampletime() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000100u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000200u) != 0;
   return value;
 }
 inline bool Server::has_sampletime() const {
@@ -1465,7 +1443,7 @@ inline bool Server::has_sampletime() const {
 }
 inline void Server::clear_sampletime() {
   _impl_.sampletime_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000100u;
+  _impl_._has_bits_[0] &= ~0x00000200u;
 }
 inline int32_t Server::_internal_sampletime() const {
   return _impl_.sampletime_;
@@ -1475,7 +1453,7 @@ inline int32_t Server::sampletime() const {
   return _internal_sampletime();
 }
 inline void Server::_internal_set_sampletime(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000100u;
+  _impl_._has_bits_[0] |= 0x00000200u;
   _impl_.sampletime_ = value;
 }
 inline void Server::set_sampletime(int32_t value) {
@@ -1485,7 +1463,7 @@ inline void Server::set_sampletime(int32_t value) {
 
 // optional bool notConnected = 10;
 inline bool Server::_internal_has_notconnected() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
 inline bool Server::has_notconnected() const {
@@ -1493,7 +1471,7 @@ inline bool Server::has_notconnected() const {
 }
 inline void Server::clear_notconnected() {
   _impl_.notconnected_ = false;
-  _impl_._has_bits_[0] &= ~0x00000010u;
+  _impl_._has_bits_[0] &= ~0x00000020u;
 }
 inline bool Server::_internal_notconnected() const {
   return _impl_.notconnected_;
@@ -1503,7 +1481,7 @@ inline bool Server::notconnected() const {
   return _internal_notconnected();
 }
 inline void Server::_internal_set_notconnected(bool value) {
-  _impl_._has_bits_[0] |= 0x00000010u;
+  _impl_._has_bits_[0] |= 0x00000020u;
   _impl_.notconnected_ = value;
 }
 inline void Server::set_notconnected(bool value) {
@@ -1511,24 +1489,91 @@ inline void Server::set_notconnected(bool value) {
   // @@protoc_insertion_point(field_set:protocol.Server.notConnected)
 }
 
-// int32 integrityCheck = 11;
-inline void Server::clear_integritycheck() {
-  _impl_.integritycheck_ = 0;
+// optional .google.protobuf.Timestamp packetTime = 11;
+inline bool Server::_internal_has_packettime() const {
+  bool value = (_impl_._has_bits_[0] & 0x00000002u) != 0;
+  PROTOBUF_ASSUME(!value || _impl_.packettime_ != nullptr);
+  return value;
 }
-inline int32_t Server::_internal_integritycheck() const {
-  return _impl_.integritycheck_;
+inline bool Server::has_packettime() const {
+  return _internal_has_packettime();
 }
-inline int32_t Server::integritycheck() const {
-  // @@protoc_insertion_point(field_get:protocol.Server.integrityCheck)
-  return _internal_integritycheck();
+inline const ::PROTOBUF_NAMESPACE_ID::Timestamp& Server::_internal_packettime() const {
+  const ::PROTOBUF_NAMESPACE_ID::Timestamp* p = _impl_.packettime_;
+  return p != nullptr ? *p : reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Timestamp&>(
+      ::PROTOBUF_NAMESPACE_ID::_Timestamp_default_instance_);
 }
-inline void Server::_internal_set_integritycheck(int32_t value) {
-  
-  _impl_.integritycheck_ = value;
+inline const ::PROTOBUF_NAMESPACE_ID::Timestamp& Server::packettime() const {
+  // @@protoc_insertion_point(field_get:protocol.Server.packetTime)
+  return _internal_packettime();
 }
-inline void Server::set_integritycheck(int32_t value) {
-  _internal_set_integritycheck(value);
-  // @@protoc_insertion_point(field_set:protocol.Server.integrityCheck)
+inline void Server::unsafe_arena_set_allocated_packettime(
+    ::PROTOBUF_NAMESPACE_ID::Timestamp* packettime) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.packettime_);
+  }
+  _impl_.packettime_ = packettime;
+  if (packettime) {
+    _impl_._has_bits_[0] |= 0x00000002u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000002u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:protocol.Server.packetTime)
+}
+inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Server::release_packettime() {
+  _impl_._has_bits_[0] &= ~0x00000002u;
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* temp = _impl_.packettime_;
+  _impl_.packettime_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Server::unsafe_arena_release_packettime() {
+  // @@protoc_insertion_point(field_release:protocol.Server.packetTime)
+  _impl_._has_bits_[0] &= ~0x00000002u;
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* temp = _impl_.packettime_;
+  _impl_.packettime_ = nullptr;
+  return temp;
+}
+inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Server::_internal_mutable_packettime() {
+  _impl_._has_bits_[0] |= 0x00000002u;
+  if (_impl_.packettime_ == nullptr) {
+    auto* p = CreateMaybeMessage<::PROTOBUF_NAMESPACE_ID::Timestamp>(GetArenaForAllocation());
+    _impl_.packettime_ = p;
+  }
+  return _impl_.packettime_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Server::mutable_packettime() {
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* _msg = _internal_mutable_packettime();
+  // @@protoc_insertion_point(field_mutable:protocol.Server.packetTime)
+  return _msg;
+}
+inline void Server::set_allocated_packettime(::PROTOBUF_NAMESPACE_ID::Timestamp* packettime) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.packettime_);
+  }
+  if (packettime) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(packettime));
+    if (message_arena != submessage_arena) {
+      packettime = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, packettime, submessage_arena);
+    }
+    _impl_._has_bits_[0] |= 0x00000002u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000002u;
+  }
+  _impl_.packettime_ = packettime;
+  // @@protoc_insertion_point(field_set_allocated:protocol.Server.packetTime)
 }
 
 #ifdef __GNUC__

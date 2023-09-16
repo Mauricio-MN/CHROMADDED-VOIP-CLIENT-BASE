@@ -37,8 +37,7 @@ PROTOBUF_CONSTEXPR Client::Client(
   , /*decltype(_impl_.blockplayer_id_)*/0
   , /*decltype(_impl_.talkinroom_id_)*/0
   , /*decltype(_impl_.talklocal_)*/false
-  , /*decltype(_impl_.sampletime_)*/0
-  , /*decltype(_impl_.integritycheck_)*/0} {}
+  , /*decltype(_impl_.sampletime_)*/0} {}
 struct ClientDefaultTypeInternal {
   PROTOBUF_CONSTEXPR ClientDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -53,6 +52,7 @@ PROTOBUF_CONSTEXPR Server::Server(
     /*decltype(_impl_._has_bits_)*/{}
   , /*decltype(_impl_._cached_size_)*/{}
   , /*decltype(_impl_.audio_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.packettime_)*/nullptr
   , /*decltype(_impl_.id_)*/0
   , /*decltype(_impl_.audionum_)*/0
   , /*decltype(_impl_.coordx_)*/0
@@ -61,8 +61,7 @@ PROTOBUF_CONSTEXPR Server::Server(
   , /*decltype(_impl_.coordy_)*/0
   , /*decltype(_impl_.coordz_)*/0
   , /*decltype(_impl_.mapnum_)*/0
-  , /*decltype(_impl_.sampletime_)*/0
-  , /*decltype(_impl_.integritycheck_)*/0} {}
+  , /*decltype(_impl_.sampletime_)*/0} {}
 struct ServerDefaultTypeInternal {
   PROTOBUF_CONSTEXPR ServerDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -97,7 +96,6 @@ const uint32_t TableStruct_protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   PROTOBUF_FIELD_OFFSET(::protocol::Client, _impl_.talklocal_),
   PROTOBUF_FIELD_OFFSET(::protocol::Client, _impl_.sampletime_),
   PROTOBUF_FIELD_OFFSET(::protocol::Client, _impl_.packettime_),
-  PROTOBUF_FIELD_OFFSET(::protocol::Client, _impl_.integritycheck_),
   2,
   ~0u,
   0,
@@ -111,7 +109,6 @@ const uint32_t TableStruct_protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   10,
   11,
   1,
-  ~0u,
   PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_._has_bits_),
   PROTOBUF_FIELD_OFFSET(::protocol::Server, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -128,22 +125,22 @@ const uint32_t TableStruct_protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.mapnum_),
   PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.sampletime_),
   PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.notconnected_),
-  PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.integritycheck_),
-  3,
+  PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.packettime_),
+  4,
   ~0u,
   0,
-  1,
   2,
-  5,
+  3,
   6,
   7,
   8,
-  4,
-  ~0u,
+  9,
+  5,
+  1,
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, 20, -1, sizeof(::protocol::Client)},
-  { 34, 51, -1, sizeof(::protocol::Server)},
+  { 0, 19, -1, sizeof(::protocol::Client)},
+  { 32, 49, -1, sizeof(::protocol::Server)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -153,7 +150,7 @@ static const ::_pb::Message* const file_default_instances[] = {
 
 const char descriptor_table_protodef_protocol_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\016protocol.proto\022\010protocol\032\037google/proto"
-  "buf/timestamp.proto\"\204\004\n\006Client\022\026\n\tsecret"
+  "buf/timestamp.proto\"\354\003\n\006Client\022\026\n\tsecret"
   "_id\030\001 \001(\005H\000\210\001\001\022\n\n\002id\030\002 \001(\005\022\022\n\005audio\030\003 \001("
   "\014H\001\210\001\001\022\025\n\010audioNum\030\004 \001(\005H\002\210\001\001\022\023\n\006coordX\030"
   "\005 \001(\005H\003\210\001\001\022\023\n\006coordY\030\006 \001(\005H\004\210\001\001\022\023\n\006coord"
@@ -161,29 +158,29 @@ const char descriptor_table_protodef_protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "ckPlayer_id\030\t \001(\005H\007\210\001\001\022\032\n\rtalkInRoom_id\030"
   "\n \001(\005H\010\210\001\001\022\026\n\ttalkLocal\030\013 \001(\010H\t\210\001\001\022\027\n\nsa"
   "mpleTime\030\014 \001(\005H\n\210\001\001\0223\n\npacketTime\030\r \001(\0132"
-  "\032.google.protobuf.TimestampH\013\210\001\001\022\026\n\016inte"
-  "grityCheck\030\016 \001(\005B\014\n\n_secret_idB\010\n\006_audio"
-  "B\013\n\t_audioNumB\t\n\007_coordXB\t\n\007_coordYB\t\n\007_"
-  "coordZB\t\n\007_mapNumB\021\n\017_blockPlayer_idB\020\n\016"
-  "_talkInRoom_idB\014\n\n_talkLocalB\r\n\013_sampleT"
-  "imeB\r\n\013_packetTime\"\350\002\n\006Server\022\026\n\thandSha"
-  "ke\030\001 \001(\010H\000\210\001\001\022\n\n\002id\030\002 \001(\005\022\022\n\005audio\030\003 \001(\014"
-  "H\001\210\001\001\022\025\n\010audioNum\030\004 \001(\005H\002\210\001\001\022\023\n\006coordX\030\005"
-  " \001(\005H\003\210\001\001\022\023\n\006coordY\030\006 \001(\005H\004\210\001\001\022\023\n\006coordZ"
-  "\030\007 \001(\005H\005\210\001\001\022\023\n\006mapNum\030\010 \001(\005H\006\210\001\001\022\027\n\nsamp"
-  "leTime\030\t \001(\005H\007\210\001\001\022\031\n\014notConnected\030\n \001(\010H"
-  "\010\210\001\001\022\026\n\016integrityCheck\030\013 \001(\005B\014\n\n_handSha"
-  "keB\010\n\006_audioB\013\n\t_audioNumB\t\n\007_coordXB\t\n\007"
-  "_coordYB\t\n\007_coordZB\t\n\007_mapNumB\r\n\013_sample"
-  "TimeB\017\n\r_notConnectedB\026\n\024pasaud.voip.pro"
-  "tocolb\006proto3"
+  "\032.google.protobuf.TimestampH\013\210\001\001B\014\n\n_sec"
+  "ret_idB\010\n\006_audioB\013\n\t_audioNumB\t\n\007_coordX"
+  "B\t\n\007_coordYB\t\n\007_coordZB\t\n\007_mapNumB\021\n\017_bl"
+  "ockPlayer_idB\020\n\016_talkInRoom_idB\014\n\n_talkL"
+  "ocalB\r\n\013_sampleTimeB\r\n\013_packetTime\"\224\003\n\006S"
+  "erver\022\026\n\thandShake\030\001 \001(\010H\000\210\001\001\022\n\n\002id\030\002 \001("
+  "\005\022\022\n\005audio\030\003 \001(\014H\001\210\001\001\022\025\n\010audioNum\030\004 \001(\005H"
+  "\002\210\001\001\022\023\n\006coordX\030\005 \001(\005H\003\210\001\001\022\023\n\006coordY\030\006 \001("
+  "\005H\004\210\001\001\022\023\n\006coordZ\030\007 \001(\005H\005\210\001\001\022\023\n\006mapNum\030\010 "
+  "\001(\005H\006\210\001\001\022\027\n\nsampleTime\030\t \001(\005H\007\210\001\001\022\031\n\014not"
+  "Connected\030\n \001(\010H\010\210\001\001\0223\n\npacketTime\030\013 \001(\013"
+  "2\032.google.protobuf.TimestampH\t\210\001\001B\014\n\n_ha"
+  "ndShakeB\010\n\006_audioB\013\n\t_audioNumB\t\n\007_coord"
+  "XB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_mapNumB\r\n\013_s"
+  "ampleTimeB\017\n\r_notConnectedB\r\n\013_packetTim"
+  "eB\026\n\024pasaud.voip.protocolb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_protocol_2eproto_deps[1] = {
   &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
 static ::_pbi::once_flag descriptor_table_protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_protocol_2eproto = {
-    false, false, 973, descriptor_table_protodef_protocol_2eproto,
+    false, false, 993, descriptor_table_protodef_protocol_2eproto,
     "protocol.proto",
     &descriptor_table_protocol_2eproto_once, descriptor_table_protocol_2eproto_deps, 1, 2,
     schemas, file_default_instances, TableStruct_protocol_2eproto::offsets,
@@ -274,8 +271,7 @@ Client::Client(const Client& from)
     , decltype(_impl_.blockplayer_id_){}
     , decltype(_impl_.talkinroom_id_){}
     , decltype(_impl_.talklocal_){}
-    , decltype(_impl_.sampletime_){}
-    , decltype(_impl_.integritycheck_){}};
+    , decltype(_impl_.sampletime_){}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.audio_.InitDefault();
@@ -290,8 +286,8 @@ Client::Client(const Client& from)
     _this->_impl_.packettime_ = new ::PROTOBUF_NAMESPACE_ID::Timestamp(*from._impl_.packettime_);
   }
   ::memcpy(&_impl_.secret_id_, &from._impl_.secret_id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.integritycheck_) -
-    reinterpret_cast<char*>(&_impl_.secret_id_)) + sizeof(_impl_.integritycheck_));
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.sampletime_) -
+    reinterpret_cast<char*>(&_impl_.secret_id_)) + sizeof(_impl_.sampletime_));
   // @@protoc_insertion_point(copy_constructor:protocol.Client)
 }
 
@@ -315,7 +311,6 @@ inline void Client::SharedCtor(
     , decltype(_impl_.talkinroom_id_){0}
     , decltype(_impl_.talklocal_){false}
     , decltype(_impl_.sampletime_){0}
-    , decltype(_impl_.integritycheck_){0}
   };
   _impl_.audio_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -370,7 +365,6 @@ void Client::Clear() {
         reinterpret_cast<char*>(&_impl_.sampletime_) -
         reinterpret_cast<char*>(&_impl_.blockplayer_id_)) + sizeof(_impl_.sampletime_));
   }
-  _impl_.integritycheck_ = 0;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
@@ -497,14 +491,6 @@ const char* Client::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // int32 integrityCheck = 14;
-      case 14:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 112)) {
-          _impl_.integritycheck_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -614,12 +600,6 @@ uint8_t* Client::_InternalSerialize(
         _Internal::packettime(this).GetCachedSize(), target, stream);
   }
 
-  // int32 integrityCheck = 14;
-  if (this->_internal_integritycheck() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(14, this->_internal_integritycheck(), target);
-  }
-
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -712,11 +692,6 @@ size_t Client::ByteSizeLong() const {
     }
 
   }
-  // int32 integrityCheck = 14;
-  if (this->_internal_integritycheck() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_integritycheck());
-  }
-
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -785,9 +760,6 @@ void Client::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBU
     }
     _this->_impl_._has_bits_[0] |= cached_has_bits;
   }
-  if (from._internal_integritycheck() != 0) {
-    _this->_internal_set_integritycheck(from._internal_integritycheck());
-  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -813,8 +785,8 @@ void Client::InternalSwap(Client* other) {
       &other->_impl_.audio_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Client, _impl_.integritycheck_)
-      + sizeof(Client::_impl_.integritycheck_)
+      PROTOBUF_FIELD_OFFSET(Client, _impl_.sampletime_)
+      + sizeof(Client::_impl_.sampletime_)
       - PROTOBUF_FIELD_OFFSET(Client, _impl_.packettime_)>(
           reinterpret_cast<char*>(&_impl_.packettime_),
           reinterpret_cast<char*>(&other->_impl_.packettime_));
@@ -832,34 +804,46 @@ class Server::_Internal {
  public:
   using HasBits = decltype(std::declval<Server>()._impl_._has_bits_);
   static void set_has_handshake(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
+    (*has_bits)[0] |= 16u;
   }
   static void set_has_audio(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_audionum(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
-  }
-  static void set_has_coordx(HasBits* has_bits) {
     (*has_bits)[0] |= 4u;
   }
-  static void set_has_coordy(HasBits* has_bits) {
-    (*has_bits)[0] |= 32u;
+  static void set_has_coordx(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
   }
-  static void set_has_coordz(HasBits* has_bits) {
+  static void set_has_coordy(HasBits* has_bits) {
     (*has_bits)[0] |= 64u;
   }
-  static void set_has_mapnum(HasBits* has_bits) {
+  static void set_has_coordz(HasBits* has_bits) {
     (*has_bits)[0] |= 128u;
   }
-  static void set_has_sampletime(HasBits* has_bits) {
+  static void set_has_mapnum(HasBits* has_bits) {
     (*has_bits)[0] |= 256u;
   }
+  static void set_has_sampletime(HasBits* has_bits) {
+    (*has_bits)[0] |= 512u;
+  }
   static void set_has_notconnected(HasBits* has_bits) {
-    (*has_bits)[0] |= 16u;
+    (*has_bits)[0] |= 32u;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Timestamp& packettime(const Server* msg);
+  static void set_has_packettime(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
   }
 };
 
+const ::PROTOBUF_NAMESPACE_ID::Timestamp&
+Server::_Internal::packettime(const Server* msg) {
+  return *msg->_impl_.packettime_;
+}
+void Server::clear_packettime() {
+  if (_impl_.packettime_ != nullptr) _impl_.packettime_->Clear();
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
 Server::Server(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
@@ -873,6 +857,7 @@ Server::Server(const Server& from)
       decltype(_impl_._has_bits_){from._impl_._has_bits_}
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.audio_){}
+    , decltype(_impl_.packettime_){nullptr}
     , decltype(_impl_.id_){}
     , decltype(_impl_.audionum_){}
     , decltype(_impl_.coordx_){}
@@ -881,8 +866,7 @@ Server::Server(const Server& from)
     , decltype(_impl_.coordy_){}
     , decltype(_impl_.coordz_){}
     , decltype(_impl_.mapnum_){}
-    , decltype(_impl_.sampletime_){}
-    , decltype(_impl_.integritycheck_){}};
+    , decltype(_impl_.sampletime_){}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.audio_.InitDefault();
@@ -893,9 +877,12 @@ Server::Server(const Server& from)
     _this->_impl_.audio_.Set(from._internal_audio(), 
       _this->GetArenaForAllocation());
   }
+  if (from._internal_has_packettime()) {
+    _this->_impl_.packettime_ = new ::PROTOBUF_NAMESPACE_ID::Timestamp(*from._impl_.packettime_);
+  }
   ::memcpy(&_impl_.id_, &from._impl_.id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.integritycheck_) -
-    reinterpret_cast<char*>(&_impl_.id_)) + sizeof(_impl_.integritycheck_));
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.sampletime_) -
+    reinterpret_cast<char*>(&_impl_.id_)) + sizeof(_impl_.sampletime_));
   // @@protoc_insertion_point(copy_constructor:protocol.Server)
 }
 
@@ -907,6 +894,7 @@ inline void Server::SharedCtor(
       decltype(_impl_._has_bits_){}
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.audio_){}
+    , decltype(_impl_.packettime_){nullptr}
     , decltype(_impl_.id_){0}
     , decltype(_impl_.audionum_){0}
     , decltype(_impl_.coordx_){0}
@@ -916,7 +904,6 @@ inline void Server::SharedCtor(
     , decltype(_impl_.coordz_){0}
     , decltype(_impl_.mapnum_){0}
     , decltype(_impl_.sampletime_){0}
-    , decltype(_impl_.integritycheck_){0}
   };
   _impl_.audio_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -936,6 +923,7 @@ Server::~Server() {
 inline void Server::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   _impl_.audio_.Destroy();
+  if (this != internal_default_instance()) delete _impl_.packettime_;
 }
 
 void Server::SetCachedSize(int size) const {
@@ -949,17 +937,26 @@ void Server::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    _impl_.audio_.ClearNonDefaultToEmpty();
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      _impl_.audio_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      GOOGLE_DCHECK(_impl_.packettime_ != nullptr);
+      _impl_.packettime_->Clear();
+    }
   }
   _impl_.id_ = 0;
-  if (cached_has_bits & 0x000000feu) {
+  if (cached_has_bits & 0x000000fcu) {
     ::memset(&_impl_.audionum_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&_impl_.mapnum_) -
-        reinterpret_cast<char*>(&_impl_.audionum_)) + sizeof(_impl_.mapnum_));
+        reinterpret_cast<char*>(&_impl_.coordz_) -
+        reinterpret_cast<char*>(&_impl_.audionum_)) + sizeof(_impl_.coordz_));
   }
-  _impl_.sampletime_ = 0;
-  _impl_.integritycheck_ = 0;
+  if (cached_has_bits & 0x00000300u) {
+    ::memset(&_impl_.mapnum_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&_impl_.sampletime_) -
+        reinterpret_cast<char*>(&_impl_.mapnum_)) + sizeof(_impl_.sampletime_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
@@ -1060,10 +1057,10 @@ const char* Server::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // int32 integrityCheck = 11;
+      // optional .google.protobuf.Timestamp packetTime = 11;
       case 11:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 88)) {
-          _impl_.integritycheck_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
+          ptr = ctx->ParseMessage(_internal_mutable_packettime(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -1158,10 +1155,11 @@ uint8_t* Server::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(10, this->_internal_notconnected(), target);
   }
 
-  // int32 integrityCheck = 11;
-  if (this->_internal_integritycheck() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(11, this->_internal_integritycheck(), target);
+  // optional .google.protobuf.Timestamp packetTime = 11;
+  if (_internal_has_packettime()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(11, _Internal::packettime(this),
+        _Internal::packettime(this).GetCachedSize(), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -1180,66 +1178,72 @@ size_t Server::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // optional bytes audio = 3;
   cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
-        this->_internal_audio());
-  }
+  if (cached_has_bits & 0x00000003u) {
+    // optional bytes audio = 3;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
+          this->_internal_audio());
+    }
 
+    // optional .google.protobuf.Timestamp packetTime = 11;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.packettime_);
+    }
+
+  }
   // int32 id = 2;
   if (this->_internal_id() != 0) {
     total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_id());
   }
 
-  if (cached_has_bits & 0x000000feu) {
+  if (cached_has_bits & 0x000000fcu) {
     // optional int32 audioNum = 4;
-    if (cached_has_bits & 0x00000002u) {
+    if (cached_has_bits & 0x00000004u) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_audionum());
     }
 
     // optional int32 coordX = 5;
-    if (cached_has_bits & 0x00000004u) {
+    if (cached_has_bits & 0x00000008u) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_coordx());
     }
 
     // optional bool handShake = 1;
-    if (cached_has_bits & 0x00000008u) {
-      total_size += 1 + 1;
-    }
-
-    // optional bool notConnected = 10;
     if (cached_has_bits & 0x00000010u) {
       total_size += 1 + 1;
     }
 
-    // optional int32 coordY = 6;
+    // optional bool notConnected = 10;
     if (cached_has_bits & 0x00000020u) {
+      total_size += 1 + 1;
+    }
+
+    // optional int32 coordY = 6;
+    if (cached_has_bits & 0x00000040u) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_coordy());
     }
 
     // optional int32 coordZ = 7;
-    if (cached_has_bits & 0x00000040u) {
+    if (cached_has_bits & 0x00000080u) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_coordz());
     }
 
+  }
+  if (cached_has_bits & 0x00000300u) {
     // optional int32 mapNum = 8;
-    if (cached_has_bits & 0x00000080u) {
+    if (cached_has_bits & 0x00000100u) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_mapnum());
     }
 
-  }
-  // optional int32 sampleTime = 9;
-  if (cached_has_bits & 0x00000100u) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_sampletime());
-  }
+    // optional int32 sampleTime = 9;
+    if (cached_has_bits & 0x00000200u) {
+      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_sampletime());
+    }
 
-  // int32 integrityCheck = 11;
-  if (this->_internal_integritycheck() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_integritycheck());
   }
-
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -1258,42 +1262,48 @@ void Server::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBU
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from._internal_has_audio()) {
-    _this->_internal_set_audio(from._internal_audio());
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      _this->_internal_set_audio(from._internal_audio());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      _this->_internal_mutable_packettime()->::PROTOBUF_NAMESPACE_ID::Timestamp::MergeFrom(
+          from._internal_packettime());
+    }
   }
   if (from._internal_id() != 0) {
     _this->_internal_set_id(from._internal_id());
   }
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (cached_has_bits & 0x000000feu) {
-    if (cached_has_bits & 0x00000002u) {
+  if (cached_has_bits & 0x000000fcu) {
+    if (cached_has_bits & 0x00000004u) {
       _this->_impl_.audionum_ = from._impl_.audionum_;
     }
-    if (cached_has_bits & 0x00000004u) {
+    if (cached_has_bits & 0x00000008u) {
       _this->_impl_.coordx_ = from._impl_.coordx_;
     }
-    if (cached_has_bits & 0x00000008u) {
+    if (cached_has_bits & 0x00000010u) {
       _this->_impl_.handshake_ = from._impl_.handshake_;
     }
-    if (cached_has_bits & 0x00000010u) {
+    if (cached_has_bits & 0x00000020u) {
       _this->_impl_.notconnected_ = from._impl_.notconnected_;
     }
-    if (cached_has_bits & 0x00000020u) {
+    if (cached_has_bits & 0x00000040u) {
       _this->_impl_.coordy_ = from._impl_.coordy_;
     }
-    if (cached_has_bits & 0x00000040u) {
-      _this->_impl_.coordz_ = from._impl_.coordz_;
-    }
     if (cached_has_bits & 0x00000080u) {
-      _this->_impl_.mapnum_ = from._impl_.mapnum_;
+      _this->_impl_.coordz_ = from._impl_.coordz_;
     }
     _this->_impl_._has_bits_[0] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000100u) {
-    _this->_internal_set_sampletime(from._internal_sampletime());
-  }
-  if (from._internal_integritycheck() != 0) {
-    _this->_internal_set_integritycheck(from._internal_integritycheck());
+  if (cached_has_bits & 0x00000300u) {
+    if (cached_has_bits & 0x00000100u) {
+      _this->_impl_.mapnum_ = from._impl_.mapnum_;
+    }
+    if (cached_has_bits & 0x00000200u) {
+      _this->_impl_.sampletime_ = from._impl_.sampletime_;
+    }
+    _this->_impl_._has_bits_[0] |= cached_has_bits;
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -1320,11 +1330,11 @@ void Server::InternalSwap(Server* other) {
       &other->_impl_.audio_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Server, _impl_.integritycheck_)
-      + sizeof(Server::_impl_.integritycheck_)
-      - PROTOBUF_FIELD_OFFSET(Server, _impl_.id_)>(
-          reinterpret_cast<char*>(&_impl_.id_),
-          reinterpret_cast<char*>(&other->_impl_.id_));
+      PROTOBUF_FIELD_OFFSET(Server, _impl_.sampletime_)
+      + sizeof(Server::_impl_.sampletime_)
+      - PROTOBUF_FIELD_OFFSET(Server, _impl_.packettime_)>(
+          reinterpret_cast<char*>(&_impl_.packettime_),
+          reinterpret_cast<char*>(&other->_impl_.packettime_));
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata Server::GetMetadata() const {

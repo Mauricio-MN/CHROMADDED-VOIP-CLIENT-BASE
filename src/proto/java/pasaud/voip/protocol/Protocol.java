@@ -171,12 +171,6 @@ public final class Protocol {
      * <code>optional .google.protobuf.Timestamp packetTime = 13;</code>
      */
     com.google.protobuf.TimestampOrBuilder getPacketTimeOrBuilder();
-
-    /**
-     * <code>int32 integrityCheck = 14;</code>
-     * @return The integrityCheck.
-     */
-    int getIntegrityCheck();
   }
   /**
    * <pre>
@@ -482,17 +476,6 @@ public final class Protocol {
       return packetTime_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : packetTime_;
     }
 
-    public static final int INTEGRITYCHECK_FIELD_NUMBER = 14;
-    private int integrityCheck_ = 0;
-    /**
-     * <code>int32 integrityCheck = 14;</code>
-     * @return The integrityCheck.
-     */
-    @java.lang.Override
-    public int getIntegrityCheck() {
-      return integrityCheck_;
-    }
-
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -545,9 +528,6 @@ public final class Protocol {
       }
       if (((bitField0_ & 0x00000800) != 0)) {
         output.writeMessage(13, getPacketTime());
-      }
-      if (integrityCheck_ != 0) {
-        output.writeInt32(14, integrityCheck_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -609,10 +589,6 @@ public final class Protocol {
       if (((bitField0_ & 0x00000800) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(13, getPacketTime());
-      }
-      if (integrityCheck_ != 0) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(14, integrityCheck_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
@@ -691,8 +667,6 @@ public final class Protocol {
         if (!getPacketTime()
             .equals(other.getPacketTime())) return false;
       }
-      if (getIntegrityCheck()
-          != other.getIntegrityCheck()) return false;
       if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
@@ -755,8 +729,6 @@ public final class Protocol {
         hash = (37 * hash) + PACKETTIME_FIELD_NUMBER;
         hash = (53 * hash) + getPacketTime().hashCode();
       }
-      hash = (37 * hash) + INTEGRITYCHECK_FIELD_NUMBER;
-      hash = (53 * hash) + getIntegrityCheck();
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -913,7 +885,6 @@ public final class Protocol {
           packetTimeBuilder_.dispose();
           packetTimeBuilder_ = null;
         }
-        integrityCheck_ = 0;
         return this;
       }
 
@@ -1001,9 +972,6 @@ public final class Protocol {
               : packetTimeBuilder_.build();
           to_bitField0_ |= 0x00000800;
         }
-        if (((from_bitField0_ & 0x00002000) != 0)) {
-          result.integrityCheck_ = integrityCheck_;
-        }
         result.bitField0_ |= to_bitField0_;
       }
 
@@ -1089,9 +1057,6 @@ public final class Protocol {
         }
         if (other.hasPacketTime()) {
           mergePacketTime(other.getPacketTime());
-        }
-        if (other.getIntegrityCheck() != 0) {
-          setIntegrityCheck(other.getIntegrityCheck());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
@@ -1186,11 +1151,6 @@ public final class Protocol {
                 bitField0_ |= 0x00001000;
                 break;
               } // case 106
-              case 112: {
-                integrityCheck_ = input.readInt32();
-                bitField0_ |= 0x00002000;
-                break;
-              } // case 112
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -1826,38 +1786,6 @@ public final class Protocol {
         }
         return packetTimeBuilder_;
       }
-
-      private int integrityCheck_ ;
-      /**
-       * <code>int32 integrityCheck = 14;</code>
-       * @return The integrityCheck.
-       */
-      @java.lang.Override
-      public int getIntegrityCheck() {
-        return integrityCheck_;
-      }
-      /**
-       * <code>int32 integrityCheck = 14;</code>
-       * @param value The integrityCheck to set.
-       * @return This builder for chaining.
-       */
-      public Builder setIntegrityCheck(int value) {
-        
-        integrityCheck_ = value;
-        bitField0_ |= 0x00002000;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>int32 integrityCheck = 14;</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearIntegrityCheck() {
-        bitField0_ = (bitField0_ & ~0x00002000);
-        integrityCheck_ = 0;
-        onChanged();
-        return this;
-      }
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -2036,10 +1964,19 @@ public final class Protocol {
     boolean getNotConnected();
 
     /**
-     * <code>int32 integrityCheck = 11;</code>
-     * @return The integrityCheck.
+     * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+     * @return Whether the packetTime field is set.
      */
-    int getIntegrityCheck();
+    boolean hasPacketTime();
+    /**
+     * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+     * @return The packetTime.
+     */
+    com.google.protobuf.Timestamp getPacketTime();
+    /**
+     * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+     */
+    com.google.protobuf.TimestampOrBuilder getPacketTimeOrBuilder();
   }
   /**
    * Protobuf type {@code protocol.Server}
@@ -2269,15 +2206,30 @@ public final class Protocol {
       return notConnected_;
     }
 
-    public static final int INTEGRITYCHECK_FIELD_NUMBER = 11;
-    private int integrityCheck_ = 0;
+    public static final int PACKETTIME_FIELD_NUMBER = 11;
+    private com.google.protobuf.Timestamp packetTime_;
     /**
-     * <code>int32 integrityCheck = 11;</code>
-     * @return The integrityCheck.
+     * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+     * @return Whether the packetTime field is set.
      */
     @java.lang.Override
-    public int getIntegrityCheck() {
-      return integrityCheck_;
+    public boolean hasPacketTime() {
+      return ((bitField0_ & 0x00000200) != 0);
+    }
+    /**
+     * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+     * @return The packetTime.
+     */
+    @java.lang.Override
+    public com.google.protobuf.Timestamp getPacketTime() {
+      return packetTime_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : packetTime_;
+    }
+    /**
+     * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+     */
+    @java.lang.Override
+    public com.google.protobuf.TimestampOrBuilder getPacketTimeOrBuilder() {
+      return packetTime_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : packetTime_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -2324,8 +2276,8 @@ public final class Protocol {
       if (((bitField0_ & 0x00000100) != 0)) {
         output.writeBool(10, notConnected_);
       }
-      if (integrityCheck_ != 0) {
-        output.writeInt32(11, integrityCheck_);
+      if (((bitField0_ & 0x00000200) != 0)) {
+        output.writeMessage(11, getPacketTime());
       }
       getUnknownFields().writeTo(output);
     }
@@ -2376,9 +2328,9 @@ public final class Protocol {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(10, notConnected_);
       }
-      if (integrityCheck_ != 0) {
+      if (((bitField0_ & 0x00000200) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(11, integrityCheck_);
+          .computeMessageSize(11, getPacketTime());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
@@ -2442,8 +2394,11 @@ public final class Protocol {
         if (getNotConnected()
             != other.getNotConnected()) return false;
       }
-      if (getIntegrityCheck()
-          != other.getIntegrityCheck()) return false;
+      if (hasPacketTime() != other.hasPacketTime()) return false;
+      if (hasPacketTime()) {
+        if (!getPacketTime()
+            .equals(other.getPacketTime())) return false;
+      }
       if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
@@ -2495,8 +2450,10 @@ public final class Protocol {
         hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
             getNotConnected());
       }
-      hash = (37 * hash) + INTEGRITYCHECK_FIELD_NUMBER;
-      hash = (53 * hash) + getIntegrityCheck();
+      if (hasPacketTime()) {
+        hash = (37 * hash) + PACKETTIME_FIELD_NUMBER;
+        hash = (53 * hash) + getPacketTime().hashCode();
+      }
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -2614,13 +2571,19 @@ public final class Protocol {
 
       // Construct using pasaud.voip.protocol.Protocol.Server.newBuilder()
       private Builder() {
-
+        maybeForceBuilderInitialization();
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getPacketTimeFieldBuilder();
+        }
       }
       @java.lang.Override
       public Builder clear() {
@@ -2636,7 +2599,11 @@ public final class Protocol {
         mapNum_ = 0;
         sampleTime_ = 0;
         notConnected_ = false;
-        integrityCheck_ = 0;
+        packetTime_ = null;
+        if (packetTimeBuilder_ != null) {
+          packetTimeBuilder_.dispose();
+          packetTimeBuilder_ = null;
+        }
         return this;
       }
 
@@ -2711,7 +2678,10 @@ public final class Protocol {
           to_bitField0_ |= 0x00000100;
         }
         if (((from_bitField0_ & 0x00000400) != 0)) {
-          result.integrityCheck_ = integrityCheck_;
+          result.packetTime_ = packetTimeBuilder_ == null
+              ? packetTime_
+              : packetTimeBuilder_.build();
+          to_bitField0_ |= 0x00000200;
         }
         result.bitField0_ |= to_bitField0_;
       }
@@ -2790,8 +2760,8 @@ public final class Protocol {
         if (other.hasNotConnected()) {
           setNotConnected(other.getNotConnected());
         }
-        if (other.getIntegrityCheck() != 0) {
-          setIntegrityCheck(other.getIntegrityCheck());
+        if (other.hasPacketTime()) {
+          mergePacketTime(other.getPacketTime());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
@@ -2869,11 +2839,13 @@ public final class Protocol {
                 bitField0_ |= 0x00000200;
                 break;
               } // case 80
-              case 88: {
-                integrityCheck_ = input.readInt32();
+              case 90: {
+                input.readMessage(
+                    getPacketTimeFieldBuilder().getBuilder(),
+                    extensionRegistry);
                 bitField0_ |= 0x00000400;
                 break;
-              } // case 88
+              } // case 90
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -3295,36 +3267,123 @@ public final class Protocol {
         return this;
       }
 
-      private int integrityCheck_ ;
+      private com.google.protobuf.Timestamp packetTime_;
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> packetTimeBuilder_;
       /**
-       * <code>int32 integrityCheck = 11;</code>
-       * @return The integrityCheck.
+       * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+       * @return Whether the packetTime field is set.
        */
-      @java.lang.Override
-      public int getIntegrityCheck() {
-        return integrityCheck_;
+      public boolean hasPacketTime() {
+        return ((bitField0_ & 0x00000400) != 0);
       }
       /**
-       * <code>int32 integrityCheck = 11;</code>
-       * @param value The integrityCheck to set.
-       * @return This builder for chaining.
+       * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+       * @return The packetTime.
        */
-      public Builder setIntegrityCheck(int value) {
-        
-        integrityCheck_ = value;
+      public com.google.protobuf.Timestamp getPacketTime() {
+        if (packetTimeBuilder_ == null) {
+          return packetTime_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : packetTime_;
+        } else {
+          return packetTimeBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+       */
+      public Builder setPacketTime(com.google.protobuf.Timestamp value) {
+        if (packetTimeBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          packetTime_ = value;
+        } else {
+          packetTimeBuilder_.setMessage(value);
+        }
         bitField0_ |= 0x00000400;
         onChanged();
         return this;
       }
       /**
-       * <code>int32 integrityCheck = 11;</code>
-       * @return This builder for chaining.
+       * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
        */
-      public Builder clearIntegrityCheck() {
-        bitField0_ = (bitField0_ & ~0x00000400);
-        integrityCheck_ = 0;
+      public Builder setPacketTime(
+          com.google.protobuf.Timestamp.Builder builderForValue) {
+        if (packetTimeBuilder_ == null) {
+          packetTime_ = builderForValue.build();
+        } else {
+          packetTimeBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00000400;
         onChanged();
         return this;
+      }
+      /**
+       * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+       */
+      public Builder mergePacketTime(com.google.protobuf.Timestamp value) {
+        if (packetTimeBuilder_ == null) {
+          if (((bitField0_ & 0x00000400) != 0) &&
+            packetTime_ != null &&
+            packetTime_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
+            getPacketTimeBuilder().mergeFrom(value);
+          } else {
+            packetTime_ = value;
+          }
+        } else {
+          packetTimeBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00000400;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+       */
+      public Builder clearPacketTime() {
+        bitField0_ = (bitField0_ & ~0x00000400);
+        packetTime_ = null;
+        if (packetTimeBuilder_ != null) {
+          packetTimeBuilder_.dispose();
+          packetTimeBuilder_ = null;
+        }
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+       */
+      public com.google.protobuf.Timestamp.Builder getPacketTimeBuilder() {
+        bitField0_ |= 0x00000400;
+        onChanged();
+        return getPacketTimeFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+       */
+      public com.google.protobuf.TimestampOrBuilder getPacketTimeOrBuilder() {
+        if (packetTimeBuilder_ != null) {
+          return packetTimeBuilder_.getMessageOrBuilder();
+        } else {
+          return packetTime_ == null ?
+              com.google.protobuf.Timestamp.getDefaultInstance() : packetTime_;
+        }
+      }
+      /**
+       * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> 
+          getPacketTimeFieldBuilder() {
+        if (packetTimeBuilder_ == null) {
+          packetTimeBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+              com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder>(
+                  getPacketTime(),
+                  getParentForChildren(),
+                  isClean());
+          packetTime_ = null;
+        }
+        return packetTimeBuilder_;
       }
       @java.lang.Override
       public final Builder setUnknownFields(
@@ -3410,7 +3469,7 @@ public final class Protocol {
   static {
     java.lang.String[] descriptorData = {
       "\n\016protocol.proto\022\010protocol\032\037google/proto" +
-      "buf/timestamp.proto\"\204\004\n\006Client\022\026\n\tsecret" +
+      "buf/timestamp.proto\"\354\003\n\006Client\022\026\n\tsecret" +
       "_id\030\001 \001(\005H\000\210\001\001\022\n\n\002id\030\002 \001(\005\022\022\n\005audio\030\003 \001(" +
       "\014H\001\210\001\001\022\025\n\010audioNum\030\004 \001(\005H\002\210\001\001\022\023\n\006coordX\030" +
       "\005 \001(\005H\003\210\001\001\022\023\n\006coordY\030\006 \001(\005H\004\210\001\001\022\023\n\006coord" +
@@ -3418,22 +3477,22 @@ public final class Protocol {
       "ckPlayer_id\030\t \001(\005H\007\210\001\001\022\032\n\rtalkInRoom_id\030" +
       "\n \001(\005H\010\210\001\001\022\026\n\ttalkLocal\030\013 \001(\010H\t\210\001\001\022\027\n\nsa" +
       "mpleTime\030\014 \001(\005H\n\210\001\001\0223\n\npacketTime\030\r \001(\0132" +
-      "\032.google.protobuf.TimestampH\013\210\001\001\022\026\n\016inte" +
-      "grityCheck\030\016 \001(\005B\014\n\n_secret_idB\010\n\006_audio" +
-      "B\013\n\t_audioNumB\t\n\007_coordXB\t\n\007_coordYB\t\n\007_" +
-      "coordZB\t\n\007_mapNumB\021\n\017_blockPlayer_idB\020\n\016" +
-      "_talkInRoom_idB\014\n\n_talkLocalB\r\n\013_sampleT" +
-      "imeB\r\n\013_packetTime\"\350\002\n\006Server\022\026\n\thandSha" +
-      "ke\030\001 \001(\010H\000\210\001\001\022\n\n\002id\030\002 \001(\005\022\022\n\005audio\030\003 \001(\014" +
-      "H\001\210\001\001\022\025\n\010audioNum\030\004 \001(\005H\002\210\001\001\022\023\n\006coordX\030\005" +
-      " \001(\005H\003\210\001\001\022\023\n\006coordY\030\006 \001(\005H\004\210\001\001\022\023\n\006coordZ" +
-      "\030\007 \001(\005H\005\210\001\001\022\023\n\006mapNum\030\010 \001(\005H\006\210\001\001\022\027\n\nsamp" +
-      "leTime\030\t \001(\005H\007\210\001\001\022\031\n\014notConnected\030\n \001(\010H" +
-      "\010\210\001\001\022\026\n\016integrityCheck\030\013 \001(\005B\014\n\n_handSha" +
-      "keB\010\n\006_audioB\013\n\t_audioNumB\t\n\007_coordXB\t\n\007" +
-      "_coordYB\t\n\007_coordZB\t\n\007_mapNumB\r\n\013_sample" +
-      "TimeB\017\n\r_notConnectedB\026\n\024pasaud.voip.pro" +
-      "tocolb\006proto3"
+      "\032.google.protobuf.TimestampH\013\210\001\001B\014\n\n_sec" +
+      "ret_idB\010\n\006_audioB\013\n\t_audioNumB\t\n\007_coordX" +
+      "B\t\n\007_coordYB\t\n\007_coordZB\t\n\007_mapNumB\021\n\017_bl" +
+      "ockPlayer_idB\020\n\016_talkInRoom_idB\014\n\n_talkL" +
+      "ocalB\r\n\013_sampleTimeB\r\n\013_packetTime\"\224\003\n\006S" +
+      "erver\022\026\n\thandShake\030\001 \001(\010H\000\210\001\001\022\n\n\002id\030\002 \001(" +
+      "\005\022\022\n\005audio\030\003 \001(\014H\001\210\001\001\022\025\n\010audioNum\030\004 \001(\005H" +
+      "\002\210\001\001\022\023\n\006coordX\030\005 \001(\005H\003\210\001\001\022\023\n\006coordY\030\006 \001(" +
+      "\005H\004\210\001\001\022\023\n\006coordZ\030\007 \001(\005H\005\210\001\001\022\023\n\006mapNum\030\010 " +
+      "\001(\005H\006\210\001\001\022\027\n\nsampleTime\030\t \001(\005H\007\210\001\001\022\031\n\014not" +
+      "Connected\030\n \001(\010H\010\210\001\001\0223\n\npacketTime\030\013 \001(\013" +
+      "2\032.google.protobuf.TimestampH\t\210\001\001B\014\n\n_ha" +
+      "ndShakeB\010\n\006_audioB\013\n\t_audioNumB\t\n\007_coord" +
+      "XB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_mapNumB\r\n\013_s" +
+      "ampleTimeB\017\n\r_notConnectedB\r\n\013_packetTim" +
+      "eB\026\n\024pasaud.voip.protocolb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -3445,13 +3504,13 @@ public final class Protocol {
     internal_static_protocol_Client_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_protocol_Client_descriptor,
-        new java.lang.String[] { "SecretId", "Id", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "BlockPlayerId", "TalkInRoomId", "TalkLocal", "SampleTime", "PacketTime", "IntegrityCheck", "SecretId", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "BlockPlayerId", "TalkInRoomId", "TalkLocal", "SampleTime", "PacketTime", });
+        new java.lang.String[] { "SecretId", "Id", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "BlockPlayerId", "TalkInRoomId", "TalkLocal", "SampleTime", "PacketTime", "SecretId", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "BlockPlayerId", "TalkInRoomId", "TalkLocal", "SampleTime", "PacketTime", });
     internal_static_protocol_Server_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_protocol_Server_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_protocol_Server_descriptor,
-        new java.lang.String[] { "HandShake", "Id", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "SampleTime", "NotConnected", "IntegrityCheck", "HandShake", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "SampleTime", "NotConnected", });
+        new java.lang.String[] { "HandShake", "Id", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "SampleTime", "NotConnected", "PacketTime", "HandShake", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "SampleTime", "NotConnected", "PacketTime", });
     com.google.protobuf.TimestampProto.getDescriptor();
   }
 

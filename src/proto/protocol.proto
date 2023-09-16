@@ -21,8 +21,6 @@ message Client {
   optional int32 sampleTime = 12;
 
   optional google.protobuf.Timestamp packetTime = 13;
-
-  int32 integrityCheck = 14;
 }
 
 
@@ -38,5 +36,5 @@ message Server {
   optional int32 sampleTime = 9;
   optional bool notConnected = 10;
 
-  int32 integrityCheck = 11;
+  optional google.protobuf.Timestamp packetTime = 11;
 }
