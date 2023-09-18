@@ -118,16 +118,14 @@ namespace player
         setX( x );
         setY( y );
         setZ( z );
-        sendPosInfo();
     }
 
-    void Self::setCoords(coords coord){
+    void Self::setCoords(Coords coord){
         coordinates = coord;
-        sendPosInfo();
     }
 
     void Self::sendPosInfo(){
-        protocol::Client info = constructValidBufferSend();
+        protocol::Client info;
         info.set_id(my_id);
         info.set_mapnum(coordinates.map);
         info.set_coordx(coordinates.x);
@@ -136,7 +134,7 @@ namespace player
         socketUdpImpl::getInstance().send(info);
     }
 
-    coords Self::getCoords()
+    Coords Self::getCoords()
     {
         return coordinates;
     }
@@ -145,8 +143,7 @@ namespace player
     {
         Self& GlobalInstance = SelfImpl::getInstance();
 
-        protocol::Client info = constructValidBufferSend();
-        info.set_id(GlobalInstance.getMyID());
+        protocol::Client info;
         info.set_audio(buffer.getData(), buffer.size());
     }
 

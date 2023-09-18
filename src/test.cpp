@@ -90,6 +90,10 @@ void testPlayers(){
 
   PLAYER actualPlayer = PlayersManagerImpl::getInstance().getPlayer(1);
 
+  if(actualPlayer.get() == nullptr){
+    fail("Get Player", "*" , "Object", "PlayersManagerImpl::getInstance().getPlayer");
+  }
+
   float X = actualPlayer->soundStream->getPosition().x;
   float Y = actualPlayer->soundStream->getPosition().y;
   float Z = actualPlayer->soundStream->getPosition().z;

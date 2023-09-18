@@ -25,7 +25,7 @@ namespace player{
         bool connected;
         std::mutex mutexID;
         std::mutex mutexRegID;
-        coords coordinates;
+        Coords coordinates;
 
         void setMap(int map);
         void setX(int x);
@@ -55,10 +55,10 @@ namespace player{
         void talkRoom();
 
         void setPos(int map, int x, int y, int z);
-        void setCoords(coords coord);
+        void setCoords(Coords coord);
         void sendPosInfo();
 
-        coords getCoords();
+        Coords getCoords();
 
         static void sendAudio(data::buffer &buffer);
 

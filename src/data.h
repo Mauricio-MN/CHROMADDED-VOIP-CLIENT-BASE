@@ -14,7 +14,7 @@
 #define ERROR_MAX_ATTEMPT     50
 #define ERROR_UNKNOW          999
 
-struct coords{
+struct Coords{
     int x;
     int y;
     int z;

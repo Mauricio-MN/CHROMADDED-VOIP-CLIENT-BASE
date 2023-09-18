@@ -47,7 +47,7 @@ void protocolParser::parser_Thread()
 
     if(!serverReceived.has_handshake() || serverReceived.handshake() == false){
       if(PlayersManagerImpl::getInstance().existPlayer(serverReceived.id())){
-        coords coordinate = player::SelfImpl::getInstance().getCoords();
+        Coords coordinate = player::SelfImpl::getInstance().getCoords();
         if(serverReceived.has_coordx()){
             coordinate.x = serverReceived.coordx();
         }
