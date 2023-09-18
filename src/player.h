@@ -96,11 +96,11 @@ class Player{
 
         sf::SoundBuffer sbuffer;
 
-        std::mutex deleteMePushMutex;
-        std::mutex deleteMeIsPlayingMutex;
-        std::mutex deleteMeMoveMutex;
-        std::mutex deleteMeMinDistanceMutex;
-        std::mutex deleteMeAttenuationMutex;
+        std::mutex pushMutex;
+        std::mutex isPlayingMutex;
+        std::mutex moveMutex;
+        std::mutex minDistanceMutex;
+        std::mutex attenuationMutex;
 
         sf::Clock pushClock;
 
@@ -124,36 +124,27 @@ class Player{
         }
 
         ~Player(){
-        }
-
-        void mutexApplyToDelete(){
-            deleteMePushMutex.lock();
-            deleteMeIsPlayingMutex.lock();
-            deleteMeMoveMutex.lock();
-            deleteMeMinDistanceMutex.lock();
-            deleteMeAttenuationMutex.lock();
-
-            delete soundStream;
+            deleteSoundStream();
         }
 
 
         void move(float new_x, float new_y, float new_z){
-            std::lock_guard<std::mutex> guard(deleteMeMoveMutex);
+            std::lock_guard<std::mutex> guard(moveMutex);
             soundStream->setPosition(new_x, new_y, new_z);
         }
 
         void minDistance(float new_MD){
-            std::lock_guard<std::mutex> guard(deleteMeMinDistanceMutex);
+            std::lock_guard<std::mutex> guard(minDistanceMutex);
             soundStream->setMinDistance(new_MD);
         }
 
         void attenuation(float new_at){
-            std::lock_guard<std::mutex> guard(deleteMeAttenuationMutex);
+            std::lock_guard<std::mutex> guard(attenuationMutex);
             soundStream->setAttenuation(new_at);
         }
 
         bool isPlaying(){
-            std::lock_guard<std::mutex> guard(deleteMeIsPlayingMutex);
+            std::lock_guard<std::mutex> guard(isPlayingMutex);
             if(soundStream->getStatus() == soundmanager::NetworkAudioStream::Playing){
                 return true;
             }
@@ -167,7 +158,7 @@ class Player{
         }
 
         void deleteSoundStream(){
-            std::lock_guard<std::mutex> guard(deleteMePushMutex);
+            std::lock_guard<std::mutex> guard(pushMutex);
             soundStream->stop();
             delete soundStream;
             streamIsValid = false;
@@ -192,7 +183,7 @@ class Player{
         }
 
         void push(data::buffer &audio, int sampleTime = 40){
-            std::lock_guard<std::mutex> guard(deleteMePushMutex);
+            std::lock_guard<std::mutex> guard(pushMutex);
 
             if(!streamIsValid){
                 startSoundStream(_sampleTime);
@@ -256,7 +247,9 @@ class Player{
 
         void removePlayer(int id);
 
-        void playersActCheckThread();
+        void clean();
+
+        void playersActCheckThread(bool &canRun);
 
     };
 
@@ -265,8 +258,10 @@ class Player{
     private:
         static bool initialized;
         static std::thread actCheckThread;
+        static bool canRun;
     public:
         static PlayersManager &getInstance();
+        static void exit();
     };
 
 #endif

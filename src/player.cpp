@@ -158,14 +158,14 @@ namespace player
     }
 
     void PlayersManager::insertPlayer(int id, float x, float y, float z){
-                insertMutex.lock();
-                if(players.find(id) == players.end()){
-                    players[id] = std::make_shared<Player>();
-                    players[id]->id = id;
-                    players[id]->move(x,y,z);
-                }
-                insertMutex.unlock();
-            }
+        insertMutex.lock();
+        if(existPlayer(id)){
+            players[id] = std::make_shared<Player>();
+            players[id]->id = id;
+            players[id]->move(x,y,z);
+        }
+        insertMutex.unlock();
+    }
 
     void PlayersManager::insertPlayer(PLAYER player){
         insertMutex.lock();
@@ -176,56 +176,59 @@ namespace player
     }
 
     PLAYER PlayersManager::getPlayer(int id){
-                if(players.find(id) == players.end()){
-                    return players[0];
-                }
-                return players[id];
-            }
-
-    bool PlayersManager::movePlayer(int id, float x, float y, float z){
-                if(existPlayer(id)){
-                    PLAYER playerREF = players[id];
-                    playerREF->move(x,y,z);
-                    return true;
-                }
-                return false;
-            }
-
-    bool PlayersManager::setAttenuation(int id, float new_at){
-                if(existPlayer(id)){
-                    PLAYER playerREF = players[id];
-                    playerREF->attenuation(new_at);
-                    return true;
-                }
-                return false;
-            }
-
-    bool PlayersManager::setMinDistance(int id, float new_MD){
-                if(existPlayer(id)){
-                    PLAYER playerREF = players[id];
-                    playerREF->minDistance(new_MD);
-                    return true;
-                }
-                return false;
-            }
-
-    bool PlayersManager::existPlayer(int id){
-                if(players.find(id) == players.end()){
-                    return false;
-                }
-                return true;
-            }
-
-    void PlayersManager::removePlayer(int id){
-                if (players.find(id) == players.end()){
-                    return;
-                }
-                players[id]->mutexApplyToDelete();
-                players.erase(id);
+        if(existPlayer(id)){
+            return players[0];
+        }
+        return players[id];
     }
 
-    void PlayersManager::playersActCheckThread(){
-        while(true){
+    bool PlayersManager::movePlayer(int id, float x, float y, float z){
+        if(existPlayer(id)){
+            PLAYER playerREF = players[id];
+            playerREF->move(x,y,z);
+            return true;
+        }
+        return false;
+    }
+
+    bool PlayersManager::setAttenuation(int id, float new_at){
+        if(existPlayer(id)){
+            PLAYER playerREF = players[id];
+            playerREF->attenuation(new_at);
+            return true;
+        }
+        return false;
+    }
+
+    bool PlayersManager::setMinDistance(int id, float new_MD){
+        if(existPlayer(id)){
+            PLAYER playerREF = players[id];
+            playerREF->minDistance(new_MD);
+            return true;
+        }
+        return false;
+    }
+
+    bool PlayersManager::existPlayer(int id){
+        if(players.find(id) == players.end()){
+            return false;
+        }
+        return true;
+    }
+
+    void PlayersManager::removePlayer(int id){
+        if (existPlayer(id)){
+            return;
+        }
+        players.erase(id);
+    }
+
+    void PlayersManager::clean(){
+        players.clear();
+    }
+
+    void PlayersManager::playersActCheckThread(bool &canRun){
+        while(canRun){
             for(auto& playerPair : players){
                 playerPair.second->actCheck();
             }
@@ -240,11 +243,20 @@ namespace player
     bool PlayersManagerImpl::initialized = false;
     std::thread PlayersManagerImpl::actCheckThread = std::thread();
 
+    bool PlayersManagerImpl::canRun = true;
+
     PlayersManager& PlayersManagerImpl::getInstance(){
         static PlayersManager instance;
         if(!initialized){
-            actCheckThread = std::thread(&PlayersManager::playersActCheckThread, &instance);
+            actCheckThread = std::thread(&PlayersManager::playersActCheckThread, &instance, canRun);
             initialized = true;
         }
         return instance;
+    }
+
+    void PlayersManagerImpl::exit(){
+        if(actCheckThread.joinable()){
+            canRun = false;
+            actCheckThread.join();
+        }
     }
