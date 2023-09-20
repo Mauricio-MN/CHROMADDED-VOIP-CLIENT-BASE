@@ -1,7 +1,7 @@
 // code snippets are licensed under Creative Commons CC-By-SA 3.0 (unless otherwise specified)
 // http://www.zedwood.com/article/cpp-openssl-aes-gcm-code-sample
 
-#include "cript.h"
+#include "crpt.h"
 
 #include <openssl/aes.h>
 #include <openssl/evp.h>

@@ -9,14 +9,14 @@
 #include <iostream>
 #include <vector>
 
-class AES_GCM {
+class AES_GCM_B {
 private:
 
 std::vector<unsigned char> _key;
 std::vector<unsigned char> _iv;
 
 public:
-    AES_GCM(const unsigned char* key, const unsigned char* iv)
+    AES_GCM_B(const unsigned char* key, const unsigned char* iv)
         : key_(key), iv_(iv) {}
 
     std::string encrypt(const std::string& plaintext) {
