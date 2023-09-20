@@ -16,34 +16,31 @@ namespace player
     bool SelfImpl::initialized = false;
     int SelfImpl::reg_id_ = 0;
     int SelfImpl::id_ = 0;
-    bool SelfImpl::needEncrypt_ = false;
 
     Self &SelfImpl::getInstance()
     {
         if (initialized)
         {
-            static Self instance(reg_id_, id_, needEncrypt_);
+            static Self instance(reg_id_, id_);
             return instance;
         } else {
             perror("fabric player::Self");
         }
     }
 
-    void SelfImpl::frabric(int reg_id, int id, bool needEncrypt)
+    void SelfImpl::frabric(int reg_id, int id)
     {
         if(!initialized){
             reg_id_ = reg_id;
             id_ = id;
-            needEncrypt_ = needEncrypt;
             initialized = true;
         }
     }
 
-    Self::Self(int reg_id, int id, bool needEncrypt)
+    Self::Self(int reg_id, int id) : crpt NEW_AES_GCM
     {
-        my_reg_id = id;
+        my_secret_id = id;
         my_id = id;
-        encrypt = needEncrypt;
         talkRomm = 0;
         talkInLocal = true;
         coordinates.x = 0;
@@ -51,6 +48,30 @@ namespace player
         coordinates.z = 0;
         coordinates.map = -1;
         connected = false;
+        sampleNumber = 0;
+    }
+
+    std::vector<unsigned char> Self::decrypt(std::vector<unsigned char>& buffer){
+        std::vector<unsigned char> result;
+        mutexDecrypt.lock();
+        result = crpt.decrypt(buffer);
+        mutexDecrypt.unlock();
+        return result;
+    }
+    std::vector<unsigned char> Self::encrypt(std::vector<unsigned char>& buffer){
+        std::vector<unsigned char> result;
+        mutexEncrypt.lock();
+        result = crpt.encrypt(buffer);
+        mutexEncrypt.unlock();
+        return result;
+    }
+
+    void Self::setCrpt(unsigned char* key, unsigned char* iv){
+        mutexEncrypt.lock();
+        mutexDecrypt.lock();
+        crpt = AES_GCM(key, iv);
+        mutexEncrypt.unlock();
+        mutexDecrypt.unlock();
     }
 
     int Self::getMyID()
@@ -60,7 +81,7 @@ namespace player
 
     int Self::getMyRegID()
     {
-        return my_reg_id;
+        return my_secret_id;
     }
 
     void Self::setMyID(int id)
@@ -73,7 +94,7 @@ namespace player
     void Self::setMyRegID(int reg_id)
     {
         mutexRegID.lock();
-        my_reg_id = reg_id;
+        my_secret_id = reg_id;
         mutexRegID.unlock();
     }
 
@@ -83,11 +104,6 @@ namespace player
 
     void Self::setConnect(bool isConnected){
         connected = isConnected;
-    }
-
-    bool Self::needEncrypt()
-    {
-        return encrypt;
     }
 
     void  Self::setTalkRoom(int room_id){
@@ -124,6 +140,11 @@ namespace player
         coordinates = coord;
     }
 
+    Coords Self::getCoords()
+    {
+        return coordinates;
+    }
+
     void Self::sendPosInfo(){
         protocol::Client info;
         info.set_id(my_id);
@@ -134,9 +155,14 @@ namespace player
         socketUdpImpl::getInstance().send(info);
     }
 
-    Coords Self::getCoords()
-    {
-        return coordinates;
+    void Self::sendConnect(){
+        protocol::Client info;
+        info.set_id(my_id);
+        info.set_secret_id(my_secret_id);
+        info.set_mapnum(coordinates.map);
+        info.set_coordx(coordinates.x);
+        info.set_coordy(coordinates.y);
+        info.set_coordz(coordinates.z);
     }
 
     void Self::sendAudio(data::buffer &buffer)
@@ -145,6 +171,8 @@ namespace player
 
         protocol::Client info;
         info.set_audio(buffer.getData(), buffer.size());
+
+
     }
 
 }
@@ -248,7 +276,7 @@ namespace player
     PlayersManager& PlayersManagerImpl::getInstance(){
         static PlayersManager instance;
         if(!initialized){
-            actCheckThread = std::thread(&PlayersManager::playersActCheckThread, &instance, canRun);
+            actCheckThread = std::thread(&PlayersManager::playersActCheckThread, &instance, std::ref(std::ref(canRun)));
             initialized = true;
         }
         return instance;
