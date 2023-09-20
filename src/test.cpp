@@ -14,7 +14,7 @@
 #include <memory>
 #include <opus/opus.h>
 #include "crmd.h"
-#include "cript.h"
+#include "crpt.h"
 #include "player.h"
 #include "protoParse.h"
 #include "socketUdp.h"

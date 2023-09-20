@@ -5,9 +5,10 @@
 #include "data.h"
 #include "proto/protocol.pb.h"
 
-#include "cript.h"
+#include "crpt.h"
 #include "protoParse.h"
 #include "thread"
+#include "config.h"
 
 class socketUdp{
 
@@ -26,25 +27,27 @@ class socketUdp{
 
     std::atomic<bool> needEncrypt;
 
-    data::buffer decrypt(data::buffer &buffer){
-    unsigned char* reinterpreted = reinterpret_cast<unsigned char*>(buffer.getData());
-
-    std::vector<unsigned char> encrypted(reinterpreted, reinterpreted + buffer.size());
-    std::vector<unsigned char> decrypted = CryptImpl::getInstance().decrypt(&encrypted);
-
-    data::buffer output(reinterpret_cast<char*>(decrypted.data()), decrypted.size());
-    return output;
+    std::vector<unsigned char> decrypt(data::buffer &buffer){
+        std::vector<unsigned char> bufferVect(buffer.getData(), buffer.getData() + buffer.size());
+        return decrypt(bufferVect);
     }
 
-    data::buffer decrypt(char* buffer, int size){
-    data::buffer data(buffer,size);
-    return decrypt(data);
+    std::vector<unsigned char> decrypt(std::vector<unsigned char> &buffer){
+        std::vector<unsigned char> decrypted =  player::SelfImpl::getInstance().decrypt(buffer);
+        return decrypted;
+    }
+
+    std::vector<unsigned char> decrypt(char* buffer, int size){
+        std::vector<unsigned char> bufferVect(buffer, buffer + size);
+        return decrypt(bufferVect);
     }
 
     bool deserialize(protocol::Server &server, sf::Packet &packet){
-        if(player::SelfImpl::getInstance().needEncrypt()){
-            data::buffer buffer = decrypt((char*)packet.getData(), packet.getDataSize());
-            bool isParsed = server.ParseFromArray(buffer.getData(), buffer.size());
+        if(ConfigImpl::getInstance().isNeedCryptography()){
+            auto ucharptr = reinterpret_cast<unsigned char*>(const_cast<void*>(packet.getData()));
+            std::vector<unsigned char> bufferToDrcp(ucharptr, ucharptr + packet.getDataSize());
+            std::vector<unsigned char> buffer = decrypt(bufferToDrcp);
+            bool isParsed = server.ParseFromArray(buffer.data(), buffer.size());
             return isParsed;
         } else {
             bool isParsed = server.ParseFromArray(packet.getData(),packet.getDataSize());
@@ -108,15 +111,14 @@ class socketUdp{
         sf::Socket::Status status = sf::Socket::Status::NotReady;
         if(needEncrypt && !client.has_secret_id()){
             std::vector<unsigned char> vecBuffer(buffer.data(), buffer.data() + buffer.size());
-            std::vector<unsigned char> encrypted = CryptImpl::getInstance().encrypt(&vecBuffer);
-            status = socket.send(encrypted.data(), encrypted.size(), recipient, port);
+            std::vector<unsigned char> encrypted =  player::SelfImpl::getInstance().encrypt(vecBuffer);
             data = encrypted.data();
         }
+        socket.send(data, data_size, recipient, port);
+
         if(status != sf::Socket::Status::Done){
             return false;
         }
-
-        socket.send(data, data_size, recipient, port);
         return true;
     }
 

@@ -76,9 +76,10 @@ public:
     /// Default constructor
     ///
     ////////////////////////////////////////////////////////////
-    NetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits) : m_offset(0), m_updateOffset(false), m_circular_buffer(_sampleRate * 10), m_circular_temp(_sampleRate * 10), m_hyper_buffer(_sampleRate * 10)
+    NetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits) : audioQueue(sampleTimeGetCount(_sampleTime, _sampleRate)), m_offset(0), m_updateOffset(false), m_circular_buffer(_sampleRate * 10), m_circular_temp(_sampleRate * 10), m_hyper_buffer(_sampleRate * 10)
     {
         // Set the sound parameters
+        sampleTime = _sampleTime;
         sampleCount = sampleTimeGetCount(_sampleTime, _sampleRate);
         sampleChannels = _sampleChannels;
         sampleRate = _sampleRate;
@@ -91,77 +92,16 @@ public:
         return sampleCount;
     }
 
-    ////////////////////////////////////////////////////////////
-    /// Get audio data from the client until playback is stopped
-    ///
-    ////////////////////////////////////////////////////////////
-    void receive(data::buffer &data)
+    void insert(int audioNumb, sf::SoundBuffer data)
     {
-        // Get waiting audio data
-        //std::scoped_lock lock(m_mutex);
-        const sf::Int16* samples = reinterpret_cast<const sf::Int16*>(data.getData());
-        int samplesCount = (data.size() / sizeof(sf::Int16));
-        //std::vector<sf::Int16> vect(samples, samples + data.size());
-        //**m_circular_buffer.write(samples, (data.size() / sizeof(sf::Int16)) );
-        //**m_hyper_buffer.write(samples, (data.size() / sizeof(sf::Int16)));
-        auto avaliable = m_r_buffer.writeAvailable();
-
-        auto writed = 0;
-
-        if(avaliable > 0){
-            if(avaliable >= samplesCount){
-                writed = m_r_buffer.writeBuff(samples, samplesCount);
-            } else {
-                writed = m_r_buffer.writeBuff(samples, avaliable);
-            }
-        }
-        if(writed == samplesCount) return;
-
-        int pos = writed;
-        int toWrite = samplesCount - writed;
-        int tryng = 0;
-        auto avaliableNow = m_r_buffer.writeAvailable();
-
-        while(toWrite > 0){
-
-            if(avaliableNow > 0 && avaliableNow < samplesCount){
-                writed = m_r_buffer.writeBuff(samples + pos, m_r_buffer.writeAvailable());
-                pos += writed;
-                toWrite -= writed;
-            }
-
-            if(tryng >= SAMPLE_RATE){
-                break;
-            }
-            tryng++;
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            avaliableNow = m_r_buffer.writeAvailable();
-        }
-        //last try
-        if(m_r_buffer.writeAvailable() >= toWrite){
-            m_r_buffer.writeBuff(samples + pos, toWrite);
-        }
-
-        //m_swapSamples.insert(m_swapSamples.end(), samples, samples + (data.size() / sizeof(sf::Int16)) );
-        //m_circular_buffer.Push(vect);
-        //m_circular_buffer.Push(samples, (data.size() / sizeof(sf::Int16)));
+        std::vector<sf::Int16> buffer(data.getSamples(), data.getSamples() + (data.getSampleCount() * sizeof(sf::Int16)));
+        audioQueue.push(audioNumb, buffer);
     }
 
-    void insert(sf::SoundBuffer data)
+    void insert(int audioNumb, data::buffer data)
     {
-        // Get waiting audio data
-        //std::scoped_lock lock(m_mutex);
-        const sf::Int16* samples = data.getSamples();
-        //std::vector<sf::Int16> vect(samples, samples + (data.getSampleCount() / sizeof(sf::Int16)));
-        //**m_circular_buffer.write(samples, data.getSampleCount());
-        //**m_hyper_buffer.write((sf::Int16*)samples, data.getSampleCount());
-
-        data::buffer buffer((const char*)samples, data.getSampleCount() * sizeof(sf::Int16));
-        receive(buffer);
-        //m_circular_buffer.Push(samples, data.getSampleCount());
-        //m_swapSamples.insert(m_swapSamples.end(), samples, samples + data.getSampleCount());
-
+        std::vector<sf::Int16> buffer(data.getData(), data.getData() + data.size());
+        audioQueue.push(audioNumb, buffer);
     }
 
 private:
@@ -179,6 +119,24 @@ private:
     {
         m_offset = 0;
 
+        m_swapSamples = audioQueue.pop();
+
+        while(audioQueue.canReadNext()){
+            auto popVec = audioQueue.pop();
+            m_swapSamples.insert(m_swapSamples.end(), popVec.begin(), popVec.end());
+        }
+
+        if(!m_swapSamples.empty()){
+            data.samples = m_swapSamples.data();
+            data.sampleCount = m_swapSamples.size();
+            return true;
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMicroseconds() * 5));
+        }
+        return false;
+
+        /*
+
         auto avaliable = m_r_buffer.readAvailable();
         if(avaliable > 0){
             auto readed = m_r_buffer.readBuff(m_circular_temp.data(), sampleCount);
@@ -195,6 +153,8 @@ private:
             }
         }
         return false;
+        */
+
         /*
         size_t readSize = m_hyper_buffer.read(m_circular_temp.data(), m_circular_temp.size());
         if(readSize > 0){
@@ -432,6 +392,8 @@ private:
     hyperBuffer<sf::Int16> m_hyper_buffer;
     jnk0le::Ringbuffer<sf::Int16, 131072> m_r_buffer;
     std::vector<std::int16_t> m_circular_temp;
+    data::AudioQueue audioQueue;
+    sf::Time sampleTime;
 
     int sampleCount;
     int sampleChannels;

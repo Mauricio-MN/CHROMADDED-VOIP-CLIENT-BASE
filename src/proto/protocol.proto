@@ -8,7 +8,7 @@ import "google/protobuf/timestamp.proto";
 // [START messages]
 message Client {
   optional int32 secret_id = 1; // Secret ID to connect
-  int32 id = 2;  // Unique public ID number for this person.
+  optional int32 id = 2;  // Unique public ID number for this person.
   optional bytes audio = 3;
   optional int32 audioNum = 4;
   optional int32 coordX = 5;

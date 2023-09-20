@@ -245,7 +245,11 @@ class Client final :
   void _internal_set_secret_id(int32_t value);
   public:
 
-  // int32 id = 2;
+  // optional int32 id = 2;
+  bool has_id() const;
+  private:
+  bool _internal_has_id() const;
+  public:
   void clear_id();
   int32_t id() const;
   void set_id(int32_t value);
@@ -746,9 +750,17 @@ inline void Client::set_secret_id(int32_t value) {
   // @@protoc_insertion_point(field_set:protocol.Client.secret_id)
 }
 
-// int32 id = 2;
+// optional int32 id = 2;
+inline bool Client::_internal_has_id() const {
+  bool value = (_impl_._has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool Client::has_id() const {
+  return _internal_has_id();
+}
 inline void Client::clear_id() {
   _impl_.id_ = 0;
+  _impl_._has_bits_[0] &= ~0x00000008u;
 }
 inline int32_t Client::_internal_id() const {
   return _impl_.id_;
@@ -758,7 +770,7 @@ inline int32_t Client::id() const {
   return _internal_id();
 }
 inline void Client::_internal_set_id(int32_t value) {
-  
+  _impl_._has_bits_[0] |= 0x00000008u;
   _impl_.id_ = value;
 }
 inline void Client::set_id(int32_t value) {
@@ -836,7 +848,7 @@ inline void Client::set_allocated_audio(std::string* audio) {
 
 // optional int32 audioNum = 4;
 inline bool Client::_internal_has_audionum() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000010u) != 0;
   return value;
 }
 inline bool Client::has_audionum() const {
@@ -844,7 +856,7 @@ inline bool Client::has_audionum() const {
 }
 inline void Client::clear_audionum() {
   _impl_.audionum_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000008u;
+  _impl_._has_bits_[0] &= ~0x00000010u;
 }
 inline int32_t Client::_internal_audionum() const {
   return _impl_.audionum_;
@@ -854,7 +866,7 @@ inline int32_t Client::audionum() const {
   return _internal_audionum();
 }
 inline void Client::_internal_set_audionum(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000008u;
+  _impl_._has_bits_[0] |= 0x00000010u;
   _impl_.audionum_ = value;
 }
 inline void Client::set_audionum(int32_t value) {
@@ -864,7 +876,7 @@ inline void Client::set_audionum(int32_t value) {
 
 // optional int32 coordX = 5;
 inline bool Client::_internal_has_coordx() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
 inline bool Client::has_coordx() const {
@@ -872,7 +884,7 @@ inline bool Client::has_coordx() const {
 }
 inline void Client::clear_coordx() {
   _impl_.coordx_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000010u;
+  _impl_._has_bits_[0] &= ~0x00000020u;
 }
 inline int32_t Client::_internal_coordx() const {
   return _impl_.coordx_;
@@ -882,7 +894,7 @@ inline int32_t Client::coordx() const {
   return _internal_coordx();
 }
 inline void Client::_internal_set_coordx(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000010u;
+  _impl_._has_bits_[0] |= 0x00000020u;
   _impl_.coordx_ = value;
 }
 inline void Client::set_coordx(int32_t value) {
@@ -892,7 +904,7 @@ inline void Client::set_coordx(int32_t value) {
 
 // optional int32 coordY = 6;
 inline bool Client::_internal_has_coordy() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000020u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000040u) != 0;
   return value;
 }
 inline bool Client::has_coordy() const {
@@ -900,7 +912,7 @@ inline bool Client::has_coordy() const {
 }
 inline void Client::clear_coordy() {
   _impl_.coordy_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000020u;
+  _impl_._has_bits_[0] &= ~0x00000040u;
 }
 inline int32_t Client::_internal_coordy() const {
   return _impl_.coordy_;
@@ -910,7 +922,7 @@ inline int32_t Client::coordy() const {
   return _internal_coordy();
 }
 inline void Client::_internal_set_coordy(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000020u;
+  _impl_._has_bits_[0] |= 0x00000040u;
   _impl_.coordy_ = value;
 }
 inline void Client::set_coordy(int32_t value) {
@@ -920,7 +932,7 @@ inline void Client::set_coordy(int32_t value) {
 
 // optional int32 coordZ = 7;
 inline bool Client::_internal_has_coordz() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000040u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool Client::has_coordz() const {
@@ -928,7 +940,7 @@ inline bool Client::has_coordz() const {
 }
 inline void Client::clear_coordz() {
   _impl_.coordz_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000040u;
+  _impl_._has_bits_[0] &= ~0x00000080u;
 }
 inline int32_t Client::_internal_coordz() const {
   return _impl_.coordz_;
@@ -938,7 +950,7 @@ inline int32_t Client::coordz() const {
   return _internal_coordz();
 }
 inline void Client::_internal_set_coordz(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000040u;
+  _impl_._has_bits_[0] |= 0x00000080u;
   _impl_.coordz_ = value;
 }
 inline void Client::set_coordz(int32_t value) {
@@ -948,7 +960,7 @@ inline void Client::set_coordz(int32_t value) {
 
 // optional int32 mapNum = 8;
 inline bool Client::_internal_has_mapnum() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000080u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000100u) != 0;
   return value;
 }
 inline bool Client::has_mapnum() const {
@@ -956,7 +968,7 @@ inline bool Client::has_mapnum() const {
 }
 inline void Client::clear_mapnum() {
   _impl_.mapnum_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000080u;
+  _impl_._has_bits_[0] &= ~0x00000100u;
 }
 inline int32_t Client::_internal_mapnum() const {
   return _impl_.mapnum_;
@@ -966,7 +978,7 @@ inline int32_t Client::mapnum() const {
   return _internal_mapnum();
 }
 inline void Client::_internal_set_mapnum(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000080u;
+  _impl_._has_bits_[0] |= 0x00000100u;
   _impl_.mapnum_ = value;
 }
 inline void Client::set_mapnum(int32_t value) {
@@ -976,7 +988,7 @@ inline void Client::set_mapnum(int32_t value) {
 
 // optional int32 blockPlayer_id = 9;
 inline bool Client::_internal_has_blockplayer_id() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000100u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000200u) != 0;
   return value;
 }
 inline bool Client::has_blockplayer_id() const {
@@ -984,7 +996,7 @@ inline bool Client::has_blockplayer_id() const {
 }
 inline void Client::clear_blockplayer_id() {
   _impl_.blockplayer_id_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000100u;
+  _impl_._has_bits_[0] &= ~0x00000200u;
 }
 inline int32_t Client::_internal_blockplayer_id() const {
   return _impl_.blockplayer_id_;
@@ -994,7 +1006,7 @@ inline int32_t Client::blockplayer_id() const {
   return _internal_blockplayer_id();
 }
 inline void Client::_internal_set_blockplayer_id(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000100u;
+  _impl_._has_bits_[0] |= 0x00000200u;
   _impl_.blockplayer_id_ = value;
 }
 inline void Client::set_blockplayer_id(int32_t value) {
@@ -1004,7 +1016,7 @@ inline void Client::set_blockplayer_id(int32_t value) {
 
 // optional int32 talkInRoom_id = 10;
 inline bool Client::_internal_has_talkinroom_id() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000200u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000400u) != 0;
   return value;
 }
 inline bool Client::has_talkinroom_id() const {
@@ -1012,7 +1024,7 @@ inline bool Client::has_talkinroom_id() const {
 }
 inline void Client::clear_talkinroom_id() {
   _impl_.talkinroom_id_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000200u;
+  _impl_._has_bits_[0] &= ~0x00000400u;
 }
 inline int32_t Client::_internal_talkinroom_id() const {
   return _impl_.talkinroom_id_;
@@ -1022,7 +1034,7 @@ inline int32_t Client::talkinroom_id() const {
   return _internal_talkinroom_id();
 }
 inline void Client::_internal_set_talkinroom_id(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000200u;
+  _impl_._has_bits_[0] |= 0x00000400u;
   _impl_.talkinroom_id_ = value;
 }
 inline void Client::set_talkinroom_id(int32_t value) {
@@ -1032,7 +1044,7 @@ inline void Client::set_talkinroom_id(int32_t value) {
 
 // optional bool talkLocal = 11;
 inline bool Client::_internal_has_talklocal() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000400u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000800u) != 0;
   return value;
 }
 inline bool Client::has_talklocal() const {
@@ -1040,7 +1052,7 @@ inline bool Client::has_talklocal() const {
 }
 inline void Client::clear_talklocal() {
   _impl_.talklocal_ = false;
-  _impl_._has_bits_[0] &= ~0x00000400u;
+  _impl_._has_bits_[0] &= ~0x00000800u;
 }
 inline bool Client::_internal_talklocal() const {
   return _impl_.talklocal_;
@@ -1050,7 +1062,7 @@ inline bool Client::talklocal() const {
   return _internal_talklocal();
 }
 inline void Client::_internal_set_talklocal(bool value) {
-  _impl_._has_bits_[0] |= 0x00000400u;
+  _impl_._has_bits_[0] |= 0x00000800u;
   _impl_.talklocal_ = value;
 }
 inline void Client::set_talklocal(bool value) {
@@ -1060,7 +1072,7 @@ inline void Client::set_talklocal(bool value) {
 
 // optional int32 sampleTime = 12;
 inline bool Client::_internal_has_sampletime() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000800u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00001000u) != 0;
   return value;
 }
 inline bool Client::has_sampletime() const {
@@ -1068,7 +1080,7 @@ inline bool Client::has_sampletime() const {
 }
 inline void Client::clear_sampletime() {
   _impl_.sampletime_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000800u;
+  _impl_._has_bits_[0] &= ~0x00001000u;
 }
 inline int32_t Client::_internal_sampletime() const {
   return _impl_.sampletime_;
@@ -1078,7 +1090,7 @@ inline int32_t Client::sampletime() const {
   return _internal_sampletime();
 }
 inline void Client::_internal_set_sampletime(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000800u;
+  _impl_._has_bits_[0] |= 0x00001000u;
   _impl_.sampletime_ = value;
 }
 inline void Client::set_sampletime(int32_t value) {

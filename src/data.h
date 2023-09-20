@@ -5,6 +5,7 @@
 #include <string.h>
 #include <vector>
 #include <stdexcept>
+#include <mutex>
 
 #define ERROR_NO_ERROR        0
 #define ERROR_LOW             10
@@ -231,6 +232,75 @@ namespace data
                 return false;
             }
         
+    };
+
+    class AudioQueue{
+
+    private:
+        std::vector<std::vector<std::int16_t>> audio;
+        std::vector<bool> audioState;
+        std::vector<std::mutex> mutexes;
+        int readPos;
+
+        int checkValues(){
+            int result = -1;
+            for(int i = 1; i <= 2; i++){
+                int ant = readPos - i;
+                if(ant < 0) ant += 256;
+                if(audioState[ant]){
+                    result = ant;
+                } 
+            }
+            return result;
+        }
+
+    public:
+        AudioQueue(int audioCount): mutexes(256){
+            audio.resize(256);
+            for(auto& samplePack : audio){
+                samplePack.resize(audioCount);
+                for(auto& sample : samplePack){
+                    sample = 0;
+                }
+            }
+
+            audioState.resize(256);
+
+            for(int i = 0; i < 256; i++){
+                audioState[i] = false;
+            }
+
+            readPos = 0;
+        }
+
+        void push(int audioNumb, std::vector<std::int16_t> audioPack){
+            mutexes[audioNumb].lock();
+            audioState[audioNumb] = true;
+            audio[audioNumb] = audioPack;
+            mutexes[audioNumb].unlock();
+        }
+
+        std::vector<std::int16_t> pop(){
+            std::vector<std::int16_t> result;
+            if(!audioState[readPos]){
+                int checkAnt = checkValues();
+                if(checkAnt > -1){
+                    readPos = checkAnt;
+                }
+            }
+            mutexes[readPos].lock();
+            if(audioState[readPos]){
+                result = audio[readPos];
+                audioState[readPos] = false;
+            }
+            mutexes[readPos].unlock();
+            readPos++;
+            return result;
+        }
+
+        bool canReadNext(){
+            return audioState[readPos];
+        }
     };
 
     }

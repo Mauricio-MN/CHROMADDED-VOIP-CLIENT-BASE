@@ -15,7 +15,7 @@
 
 #include "osimports.h"
 
-#include "cript.h"
+#include "crpt.h"
 #include "player.h"
 #include <thread>
 #include <queue>
@@ -24,7 +24,13 @@
 
 #include "proto/protocol.pb.h"
 
+#include "queue.hpp"
+
 #define TOTAL_THREAD_PARSER 16
+
+struct TrivialContainerProtocolServer {
+    protocol::Server* data; // Ponteiro para um objeto não trivial
+};
 
 class protocolParser{
 private:
@@ -37,6 +43,7 @@ private:
     bool runThreads;
 
     std::queue<protocol::Server> queueProtocol;
+    lockfree::spsc::Queue<TrivialContainerProtocolServer, 256> queueProtc;
     std::shared_mutex queueMutex;
 
 public:

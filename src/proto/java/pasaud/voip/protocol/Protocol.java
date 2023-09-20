@@ -42,7 +42,16 @@ public final class Protocol {
      * Unique public ID number for this person.
      * </pre>
      *
-     * <code>int32 id = 2;</code>
+     * <code>optional int32 id = 2;</code>
+     * @return Whether the id field is set.
+     */
+    boolean hasId();
+    /**
+     * <pre>
+     * Unique public ID number for this person.
+     * </pre>
+     *
+     * <code>optional int32 id = 2;</code>
      * @return The id.
      */
     int getId();
@@ -252,7 +261,19 @@ public final class Protocol {
      * Unique public ID number for this person.
      * </pre>
      *
-     * <code>int32 id = 2;</code>
+     * <code>optional int32 id = 2;</code>
+     * @return Whether the id field is set.
+     */
+    @java.lang.Override
+    public boolean hasId() {
+      return ((bitField0_ & 0x00000002) != 0);
+    }
+    /**
+     * <pre>
+     * Unique public ID number for this person.
+     * </pre>
+     *
+     * <code>optional int32 id = 2;</code>
      * @return The id.
      */
     @java.lang.Override
@@ -268,7 +289,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasAudio() {
-      return ((bitField0_ & 0x00000002) != 0);
+      return ((bitField0_ & 0x00000004) != 0);
     }
     /**
      * <code>optional bytes audio = 3;</code>
@@ -287,7 +308,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasAudioNum() {
-      return ((bitField0_ & 0x00000004) != 0);
+      return ((bitField0_ & 0x00000008) != 0);
     }
     /**
      * <code>optional int32 audioNum = 4;</code>
@@ -306,7 +327,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasCoordX() {
-      return ((bitField0_ & 0x00000008) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <code>optional int32 coordX = 5;</code>
@@ -325,7 +346,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasCoordY() {
-      return ((bitField0_ & 0x00000010) != 0);
+      return ((bitField0_ & 0x00000020) != 0);
     }
     /**
      * <code>optional int32 coordY = 6;</code>
@@ -344,7 +365,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasCoordZ() {
-      return ((bitField0_ & 0x00000020) != 0);
+      return ((bitField0_ & 0x00000040) != 0);
     }
     /**
      * <code>optional int32 coordZ = 7;</code>
@@ -363,7 +384,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasMapNum() {
-      return ((bitField0_ & 0x00000040) != 0);
+      return ((bitField0_ & 0x00000080) != 0);
     }
     /**
      * <code>optional int32 mapNum = 8;</code>
@@ -382,7 +403,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasBlockPlayerId() {
-      return ((bitField0_ & 0x00000080) != 0);
+      return ((bitField0_ & 0x00000100) != 0);
     }
     /**
      * <code>optional int32 blockPlayer_id = 9;</code>
@@ -401,7 +422,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasTalkInRoomId() {
-      return ((bitField0_ & 0x00000100) != 0);
+      return ((bitField0_ & 0x00000200) != 0);
     }
     /**
      * <code>optional int32 talkInRoom_id = 10;</code>
@@ -420,7 +441,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasTalkLocal() {
-      return ((bitField0_ & 0x00000200) != 0);
+      return ((bitField0_ & 0x00000400) != 0);
     }
     /**
      * <code>optional bool talkLocal = 11;</code>
@@ -439,7 +460,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasSampleTime() {
-      return ((bitField0_ & 0x00000400) != 0);
+      return ((bitField0_ & 0x00000800) != 0);
     }
     /**
      * <code>optional int32 sampleTime = 12;</code>
@@ -458,7 +479,7 @@ public final class Protocol {
      */
     @java.lang.Override
     public boolean hasPacketTime() {
-      return ((bitField0_ & 0x00000800) != 0);
+      return ((bitField0_ & 0x00001000) != 0);
     }
     /**
      * <code>optional .google.protobuf.Timestamp packetTime = 13;</code>
@@ -493,40 +514,40 @@ public final class Protocol {
       if (((bitField0_ & 0x00000001) != 0)) {
         output.writeInt32(1, secretId_);
       }
-      if (id_ != 0) {
+      if (((bitField0_ & 0x00000002) != 0)) {
         output.writeInt32(2, id_);
       }
-      if (((bitField0_ & 0x00000002) != 0)) {
+      if (((bitField0_ & 0x00000004) != 0)) {
         output.writeBytes(3, audio_);
       }
-      if (((bitField0_ & 0x00000004) != 0)) {
+      if (((bitField0_ & 0x00000008) != 0)) {
         output.writeInt32(4, audioNum_);
       }
-      if (((bitField0_ & 0x00000008) != 0)) {
+      if (((bitField0_ & 0x00000010) != 0)) {
         output.writeInt32(5, coordX_);
       }
-      if (((bitField0_ & 0x00000010) != 0)) {
+      if (((bitField0_ & 0x00000020) != 0)) {
         output.writeInt32(6, coordY_);
       }
-      if (((bitField0_ & 0x00000020) != 0)) {
+      if (((bitField0_ & 0x00000040) != 0)) {
         output.writeInt32(7, coordZ_);
       }
-      if (((bitField0_ & 0x00000040) != 0)) {
+      if (((bitField0_ & 0x00000080) != 0)) {
         output.writeInt32(8, mapNum_);
       }
-      if (((bitField0_ & 0x00000080) != 0)) {
+      if (((bitField0_ & 0x00000100) != 0)) {
         output.writeInt32(9, blockPlayerId_);
       }
-      if (((bitField0_ & 0x00000100) != 0)) {
+      if (((bitField0_ & 0x00000200) != 0)) {
         output.writeInt32(10, talkInRoomId_);
       }
-      if (((bitField0_ & 0x00000200) != 0)) {
+      if (((bitField0_ & 0x00000400) != 0)) {
         output.writeBool(11, talkLocal_);
       }
-      if (((bitField0_ & 0x00000400) != 0)) {
+      if (((bitField0_ & 0x00000800) != 0)) {
         output.writeInt32(12, sampleTime_);
       }
-      if (((bitField0_ & 0x00000800) != 0)) {
+      if (((bitField0_ & 0x00001000) != 0)) {
         output.writeMessage(13, getPacketTime());
       }
       getUnknownFields().writeTo(output);
@@ -542,51 +563,51 @@ public final class Protocol {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(1, secretId_);
       }
-      if (id_ != 0) {
+      if (((bitField0_ & 0x00000002) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(2, id_);
       }
-      if (((bitField0_ & 0x00000002) != 0)) {
+      if (((bitField0_ & 0x00000004) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(3, audio_);
       }
-      if (((bitField0_ & 0x00000004) != 0)) {
+      if (((bitField0_ & 0x00000008) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(4, audioNum_);
       }
-      if (((bitField0_ & 0x00000008) != 0)) {
+      if (((bitField0_ & 0x00000010) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(5, coordX_);
       }
-      if (((bitField0_ & 0x00000010) != 0)) {
+      if (((bitField0_ & 0x00000020) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(6, coordY_);
       }
-      if (((bitField0_ & 0x00000020) != 0)) {
+      if (((bitField0_ & 0x00000040) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(7, coordZ_);
       }
-      if (((bitField0_ & 0x00000040) != 0)) {
+      if (((bitField0_ & 0x00000080) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(8, mapNum_);
       }
-      if (((bitField0_ & 0x00000080) != 0)) {
+      if (((bitField0_ & 0x00000100) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(9, blockPlayerId_);
       }
-      if (((bitField0_ & 0x00000100) != 0)) {
+      if (((bitField0_ & 0x00000200) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(10, talkInRoomId_);
       }
-      if (((bitField0_ & 0x00000200) != 0)) {
+      if (((bitField0_ & 0x00000400) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(11, talkLocal_);
       }
-      if (((bitField0_ & 0x00000400) != 0)) {
+      if (((bitField0_ & 0x00000800) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(12, sampleTime_);
       }
-      if (((bitField0_ & 0x00000800) != 0)) {
+      if (((bitField0_ & 0x00001000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(13, getPacketTime());
       }
@@ -610,8 +631,11 @@ public final class Protocol {
         if (getSecretId()
             != other.getSecretId()) return false;
       }
-      if (getId()
-          != other.getId()) return false;
+      if (hasId() != other.hasId()) return false;
+      if (hasId()) {
+        if (getId()
+            != other.getId()) return false;
+      }
       if (hasAudio() != other.hasAudio()) return false;
       if (hasAudio()) {
         if (!getAudio()
@@ -682,8 +706,10 @@ public final class Protocol {
         hash = (37 * hash) + SECRET_ID_FIELD_NUMBER;
         hash = (53 * hash) + getSecretId();
       }
-      hash = (37 * hash) + ID_FIELD_NUMBER;
-      hash = (53 * hash) + getId();
+      if (hasId()) {
+        hash = (37 * hash) + ID_FIELD_NUMBER;
+        hash = (53 * hash) + getId();
+      }
       if (hasAudio()) {
         hash = (37 * hash) + AUDIO_FIELD_NUMBER;
         hash = (53 * hash) + getAudio().hashCode();
@@ -925,52 +951,53 @@ public final class Protocol {
         }
         if (((from_bitField0_ & 0x00000002) != 0)) {
           result.id_ = id_;
+          to_bitField0_ |= 0x00000002;
         }
         if (((from_bitField0_ & 0x00000004) != 0)) {
           result.audio_ = audio_;
-          to_bitField0_ |= 0x00000002;
+          to_bitField0_ |= 0x00000004;
         }
         if (((from_bitField0_ & 0x00000008) != 0)) {
           result.audioNum_ = audioNum_;
-          to_bitField0_ |= 0x00000004;
+          to_bitField0_ |= 0x00000008;
         }
         if (((from_bitField0_ & 0x00000010) != 0)) {
           result.coordX_ = coordX_;
-          to_bitField0_ |= 0x00000008;
+          to_bitField0_ |= 0x00000010;
         }
         if (((from_bitField0_ & 0x00000020) != 0)) {
           result.coordY_ = coordY_;
-          to_bitField0_ |= 0x00000010;
+          to_bitField0_ |= 0x00000020;
         }
         if (((from_bitField0_ & 0x00000040) != 0)) {
           result.coordZ_ = coordZ_;
-          to_bitField0_ |= 0x00000020;
+          to_bitField0_ |= 0x00000040;
         }
         if (((from_bitField0_ & 0x00000080) != 0)) {
           result.mapNum_ = mapNum_;
-          to_bitField0_ |= 0x00000040;
+          to_bitField0_ |= 0x00000080;
         }
         if (((from_bitField0_ & 0x00000100) != 0)) {
           result.blockPlayerId_ = blockPlayerId_;
-          to_bitField0_ |= 0x00000080;
+          to_bitField0_ |= 0x00000100;
         }
         if (((from_bitField0_ & 0x00000200) != 0)) {
           result.talkInRoomId_ = talkInRoomId_;
-          to_bitField0_ |= 0x00000100;
+          to_bitField0_ |= 0x00000200;
         }
         if (((from_bitField0_ & 0x00000400) != 0)) {
           result.talkLocal_ = talkLocal_;
-          to_bitField0_ |= 0x00000200;
+          to_bitField0_ |= 0x00000400;
         }
         if (((from_bitField0_ & 0x00000800) != 0)) {
           result.sampleTime_ = sampleTime_;
-          to_bitField0_ |= 0x00000400;
+          to_bitField0_ |= 0x00000800;
         }
         if (((from_bitField0_ & 0x00001000) != 0)) {
           result.packetTime_ = packetTimeBuilder_ == null
               ? packetTime_
               : packetTimeBuilder_.build();
-          to_bitField0_ |= 0x00000800;
+          to_bitField0_ |= 0x00001000;
         }
         result.bitField0_ |= to_bitField0_;
       }
@@ -1022,7 +1049,7 @@ public final class Protocol {
         if (other.hasSecretId()) {
           setSecretId(other.getSecretId());
         }
-        if (other.getId() != 0) {
+        if (other.hasId()) {
           setId(other.getId());
         }
         if (other.hasAudio()) {
@@ -1230,7 +1257,19 @@ public final class Protocol {
        * Unique public ID number for this person.
        * </pre>
        *
-       * <code>int32 id = 2;</code>
+       * <code>optional int32 id = 2;</code>
+       * @return Whether the id field is set.
+       */
+      @java.lang.Override
+      public boolean hasId() {
+        return ((bitField0_ & 0x00000002) != 0);
+      }
+      /**
+       * <pre>
+       * Unique public ID number for this person.
+       * </pre>
+       *
+       * <code>optional int32 id = 2;</code>
        * @return The id.
        */
       @java.lang.Override
@@ -1242,7 +1281,7 @@ public final class Protocol {
        * Unique public ID number for this person.
        * </pre>
        *
-       * <code>int32 id = 2;</code>
+       * <code>optional int32 id = 2;</code>
        * @param value The id to set.
        * @return This builder for chaining.
        */
@@ -1258,7 +1297,7 @@ public final class Protocol {
        * Unique public ID number for this person.
        * </pre>
        *
-       * <code>int32 id = 2;</code>
+       * <code>optional int32 id = 2;</code>
        * @return This builder for chaining.
        */
       public Builder clearId() {
@@ -3469,30 +3508,31 @@ public final class Protocol {
   static {
     java.lang.String[] descriptorData = {
       "\n\016protocol.proto\022\010protocol\032\037google/proto" +
-      "buf/timestamp.proto\"\354\003\n\006Client\022\026\n\tsecret" +
-      "_id\030\001 \001(\005H\000\210\001\001\022\n\n\002id\030\002 \001(\005\022\022\n\005audio\030\003 \001(" +
-      "\014H\001\210\001\001\022\025\n\010audioNum\030\004 \001(\005H\002\210\001\001\022\023\n\006coordX\030" +
-      "\005 \001(\005H\003\210\001\001\022\023\n\006coordY\030\006 \001(\005H\004\210\001\001\022\023\n\006coord" +
-      "Z\030\007 \001(\005H\005\210\001\001\022\023\n\006mapNum\030\010 \001(\005H\006\210\001\001\022\033\n\016blo" +
-      "ckPlayer_id\030\t \001(\005H\007\210\001\001\022\032\n\rtalkInRoom_id\030" +
-      "\n \001(\005H\010\210\001\001\022\026\n\ttalkLocal\030\013 \001(\010H\t\210\001\001\022\027\n\nsa" +
-      "mpleTime\030\014 \001(\005H\n\210\001\001\0223\n\npacketTime\030\r \001(\0132" +
-      "\032.google.protobuf.TimestampH\013\210\001\001B\014\n\n_sec" +
-      "ret_idB\010\n\006_audioB\013\n\t_audioNumB\t\n\007_coordX" +
-      "B\t\n\007_coordYB\t\n\007_coordZB\t\n\007_mapNumB\021\n\017_bl" +
-      "ockPlayer_idB\020\n\016_talkInRoom_idB\014\n\n_talkL" +
-      "ocalB\r\n\013_sampleTimeB\r\n\013_packetTime\"\224\003\n\006S" +
-      "erver\022\026\n\thandShake\030\001 \001(\010H\000\210\001\001\022\n\n\002id\030\002 \001(" +
-      "\005\022\022\n\005audio\030\003 \001(\014H\001\210\001\001\022\025\n\010audioNum\030\004 \001(\005H" +
-      "\002\210\001\001\022\023\n\006coordX\030\005 \001(\005H\003\210\001\001\022\023\n\006coordY\030\006 \001(" +
-      "\005H\004\210\001\001\022\023\n\006coordZ\030\007 \001(\005H\005\210\001\001\022\023\n\006mapNum\030\010 " +
-      "\001(\005H\006\210\001\001\022\027\n\nsampleTime\030\t \001(\005H\007\210\001\001\022\031\n\014not" +
-      "Connected\030\n \001(\010H\010\210\001\001\0223\n\npacketTime\030\013 \001(\013" +
-      "2\032.google.protobuf.TimestampH\t\210\001\001B\014\n\n_ha" +
-      "ndShakeB\010\n\006_audioB\013\n\t_audioNumB\t\n\007_coord" +
-      "XB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_mapNumB\r\n\013_s" +
-      "ampleTimeB\017\n\r_notConnectedB\r\n\013_packetTim" +
-      "eB\026\n\024pasaud.voip.protocolb\006proto3"
+      "buf/timestamp.proto\"\370\003\n\006Client\022\026\n\tsecret" +
+      "_id\030\001 \001(\005H\000\210\001\001\022\017\n\002id\030\002 \001(\005H\001\210\001\001\022\022\n\005audio" +
+      "\030\003 \001(\014H\002\210\001\001\022\025\n\010audioNum\030\004 \001(\005H\003\210\001\001\022\023\n\006co" +
+      "ordX\030\005 \001(\005H\004\210\001\001\022\023\n\006coordY\030\006 \001(\005H\005\210\001\001\022\023\n\006" +
+      "coordZ\030\007 \001(\005H\006\210\001\001\022\023\n\006mapNum\030\010 \001(\005H\007\210\001\001\022\033" +
+      "\n\016blockPlayer_id\030\t \001(\005H\010\210\001\001\022\032\n\rtalkInRoo" +
+      "m_id\030\n \001(\005H\t\210\001\001\022\026\n\ttalkLocal\030\013 \001(\010H\n\210\001\001\022" +
+      "\027\n\nsampleTime\030\014 \001(\005H\013\210\001\001\0223\n\npacketTime\030\r" +
+      " \001(\0132\032.google.protobuf.TimestampH\014\210\001\001B\014\n" +
+      "\n_secret_idB\005\n\003_idB\010\n\006_audioB\013\n\t_audioNu" +
+      "mB\t\n\007_coordXB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_m" +
+      "apNumB\021\n\017_blockPlayer_idB\020\n\016_talkInRoom_" +
+      "idB\014\n\n_talkLocalB\r\n\013_sampleTimeB\r\n\013_pack" +
+      "etTime\"\224\003\n\006Server\022\026\n\thandShake\030\001 \001(\010H\000\210\001" +
+      "\001\022\n\n\002id\030\002 \001(\005\022\022\n\005audio\030\003 \001(\014H\001\210\001\001\022\025\n\010aud" +
+      "ioNum\030\004 \001(\005H\002\210\001\001\022\023\n\006coordX\030\005 \001(\005H\003\210\001\001\022\023\n" +
+      "\006coordY\030\006 \001(\005H\004\210\001\001\022\023\n\006coordZ\030\007 \001(\005H\005\210\001\001\022" +
+      "\023\n\006mapNum\030\010 \001(\005H\006\210\001\001\022\027\n\nsampleTime\030\t \001(\005" +
+      "H\007\210\001\001\022\031\n\014notConnected\030\n \001(\010H\010\210\001\001\0223\n\npack" +
+      "etTime\030\013 \001(\0132\032.google.protobuf.Timestamp" +
+      "H\t\210\001\001B\014\n\n_handShakeB\010\n\006_audioB\013\n\t_audioN" +
+      "umB\t\n\007_coordXB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_" +
+      "mapNumB\r\n\013_sampleTimeB\017\n\r_notConnectedB\r" +
+      "\n\013_packetTimeB\026\n\024pasaud.voip.protocolb\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -3504,7 +3544,7 @@ public final class Protocol {
     internal_static_protocol_Client_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_protocol_Client_descriptor,
-        new java.lang.String[] { "SecretId", "Id", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "BlockPlayerId", "TalkInRoomId", "TalkLocal", "SampleTime", "PacketTime", "SecretId", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "BlockPlayerId", "TalkInRoomId", "TalkLocal", "SampleTime", "PacketTime", });
+        new java.lang.String[] { "SecretId", "Id", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "BlockPlayerId", "TalkInRoomId", "TalkLocal", "SampleTime", "PacketTime", "SecretId", "Id", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "BlockPlayerId", "TalkInRoomId", "TalkLocal", "SampleTime", "PacketTime", });
     internal_static_protocol_Server_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_protocol_Server_fieldAccessorTable = new

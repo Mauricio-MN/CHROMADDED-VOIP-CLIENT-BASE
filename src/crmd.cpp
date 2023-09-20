@@ -20,8 +20,6 @@
 //#include "../libs/AL/al.h"
 //#include "../libs/AL/alc.h"
 
-#include "cript.h"
-
 #include "player.h"
 
 #include "socketUdp.h"
@@ -30,6 +28,10 @@
 
 #include "crmd.h"
 #include "crmdprivate.h"
+
+#include "config.h"
+
+#include "crpt.h"
 
 namespace crmd{
 
@@ -139,13 +141,14 @@ void init(int register_id, int id, char* ip, int ip_size, unsigned short port, u
   if(initialized == false){
     initialized = true;
 
-    player::SelfImpl::frabric(register_id, id, needEncrypt);
+    ConfigImpl::getInstance().setCryptoKey(std::vector<char>(key, key + 32));
+    ConfigImpl::getInstance().setNeedCryptography(needEncrypt);
 
-    data::buffer keyBuff(key, 16);
-
-    CryptImpl::fabric((unsigned char*)(keyBuff.getData()));
+    player::SelfImpl::frabric(register_id, id);
 
     connectTo(ip, ip_size, port);
+
+    player::SelfImpl::getInstance().sendConnect();
 
     soundmanager::listener::movePos(x,y,z);
     soundmanager::RecorderImpl::getInstance();
