@@ -13,10 +13,10 @@
 #include <chrono>
 #include <memory>
 #include <opus/opus.h>
+#include "protoParse.h"
 #include "crmd.h"
 #include "crpt.h"
 #include "player.h"
-#include "protoParse.h"
 #include "socketUdp.h"
 #include "soundmanager.h"
 #include "SoundCustomBufferRecorder.hpp"
@@ -50,14 +50,15 @@ void fail(const char* errorInfo, const char* variable, const char* expected, con
 
 void testCrypt(){
 
-  unsigned char* key = (unsigned char*)strdup("abcdefghijklmnopqrs");
+  unsigned char* key = (unsigned char*)strdup("abcdefghijklmnopqrsasdry764jg651");
+  unsigned char* iv = (unsigned char*)strdup("ajfrtyprewqsdrgt");
 
-  CryptImpl::fabric(key);
+  AES_GCM crpt(key, iv);
 
   char* text = new char[35];
   text = strdup("o rato roeu a roupa do rei de roma");
   std::vector<unsigned char> textUchar(text,text+35);
-  std::vector<unsigned char> encrypted = CryptImpl::getInstance().encrypt(&textUchar);
+  std::vector<unsigned char> encrypted = crpt.encrypt(textUchar);
 
 
   int encdata_size = encrypted.size();
@@ -67,7 +68,7 @@ void testCrypt(){
   std::cout << std::endl;
 
 
-  std::vector<unsigned char> decrypted = CryptImpl::getInstance().decrypt(&encrypted);
+  std::vector<unsigned char> decrypted = crpt.decrypt(encrypted);
   std::cout << decrypted.data() << std::endl;
 
   char* finaltext = new char[decrypted.size() + 1];
@@ -77,7 +78,7 @@ void testCrypt(){
     fail("encode/decode(crypt)", "finaltext", "normal text", "crypt::getInstance()->");
   }
 
-  sucessMSG("crypt::getInstance()->", "testCrypt");
+  sucessMSG("AES_GCM", "testCrypt");
 }
 
 void testPlayers(){
@@ -150,8 +151,6 @@ void test_BufferParser_listen(){
   const sf::Int16* audio = sbuffer.getSamples();
   int audio_size = sbuffer.getSampleCount();
 
-  //new
-
   data::buffer bufferAudio;
 
   bufferAudio.insertArray((sf::Int16 *)audio, audio_size);
@@ -159,38 +158,46 @@ void test_BufferParser_listen(){
 
   PlayersManagerImpl::getInstance().insertPlayer(3,1,1,1);
 
-  int samplesCount = bufferAudio.size() / sizeof(sf::Int16);
-  sf::Int16 *bufferSamples = new sf::Int16[samplesCount];
-
   std::cout << "test opus encode/decode" << std::endl;
   soundmanager::NetworkAudioStream opusStream(sf::milliseconds(SAMPLE_TIME_DEFAULT), SAMPLE_CHANNELS, SAMPLE_RATE, SAMPLE_BITS);
+  OpusManagerImpl::fabric(SAMPLE_RATE);
 
   int sampleSize = opusStream.getSampleSize();
 
   int finalLen = 0;
+  int totalLen = 0;
+  int totalSample = 0;
+  int j = 0;
   for (int i = 0; i < audio_size - sampleSize; i += sampleSize)
   {
 
-    data::buffer encBuffer = OpusManagerImpl::getInstance().encode((sf::Int16 *)audio + i);
-    data::buffer decBuffer = OpusManagerImpl::getInstance().decode(encBuffer);
+    data::buffer encBuffer = OpusManagerImpl::getInstance().encode((sf::Int16 *)audio + i, sampleSize);
+    data::buffer decBuffer = OpusManagerImpl::getInstance().decode(encBuffer, sampleSize);
+    totalLen += encBuffer.size() / sizeof(sf::Int16);
+    totalSample += sampleSize;
 
     if(decBuffer.size() != sampleSize * sizeof(sf::Int16)){
-      fail("Problem in buffer audio", "encBuffer/decBuffer", "valid size", "OpusManagerImpl::getInstance().encode/decode");
+      fail("buffer audio", "encBuffer/decBuffer", "valid size", "OpusManagerImpl::getInstance().encode/decode");
       break;
     }
 
     if (finalLen == 0){ finalLen = encBuffer.size();
     } else { finalLen = (finalLen + encBuffer.size()) / 2; }
 
-    sbuffer.loadFromSamples(reinterpret_cast<sf::Int16*>((char*)decBuffer.getData()), decBuffer.size() / sizeof(sf::Int16),
-      SAMPLE_CHANNELS, SAMPLE_RATE);
-    opusStream.insert(sbuffer);
+    opusStream.insert(j, decBuffer);
+
+    j++;
+    if(j >= 256){
+      j = 0;
+    }
   }
 
   opusStream.play();
 
-  std::cout << "original len        : " << bufferAudio.size() << std::endl;
+  std::cout << "original len SAMPLES: " << sampleSize << std::endl;
   std::cout << "encoded  len average: " << finalLen << std::endl;
+  std::cout << "original len TOTAL  : " << totalSample << std::endl;
+  std::cout << "encoded  len TOTAL  : " << totalLen << std::endl;
 
   waitListenSoundStream(opusStream);
 
@@ -202,10 +209,11 @@ void test_BufferParser_listen(){
 
   std::cout << "test listen audio packets" << std:: endl;
 
-  player::SelfImpl::frabric(3, 3, true);
+  player::SelfImpl::frabric(3, 3);
 
-  for(int i = 0; i < samplesCount - 640; i += 640){
-    data::buffer encBuffer = OpusManagerImpl::getInstance().encode(bufferSamples + i);
+  for (int i = 0; i < audio_size - sampleSize; i += sampleSize)
+  {
+    data::buffer encBuffer = OpusManagerImpl::getInstance().encode((sf::Int16 *)audio + i, sampleSize);
 
     protocol::Server cBuffer;
 
@@ -214,7 +222,7 @@ void test_BufferParser_listen(){
 
     protocolParserImpl::getInstance().parse(&cBuffer);
 
-    sf::sleep(sf::milliseconds(38));
+    sf::sleep(sf::milliseconds(opusStream.getSampleSize()));
   }
 
   std::cout << "listen start, tap X to jump." << std::endl;
@@ -292,6 +300,8 @@ int main(){
   testPlayers(); //parcial
 
   test_BufferParser_listen(); //parcial
+
+  return 0;
 
   test_data_structure_memory();
 
