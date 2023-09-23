@@ -201,26 +201,18 @@ namespace data
                     insert(Data);
             }
 
-            buffer(char *refBuffer, size_t len){
-                bufferDataVec.reserve(256);
-                    insert(refBuffer, len);
-            }
-
-            buffer(const char *refBuffer, size_t len){
-                bufferDataVec.reserve(256);
-                    insert(refBuffer, len);
-            }
-
             buffer(){
                 bufferDataVec.reserve(256);
             }
 
-            buffer(void *refBuffer, size_t len){
+            template <typename T>
+            buffer(T *refBuffer, size_t len){
                 bufferDataVec.reserve(256);
                     insertArray(refBuffer, len);
             }
 
-            buffer(const void *refBuffer, size_t len){
+            template <typename T>
+            buffer(const T *refBuffer, size_t len){
                 bufferDataVec.reserve(256);
                     insertArray(refBuffer, len);
             }
@@ -254,11 +246,14 @@ namespace data
             return result;
         }
 
-    public:
-        AudioQueue(int audioCount): mutexes(256){
+        void audioNumCheck(int &num){
+            if(num < 0 || num >= 256) num = 0;
+        }
+
+        void init(int sampleCount){
             audio.resize(256);
             for(auto& samplePack : audio){
-                samplePack.resize(audioCount);
+                samplePack.resize(sampleCount);
                 for(auto& sample : samplePack){
                     sample = 0;
                 }
@@ -273,7 +268,29 @@ namespace data
             readPos = 0;
         }
 
+    public:
+        AudioQueue(): mutexes(256){
+            init(1);
+        }
+
+        void resize(int sampleCount){
+            for(auto& mutexe : mutexes){
+                mutexe.lock();
+            }
+            if(sampleCount > 0){
+                init(sampleCount);
+            }
+            for(auto& mutexe : mutexes){
+                mutexe.unlock();
+            }
+        }
+
+        AudioQueue(int sampleCount): mutexes(256){
+            init(sampleCount);
+        }
+
         void push(int audioNumb, std::vector<std::int16_t> audioPack){
+            audioNumCheck(audioNumb);
             mutexes[audioNumb].lock();
             audioState[audioNumb] = true;
             audio[audioNumb] = audioPack;
@@ -300,6 +317,16 @@ namespace data
 
         bool canReadNext(){
             return audioState[readPos];
+        }
+
+        void hyperSearch(){
+            for(int i = 0; i < 256; i++){
+                if(audioState[i]){
+                    mutexes[i].lock();
+                    readPos = i;
+                    mutexes[i].unlock();
+                }
+            }
         }
     };
 
