@@ -76,7 +76,7 @@ public:
     /// Default constructor
     ///
     ////////////////////////////////////////////////////////////
-    NetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits) : audioQueue(sampleTimeGetCount(_sampleTime, _sampleRate)), m_offset(0), m_updateOffset(false), m_circular_buffer(_sampleRate * 10), m_circular_temp(_sampleRate * 10), m_hyper_buffer(_sampleRate * 10)
+    NetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits) : m_offset(0), m_updateOffset(false), m_circular_buffer(_sampleRate * 10), m_circular_temp(_sampleRate * 10), m_hyper_buffer(_sampleRate * 10)
     {
         // Set the sound parameters
         sampleTime = _sampleTime;
@@ -85,6 +85,8 @@ public:
         sampleRate = _sampleRate;
         sampleBits = _sampleBits;
 
+        audioQueue.resize(sampleCount);
+
         initialize(sampleChannels, sampleRate);
     }
 
@@ -92,15 +94,9 @@ public:
         return sampleCount;
     }
 
-    void insert(int audioNumb, sf::SoundBuffer data)
-    {
-        std::vector<sf::Int16> buffer(data.getSamples(), data.getSamples() + (data.getSampleCount() * sizeof(sf::Int16)));
-        audioQueue.push(audioNumb, buffer);
-    }
-
     void insert(int audioNumb, data::buffer data)
     {
-        std::vector<sf::Int16> buffer(data.getData(), data.getData() + data.size());
+        std::vector<sf::Int16> buffer((sf::Int16*)data.getData(), (sf::Int16*)data.getData() + (data.size() / sizeof(sf::Int16)));
         audioQueue.push(audioNumb, buffer);
     }
 
@@ -119,19 +115,36 @@ private:
     {
         m_offset = 0;
 
-        m_swapSamples = audioQueue.pop();
+        int readsTry = 0;
+        int readSize = 0;
+        while(readSize == 0){
+            std::vector<sf::Int16> audioBuff = audioQueue.pop();
+            m_swapSamples.swap(audioBuff);
+            readSize += m_swapSamples.size();
 
-        while(audioQueue.canReadNext()){
-            auto popVec = audioQueue.pop();
-            m_swapSamples.insert(m_swapSamples.end(), popVec.begin(), popVec.end());
+            while(audioQueue.canReadNext()){
+                auto popVec = audioQueue.pop();
+                m_swapSamples.insert(m_swapSamples.end(), popVec.begin(), popVec.end());
+            }
+
+            if(m_swapSamples.empty()){
+                readsTry++;
+                if(readsTry == 1){
+                    std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMilliseconds() * 5));
+                } else if(readsTry == 2){
+                    std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMilliseconds() * 2));
+                } else if(readsTry == 3){
+                    audioQueue.hyperSearch();
+                } else if(readsTry > 3){
+                    break;
+                }
+            }
         }
 
         if(!m_swapSamples.empty()){
             data.samples = m_swapSamples.data();
             data.sampleCount = m_swapSamples.size();
             return true;
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMicroseconds() * 5));
         }
         return false;
 
