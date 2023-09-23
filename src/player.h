@@ -22,6 +22,7 @@ namespace player{
         int my_id;
         int my_secret_id;
         int talkRomm;
+        int audioNumb;
         bool talkInLocal;
         bool connected;
         std::mutex mutexID;
@@ -66,6 +67,8 @@ namespace player{
         void setPos(int map, int x, int y, int z);
         void setCoords(Coords coord);
         void sendPosInfo();
+
+        int getAndAddAudioNum();
 
         Coords getCoords();
 
