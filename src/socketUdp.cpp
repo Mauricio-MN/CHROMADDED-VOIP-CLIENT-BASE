@@ -2,7 +2,7 @@
 
 
   bool socketUdpImpl::initialized = false;
-  sf::IpAddress socketUdpImpl::ip_ = nullptr;
+  sf::IpAddress socketUdpImpl::ip_ = sf::IpAddress("127.0.0.1");
   unsigned short socketUdpImpl::port_ = 0;
   socketUdp* socketUdpImpl::instance = new socketUdp();
 
