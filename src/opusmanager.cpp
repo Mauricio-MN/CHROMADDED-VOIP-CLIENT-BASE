@@ -55,9 +55,8 @@
     data::buffer OpusManager::decode(data::buffer &buffer, int sampleCount){
         opus_int16* decodedSamples = new opus_int16[sampleCount];
         int decodedLen = opus_decode(decoder, reinterpret_cast<const unsigned char*>(buffer.getData()), buffer.size(), decodedSamples, sampleCount, 0);
-        int bufferLen = decodedLen * sizeof(opus_int16);
 
-        data::buffer outDataBuffer(reinterpret_cast<const char*>(decodedSamples), bufferLen);
+        data::buffer outDataBuffer(decodedSamples, decodedLen);
         delete[] decodedSamples;
         return outDataBuffer;
     }
