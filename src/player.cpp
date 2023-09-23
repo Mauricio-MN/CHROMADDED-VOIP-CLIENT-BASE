@@ -49,6 +49,7 @@ namespace player
         coordinates.map = -1;
         connected = false;
         sampleNumber = 0;
+        audioNumb = 0;
     }
 
     std::vector<unsigned char> Self::decrypt(std::vector<unsigned char>& buffer){
@@ -145,6 +146,13 @@ namespace player
         return coordinates;
     }
 
+    int Self::getAndAddAudioNum(){
+        int result = audioNumb;
+        audioNumb++;
+        if(audioNumb >= 256) audioNumb = 0;
+        return result;
+    }
+
     void Self::sendPosInfo(){
         protocol::Client info;
         info.set_id(my_id);
@@ -152,6 +160,8 @@ namespace player
         info.set_coordx(coordinates.x);
         info.set_coordy(coordinates.y);
         info.set_coordz(coordinates.z);
+        socketUdpImpl::getInstance().send(info);
+
         socketUdpImpl::getInstance().send(info);
     }
 
@@ -163,16 +173,17 @@ namespace player
         info.set_coordx(coordinates.x);
         info.set_coordy(coordinates.y);
         info.set_coordz(coordinates.z);
+
+        socketUdpImpl::getInstance().send(info);
     }
 
     void Self::sendAudio(data::buffer &buffer)
     {
-        Self& GlobalInstance = SelfImpl::getInstance();
-
         protocol::Client info;
         info.set_audio(buffer.getData(), buffer.size());
+        info.set_audionum(SelfImpl::getInstance().getAndAddAudioNum());
 
-
+        socketUdpImpl::getInstance().send(info);
     }
 
 }
@@ -187,7 +198,7 @@ namespace player
 
     void PlayersManager::insertPlayer(int id, float x, float y, float z){
         insertMutex.lock();
-        if(existPlayer(id)){
+        if(!existPlayer(id)){
             players[id] = std::make_shared<Player>();
             players[id]->id = id;
             players[id]->move(x,y,z);
@@ -197,15 +208,16 @@ namespace player
 
     void PlayersManager::insertPlayer(PLAYER player){
         insertMutex.lock();
-        if(players.find(player->id) == players.end()){
+        if(!existPlayer(player->id)){
             players[player->id] = player;
         }
         insertMutex.unlock();
     }
 
     PLAYER PlayersManager::getPlayer(int id){
-        if(existPlayer(id)){
-            return players[0];
+        if(!existPlayer(id)){
+            return std::make_shared<Player>();
+            players[id]->id = -1;
         }
         return players[id];
     }
@@ -245,7 +257,7 @@ namespace player
     }
 
     void PlayersManager::removePlayer(int id){
-        if (existPlayer(id)){
+        if (!existPlayer(id)){
             return;
         }
         players.erase(id);
