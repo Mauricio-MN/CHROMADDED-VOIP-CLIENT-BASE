@@ -52,7 +52,6 @@ bool SoundCustomBufferRecorder::onStart()
 {
     m_samples.clear();
     m_buffer = SoundBuffer();
-
     recording = true;
 
     return true;
@@ -83,7 +82,7 @@ void SoundCustomBufferRecorder::asyncProcessSamples(sf::SoundBuffer buffer){
     }
     int bufferByte_size = sizeof(const Int16) * buffer.getSampleCount();
     data::buffer buff(buffer.getSamples(), buffer.getSampleCount());
-    (*send)(buff);
+    (*send)(buff, timeBuffer.asMilliseconds());
 }
 
 void SoundCustomBufferRecorder::enableProcessSound(){

@@ -49,11 +49,16 @@ inline int sampleTimeGetCount(sf::Time time, int sampleRate = 16000){
     return sampleCount;
 }
 
+inline int sampleTimeGetCount(int millsec, int sampleRate = 16000){
+    int sampleCount = millsec * sampleRate / 1000;
+    return sampleCount;
+}
+
 enum audioPacketMillisecond{
     MS10 = 10, MS20 = 20, MS40 = 40
 };
 
-#define DEFAULT_BUFFER_ARGS (data::buffer &buffer)
+#define DEFAULT_BUFFER_ARGS (data::buffer &buffer, int sampleTime)
 namespace sf
 {
 ////////////////////////////////////////////////////////////
