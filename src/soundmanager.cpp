@@ -41,13 +41,13 @@ sf::SoundBuffer Recorder::recordForTest(){
   sf::SoundBufferRecorder Trec;
   Trec.setChannelCount(SAMPLE_CHANNELS);
   Trec.start(SAMPLE_RATE);
-  sf::sleep(sf::milliseconds(5000));
+  sf::sleep(sf::milliseconds(10000));
   Trec.stop();
   return Trec.getBuffer();
 }
 
 Recorder::Recorder(){
-  Recorder(SAMPLE_RATE, sf::milliseconds(40));
+  Recorder(SAMPLE_RATE, sf::milliseconds(20));
 }
 
 Recorder::Recorder(int _sampleRate, sf::Time packetTime){
@@ -59,12 +59,20 @@ void Recorder::reConstruct(int _sampleRate, sf::Time packetTime){
   initialize(_sampleRate, packetTime);
 }
 
+int Recorder::getSampleTime(){
+  return packetTime.asMilliseconds();
+}
+int Recorder::getSampleCount(){
+  return sampleTimeGetCount(packetTime,sampleRate);
+}
+
 void Recorder::initialize(int _sampleRate, sf::Time packetTime){
   rec.setChannelCount(SAMPLE_CHANNELS);
   rec.setProcessingIntervalOverride(packetTime);
   rec.setListen(DEBUG_AUDIO);
   rec.setProcessingBufferFunction(player::Self::sendAudio);
   rec.start(_sampleRate);
+  sampleRate = _sampleRate;
 }
 
 }

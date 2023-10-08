@@ -12,6 +12,9 @@
 #include <SFML/System/Time.hpp>
 #include <SFML/Window/Keyboard.hpp>
 
+#include <AL/al.h>
+#include <AL/efx.h>
+
 #include "SoundCustomBufferRecorder.hpp"
 
 #include "smbPitchShift.h"
@@ -56,9 +59,13 @@ public:
 
     void reConstruct(int _sampleRate, sf::Time packetTime);
 
+    int getSampleTime();
+    int getSampleCount();
+
 private:
     int sampleRate;
     sf::SoundCustomBufferRecorder rec;
+    sf::Time packetTime;
 
     void initialize(int _sampleRate, sf::Time packetTime);
 };
@@ -80,25 +87,73 @@ public:
     {
         // Set the sound parameters
         sampleTime = _sampleTime;
+        sampleTime_MS = sampleTime.asMilliseconds();
         sampleCount = sampleTimeGetCount(_sampleTime, _sampleRate);
         sampleChannels = _sampleChannels;
         sampleRate = _sampleRate;
         sampleBits = _sampleBits;
 
-        audioQueue.resize(sampleCount);
+        //m_samples.resize(sampleCount);
+
+        readsTry = 0;
 
         initialize(sampleChannels, sampleRate);
     }
 
-    int getSampleSize(){
+    //thread safe
+    int resizeSampleTime(sf::Time _sampleTime){
+        geralMutexLockData.lock();
+        bool needStart = false;
+        if(getStatus() == sf::SoundSource::Playing){
+            stop();
+            needStart = true;
+        }
+        sampleTime = _sampleTime;
+        sampleTime_MS = sampleTime.asMilliseconds();
+        sampleCount = sampleTimeGetCount(_sampleTime, sampleRate);
+        if(needStart) play();
+        geralMutexLockData.unlock();
+    }
+
+    //thread safe
+    int getSampleCount(){
         return sampleCount;
     }
 
-    void insert(int audioNumb, data::buffer data)
+    //thread safe
+    int getSampleTime(){
+        return sampleTime_MS;
+    }
+
+    //thread safe
+    void insert(int audioNumb, data::buffer& data)
     {
         std::vector<sf::Int16> buffer((sf::Int16*)data.getData(), (sf::Int16*)data.getData() + (data.size() / sizeof(sf::Int16)));
+
         audioQueue.push(audioNumb, buffer);
+
+        if(getStatus() != sf::SoundSource::Playing){
+            geralMutexLockData.lock();
+            if(getStatus() != sf::SoundSource::Playing){
+                play();
+            }
+            geralMutexLockData.unlock();
+        }
+            
     }
+
+    void clean(){
+        audioQueue.hyperClean();
+    }
+
+    //thread safe
+    /*
+    void insert(int audioNumb, std::vector<sf::Int16> data)
+    {
+        for(auto& frame : data){
+            queueBuff.Enqueue(frame);
+        }
+    }*/
 
 private:
 
@@ -111,42 +166,57 @@ private:
     bool canIgnoreMutex = false;
 
     int selectedSpeed = 0;
+    bool canInitDelay = true;
     bool onGetData(sf::SoundStream::Chunk& data) override
     {
-        m_offset = 0;
+        if(canInitDelay){
+            std::cout << "i" << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMilliseconds() * 10));
+            canInitDelay = false;
 
-        int readsTry = 0;
-        int readSize = 0;
-        while(readSize == 0){
-            std::vector<sf::Int16> audioBuff = audioQueue.pop();
-            m_swapSamples.swap(audioBuff);
-            readSize += m_swapSamples.size();
-
-            while(audioQueue.canReadNext()){
-                auto popVec = audioQueue.pop();
-                m_swapSamples.insert(m_swapSamples.end(), popVec.begin(), popVec.end());
-            }
-
-            if(m_swapSamples.empty()){
-                readsTry++;
-                if(readsTry == 1){
-                    std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMilliseconds() * 5));
-                } else if(readsTry == 2){
-                    std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMilliseconds() * 2));
-                } else if(readsTry == 3){
-                    audioQueue.hyperSearch();
-                } else if(readsTry > 3){
+            int completeInitTrys = 0;
+            while(sampleCountGetTime(audioQueue.relativeCompleteSize() * sampleCount , sampleRate).asMilliseconds() < 100){
+                completeInitTrys++;
+                std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMilliseconds()));
+                if(completeInitTrys > 2){
+                    std::cout << "break sound init" << std::endl;
                     break;
                 }
             }
+            if(audioQueue.absoluteSize() < 3){
+                std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMilliseconds() * 10));
+            }
         }
 
-        if(!m_swapSamples.empty()){
-            data.samples = m_swapSamples.data();
-            data.sampleCount = m_swapSamples.size();
+        m_samples.clear();
+
+        bool success = audioQueue.pop(m_samples);
+
+        if(!success){
+            std::this_thread::sleep_for(std::chrono::milliseconds(readsTry));
+            //std::cout << "ERROR LOST : " << readsTry << std::endl;
+            readsTry++;
+            std::cout << "LOST: " << readsTry << std::endl;
+            if(readsTry > 6){
+                std::cout << "ERROR LOST" << std::endl;
+                audioQueue.hyperClean();
+                canInitDelay = true;
+                readsTry = 0;
+                return false;
+            }
+            m_samples.resize(sampleCount * readsTry);
+            data.samples = m_samples.data();
+            data.sampleCount = m_samples.size();
             return true;
         }
-        return false;
+
+        if(success){
+            readsTry = 0;
+            data.samples = m_samples.data();
+            data.sampleCount = m_samples.size();
+            return true;
+        }
+        return true;
 
         /*
 
@@ -371,8 +441,8 @@ private:
     ////////////////////////////////////////////////////////////
     void onSeek(sf::Time timeOffset) override
     {
-        //m_offset = static_cast<std::size_t>(timeOffset.asMilliseconds()) * getSampleRate() * getChannelCount() / 1000;
-        m_offset = static_cast<std::size_t>(timeOffset.asSeconds() * getSampleRate() * getChannelCount());
+        m_offset = static_cast<std::size_t>(timeOffset.asMilliseconds()) * getSampleRate() * getChannelCount() / 1000;
+        //m_offset = static_cast<std::size_t>(timeOffset.asSeconds() * getSampleRate() * getChannelCount());
         /*if(m_circular_temp.size() < 3){
             if(m_circular_buffer.Size() > 2){
                 auto temp = m_circular_buffer.Pop(3);
@@ -398,6 +468,7 @@ private:
     std::vector<std::int16_t> m_swapSamples;
     std::vector<std::int16_t> m_tempBuffer;
     std::size_t               m_offset;
+    std::size_t               m_offset_last;
     bool                      m_updateOffset;
     bool                      m_updateOffsetRCV;
     //boost::circular_buffer<std::vector<std::int16_t>> m_circular_buffer;
@@ -406,12 +477,23 @@ private:
     jnk0le::Ringbuffer<sf::Int16, 131072> m_r_buffer;
     std::vector<std::int16_t> m_circular_temp;
     data::AudioQueue audioQueue;
-    sf::Time sampleTime;
 
+    sf::Time sampleTime;
+    int sampleTime_MS;
     int sampleCount;
     int sampleChannels;
     int sampleRate;
     int sampleBits;
+
+    int readsTry;
+
+    data::buffer bufferAudio;
+
+    sf::Clock clock;
+
+    //data::LockFreeQueue<std::int16_t> queueBuff;
+
+    std::shared_mutex geralMutexLockData;
 };
 
 
