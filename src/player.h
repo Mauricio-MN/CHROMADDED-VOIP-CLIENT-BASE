@@ -9,8 +9,10 @@
 #include <memory>
 #include <atomic>
 
+#include "data.h"
 #include "soundmanager.h"
 #include "crpt.h"
+#include "protoParse.h"
 #include <SFML/Audio.hpp>
 
 #define PLAYER std::shared_ptr<Player>
@@ -74,7 +76,7 @@ namespace player{
 
         void sendConnect();
 
-        static void sendAudio(data::buffer &buffer);
+        static void sendAudio(data::buffer &buffer, int sampleTime);
 
     };
 
@@ -83,6 +85,7 @@ namespace player{
         static bool initialized;
         static int reg_id_;
         static int id_;
+        static Self* instance;
         public:
         static Self& getInstance();
 
@@ -100,16 +103,16 @@ class Player{
         int echoEffectValue = 1;
         int waitingCount = 0;
 
-        soundmanager::NetworkAudioStream* soundStream;
-
     private:
 
-        bool streamIsValid;
+        soundmanager::NetworkAudioStream* soundStream;
+
+        std::atomic<bool> streamIsValid;
 
         sf::SoundBuffer sbuffer;
 
-        std::mutex pushMutex;
-        std::mutex isPlayingMutex;
+        std::shared_mutex pushMutex;
+        std::shared_mutex isPlayingMutex;
         std::mutex moveMutex;
         std::mutex minDistanceMutex;
         std::mutex attenuationMutex;
@@ -118,10 +121,16 @@ class Player{
 
         sf::Time _sampleTime;
 
+        float attenuation;
+
+        sf::Vector3f position;
+
         void initialize(sf::Time sampleTime){
+
             _sampleTime = sampleTime;
             soundStream = new soundmanager::NetworkAudioStream(sampleTime, SAMPLE_CHANNELS, SAMPLE_RATE, SAMPLE_BITS);
             streamIsValid = true;
+            attenuation = soundStream->getAttenuation();
             pushClock.restart();
         }
 
@@ -136,9 +145,8 @@ class Player{
         }
 
         ~Player(){
-            deleteSoundStream();
+            removeImportantData();
         }
-
 
         void move(float new_x, float new_y, float new_z){
             std::lock_guard<std::mutex> guard(moveMutex);
@@ -150,17 +158,43 @@ class Player{
             soundStream->setMinDistance(new_MD);
         }
 
-        void attenuation(float new_at){
+        void setAttenuation(float new_at){
             std::lock_guard<std::mutex> guard(attenuationMutex);
+            attenuation = new_at;
+            if(!streamIsValid.load()) return;
             soundStream->setAttenuation(new_at);
         }
 
         bool isPlaying(){
-            std::lock_guard<std::mutex> guard(isPlayingMutex);
-            if(soundStream->getStatus() == soundmanager::NetworkAudioStream::Playing){
-                return true;
+            if(!streamIsValid.load()) return false;
+            isPlayingMutex.lock_shared();
+            bool isp = false;
+            if(soundStream->getStatus() == sf::SoundSource::Playing) isp = true;
+            isPlayingMutex.unlock_shared();
+            return isp;
+        }
+
+        void stop(){
+            if(streamIsValid.load()){
+                pushMutex.lock();
+                if(isPlaying()){
+                    soundStream->stop();
+                }
+                soundStream->clean();
+                pushMutex.unlock();
             }
-            return false;
+        }
+
+        void setPosition(float x, float y, float z){
+            position.x = x;
+            position.y = y;
+            position.z = z;
+            if(!streamIsValid.load()) return;
+            soundStream->setPosition(position);
+        }
+
+        sf::Vector3f getPosition(){
+            return position;
         }
 
         void excEchoEffect(sf::Int16 *samples, int size){
@@ -169,48 +203,63 @@ class Player{
             }
         }
 
-        void deleteSoundStream(){
-            std::lock_guard<std::mutex> guard(pushMutex);
-            soundStream->stop();
-            delete soundStream;
-            streamIsValid = false;
-            pushClock.restart();
+        void removeImportantData(){
+            if(!streamIsValid.load()) return;
+            {
+                pushMutex.lock();
+
+                soundStream->stop();
+                delete soundStream;
+                streamIsValid = false;
+                pushClock.restart();
+
+                pushMutex.unlock();
+            }
+            protocolParserImpl::getInstance().getPool().stop(id);
         }
 
         void actCheck(){
             pushMutex.lock();
             if(pushClock.getElapsedTime().asSeconds() >= 10){
                 pushMutex.unlock();
-                deleteSoundStream();
+                removeImportantData();
+            } else {
+                pushMutex.unlock();
             }
         }
 
         void restartSoundStream(sf::Time sampleTime){
-            deleteSoundStream();
-            startSoundStream(sampleTime);
+            removeImportantData();
+            startImportantData(sampleTime);
         }
 
-        void startSoundStream(sf::Time sampleTime){
+        void startImportantData(sf::Time sampleTime){
+            float restoreAttenuation = attenuation;
+            auto restorePosition = position;
             initialize(sampleTime);
+            setAttenuation(restoreAttenuation);
+            setPosition(position.x, position.y, position.z);
             pushClock.restart();
         }
 
-        void push(int audioNum, data::buffer &audio, int sampleTime = 40){
-            std::lock_guard<std::mutex> guard(pushMutex);
-
-            if(!streamIsValid){
-                startSoundStream(_sampleTime);
-            }
+        void push(int audioNum, data::buffer &audio, int sampleTime = SAMPLE_TIME_DEFAULT){
+            pushMutex.lock();
             pushClock.restart();
+            pushMutex.unlock();
 
-            if(echoEffect){
-                //excEchoEffect(samples, int16_Size);
+            if(!streamIsValid.load()){
+                pushMutex.lock();
+                if(!streamIsValid.load()){
+                    startImportantData(_sampleTime);
+                }
+                pushMutex.unlock();
+            }
+            
+            if(soundStream->getSampleTime() != sampleTime){
+                soundStream->resizeSampleTime(sf::milliseconds(sampleTime));
             }
 
             soundStream->insert(audioNum, audio);
-            if(!isPlaying()){
-                soundStream->play();
-            }
 
         }
 

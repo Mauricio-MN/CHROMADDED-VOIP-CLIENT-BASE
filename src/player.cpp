@@ -16,13 +16,13 @@ namespace player
     bool SelfImpl::initialized = false;
     int SelfImpl::reg_id_ = 0;
     int SelfImpl::id_ = 0;
+    Self* SelfImpl::instance = nullptr;
 
     Self &SelfImpl::getInstance()
     {
         if (initialized)
         {
-            static Self instance(reg_id_, id_);
-            return instance;
+            return *instance;
         } else {
             perror("fabric player::Self");
         }
@@ -33,6 +33,7 @@ namespace player
         if(!initialized){
             reg_id_ = reg_id;
             id_ = id;
+            instance = new Self(reg_id_, id_);
             initialized = true;
         }
     }
@@ -177,12 +178,12 @@ namespace player
         socketUdpImpl::getInstance().send(info);
     }
 
-    void Self::sendAudio(data::buffer &buffer)
+    void Self::sendAudio(data::buffer &buffer, int sampleTime)
     {
         protocol::Client info;
         info.set_audio(buffer.getData(), buffer.size());
         info.set_audionum(SelfImpl::getInstance().getAndAddAudioNum());
-
+        info.set_sampletime(sampleTime);
         socketUdpImpl::getInstance().send(info);
     }
 
@@ -217,7 +218,6 @@ namespace player
     PLAYER PlayersManager::getPlayer(int id){
         if(!existPlayer(id)){
             return std::make_shared<Player>();
-            players[id]->id = -1;
         }
         return players[id];
     }
@@ -234,7 +234,7 @@ namespace player
     bool PlayersManager::setAttenuation(int id, float new_at){
         if(existPlayer(id)){
             PLAYER playerREF = players[id];
-            playerREF->attenuation(new_at);
+            playerREF->setAttenuation(new_at);
             return true;
         }
         return false;
@@ -272,7 +272,7 @@ namespace player
             for(auto& playerPair : players){
                 playerPair.second->actCheck();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10000));
         }
     }
 
