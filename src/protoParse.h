@@ -14,19 +14,17 @@
 #include <mutex>
 
 #include "osimports.h"
-
-#include "crpt.h"
-#include "player.h"
 #include <thread>
-#include <queue>
-//#include <mutex>
+#include <mutex>
 #include <shared_mutex>
+#include <unordered_map>
 
 #include "proto/protocol.pb.h"
 
 #include "queue.hpp"
+#include "data.h"
 
-#define TOTAL_THREAD_PARSER 16
+#define TOTAL_THREAD_PARSER 32
 
 struct TrivialContainerProtocolServer {
     protocol::Server* data; // Ponteiro para um objeto não trivial
@@ -35,24 +33,21 @@ struct TrivialContainerProtocolServer {
 class protocolParser{
 private:
 
-    void parser_Thread();
-
     void tempDataWait(int id, data::buffer buffer);
 
-    std::vector<std::thread> parserThread;
-    bool runThreads;
-
-    std::queue<protocol::Server> queueProtocol;
-    lockfree::spsc::Queue<TrivialContainerProtocolServer, 256> queueProtc;
-    std::shared_mutex queueMutex;
+    data::parseThreadPoll threadPool;
 
 public:
+
+    static void m_Parser_only THREAD_POOL_ARGS_NAMED;
+
+    data::parseThreadPoll& getPool();
 
     protocolParser();
 
     ~protocolParser();
 
-    void parse(protocol::Server *serverReceived);
+    void parse(protocol::Server& serverReceived);
 
 };
 
