@@ -19,6 +19,7 @@ public:
     data::buffer encode(sf::Int16 *samples, int sampleCount);
     data::buffer decode(data::buffer &buffer);
     data::buffer decode(data::buffer &buffer, int sampleCount);
+    data::buffer decode(const unsigned char* buffer, int bufferSize, int sampleCount);
 
     OpusManager();
     OpusManager(int sampleRate);
