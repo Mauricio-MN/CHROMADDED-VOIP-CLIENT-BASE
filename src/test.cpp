@@ -53,6 +53,9 @@ void testCrypt(){
   unsigned char* key = (unsigned char*)strdup("abcdefghijklmnopqrsasdry764jg651");
   unsigned char* iv = (unsigned char*)strdup("ajfrtyprewqsdrgt");
 
+  ConfigImpl::getInstance().setCryptoKey(std::vector<char>(key, key + 32));
+  ConfigImpl::getInstance().setCryptoIV(std::vector<char>(iv, iv + 16));
+
   AES_GCM crpt(key, iv);
 
   char* text = new char[35];
@@ -95,19 +98,19 @@ void testPlayers(){
     fail("Get Player", "*" , "Object", "PlayersManagerImpl::getInstance().getPlayer");
   }
 
-  float X = actualPlayer->soundStream->getPosition().x;
-  float Y = actualPlayer->soundStream->getPosition().y;
-  float Z = actualPlayer->soundStream->getPosition().z;
+  float X = actualPlayer->getPosition().x;
+  float Y = actualPlayer->getPosition().y;
+  float Z = actualPlayer->getPosition().z;
 
   if(X != 2 || Y != 3 || Z != 4){
-    fail("Player position", "actualPlayer->soundStream->getPosition()" , "{2,3,4}", "PlayersManagerImpl::getInstance().getPlayer / ->soundStream.getPosition()");
+    fail("Player position", "actualPlayer->getPosition()" , "{2,3,4}", "PlayersManagerImpl::getInstance().getPlayer / getPosition()");
   }
 
   actualPlayer->move(1,2,3);
 
-  X = actualPlayer->soundStream->getPosition().x;
-  Y = actualPlayer->soundStream->getPosition().y;
-  Z = actualPlayer->soundStream->getPosition().z;
+  X = actualPlayer->getPosition().x;
+  Y = actualPlayer->getPosition().y;
+  Z = actualPlayer->getPosition().z;
 
   if(X != 1 || Y != 2 || Z != 3){
     fail("Player position", "actualPlayer->soundStream->getPosition()" , "{1,2,3}", "PlayersManagerImpl::getInstance().move");
@@ -151,18 +154,13 @@ void test_BufferParser_listen(){
   const sf::Int16* audio = sbuffer.getSamples();
   int audio_size = sbuffer.getSampleCount();
 
-  data::buffer bufferAudio;
-
-  bufferAudio.insertArray((sf::Int16 *)audio, audio_size);
-  int bufferAudio_size = bufferAudio.size();
-
   PlayersManagerImpl::getInstance().insertPlayer(3,1,1,1);
 
   std::cout << "test opus encode/decode" << std::endl;
   soundmanager::NetworkAudioStream opusStream(sf::milliseconds(SAMPLE_TIME_DEFAULT), SAMPLE_CHANNELS, SAMPLE_RATE, SAMPLE_BITS);
   OpusManagerImpl::fabric(SAMPLE_RATE);
 
-  int sampleSize = opusStream.getSampleSize();
+  int sampleSize = opusStream.getSampleCount();
 
   int finalLen = 0;
   int totalLen = 0;
@@ -184,7 +182,7 @@ void test_BufferParser_listen(){
     if (finalLen == 0){ finalLen = encBuffer.size();
     } else { finalLen = (finalLen + encBuffer.size()) / 2; }
 
-    opusStream.insert(j, decBuffer);
+    //opusStream.insert(j, decBuffer);
 
     j++;
     if(j >= 256){
@@ -192,45 +190,113 @@ void test_BufferParser_listen(){
     }
   }
 
-  opusStream.play();
+  //opusStream.play();
 
   std::cout << "original len SAMPLES: " << sampleSize << std::endl;
   std::cout << "encoded  len average: " << finalLen << std::endl;
   std::cout << "original len TOTAL  : " << totalSample << std::endl;
   std::cout << "encoded  len TOTAL  : " << totalLen << std::endl;
 
-  waitListenSoundStream(opusStream);
+  //waitListenSoundStream(opusStream);
 
   std::cout << "opus listen end." << std::endl;
 
   soundmanager::listener::movePos(1,1,1);
   PLAYER actPlayer = PlayersManagerImpl::getInstance().getPlayer(3);
+  actPlayer->move(1,1,1);
   PlayersManagerImpl::getInstance().setWaitAudioPackets(4);
 
   std::cout << "test listen audio packets" << std:: endl;
 
   player::SelfImpl::frabric(3, 3);
 
+  int k = 0;
+  std::vector<protocol::Server> protocolsBuffers;
+  std::vector<std::pair<int, data::buffer>> noParse;
   for (int i = 0; i < audio_size - sampleSize; i += sampleSize)
   {
     data::buffer encBuffer = OpusManagerImpl::getInstance().encode((sf::Int16 *)audio + i, sampleSize);
 
     protocol::Server cBuffer;
 
-    cBuffer.set_id(2);
+    cBuffer.set_id(3);
     cBuffer.set_audio(encBuffer.getData(), encBuffer.size());
+    cBuffer.set_audionum(k);
+    cBuffer.set_sampletime(SAMPLE_TIME_DEFAULT);
 
-    protocolParserImpl::getInstance().parse(&cBuffer);
+    protocolsBuffers.push_back(cBuffer);
+    noParse.push_back(std::pair<int, data::buffer>(k, data::buffer((sf::Int16 *)audio + i, sampleSize)));
 
-    sf::sleep(sf::milliseconds(opusStream.getSampleSize()));
+    k++;
+    if(k >= 256) k = 0;
   }
 
-  std::cout << "listen start, tap X to jump." << std::endl;
+  std::cout << "NO PARSE audio test, no player" << std::endl;
+
+  sf::Clock clock;
+  for(auto& cBuffer : noParse){
+    std::thread(&soundmanager::NetworkAudioStream::insert, &opusStream, cBuffer.first, std::ref(cBuffer.second)).detach();
+    data::preciseSleep(((double)SAMPLE_TIME_DEFAULT) / 1000.0);
+  }
+  std::cout << "Time process " << clock.getElapsedTime().asMilliseconds() << std::endl;
+  std::cout << "Time total   " << (noParse.size() * SAMPLE_TIME_DEFAULT) << std::endl;
+
+  std::cout << "listen ending, tap X to jump." << std::endl;
+
+  while(true){
+    sf::sleep(sf::milliseconds(1));
+    std::this_thread::yield();
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)){
+      opusStream.stop();
+      break;
+    }
+  }
+
+  std::cout << "PARSE audio test" << std::endl;
+
+  for(auto& cBuffer : protocolsBuffers){
+    protocolParserImpl::getInstance().parse(cBuffer);
+    data::preciseSleep(((double)SAMPLE_TIME_DEFAULT) / 1000.0);
+  }
+
+  std::cout << "listen ending, tap X to jump." << std::endl;
+
+  while(true){
+    sf::sleep(sf::milliseconds(1));
+    std::this_thread::yield();
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)){
+      actPlayer->stop();
+      break;
+    }
+  }
+
+  std::cout << "NO PARSE audio test" << std::endl;
+
+  for(auto& cBuffer : noParse){
+    sf::Clock clock;
+    //std::thread(&Player::push, actPlayer, cBuffer.first, std::ref(cBuffer.second), SAMPLE_TIME_DEFAULT).detach();
+    actPlayer->push(cBuffer.first, cBuffer.second, SAMPLE_TIME_DEFAULT);
+    data::preciseSleep(((double)SAMPLE_TIME_DEFAULT) / 1000.0);
+    std::cout << "T : " << clock.getElapsedTime().asMilliseconds() << std::endl;
+  }
+
+  std::cout << "listen ending, tap X to jump." << std::endl;
+
+  while(true){
+    sf::sleep(sf::milliseconds(1));
+    std::this_thread::yield();
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)){
+      actPlayer->stop();
+      break;
+    }
+  }
+
+  std::cout << "listen ending, tap X to jump." << std::endl;
 
   while(actPlayer->isPlaying()){
     sf::sleep(sf::milliseconds(1));
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)){
-      actPlayer->soundStream->stop();
+      actPlayer->stop();
       continue;
     }
   }
@@ -294,6 +360,44 @@ void test_data_structure_memory(){
 }
 
 int main(){
+
+  /*
+  PLAYER player = std::make_shared<Player>();
+  player->id = 999;
+  data::PlayerThread_BinaryTree test(player);
+
+  PLAYER playerA = std::make_shared<Player>();
+  playerA->id = 1;
+  PLAYER playerB = std::make_shared<Player>();
+  playerB->id = 2;
+  PLAYER playerC = std::make_shared<Player>();
+  playerC->id = 3;
+  PLAYER playerD = std::make_shared<Player>();
+  playerD->id = 4;
+  PLAYER playerE= std::make_shared<Player>();
+  playerE->id = 5;
+  PLAYER playerF = std::make_shared<Player>();
+  playerF->id = 6;
+
+  test.insert(playerA, 1);
+  test.insert(playerB, 2);
+  test.insert(playerC, 3);
+  test.insert(playerD, 4);
+  test.insert(playerE, 5);
+  test.insert(playerF, 6);
+
+  data::PlayerThread_BinaryTree* rec = test.search(3);
+
+  if(rec != nullptr){
+    PLAYER rec3 = rec->getPlayer();
+
+    if(rec3->id == playerC->id){
+      std::cout << "apppp" << std::endl;
+    }
+  } else {
+    std::cout << "aEEEE" << std::endl;
+  }
+  */
 
   testCrypt();
 
