@@ -6,6 +6,7 @@
 #include "proto/protocol.pb.h"
 
 #include "crpt.h"
+#include "player.h"
 #include "protoParse.h"
 #include "thread"
 #include "config.h"
