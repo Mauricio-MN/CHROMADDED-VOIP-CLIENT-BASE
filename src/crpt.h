@@ -13,7 +13,9 @@
 
 class AES_GCM {
 public:
-    AES_GCM(const unsigned char* key, const unsigned char* iv): keyVct(key, key + 32), ivVct(iv, iv + 16) {
+    AES_GCM(const unsigned char* key, const unsigned char* iv) {
+        keyVct.insert(keyVct.end(), key, key + 32);
+        ivVct.insert(ivVct.end(), iv, iv + 16);
         key_ = keyVct.data();
         iv_ = ivVct.data();
     }

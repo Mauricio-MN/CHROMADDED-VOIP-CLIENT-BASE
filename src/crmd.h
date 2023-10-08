@@ -36,6 +36,7 @@ key         -> Chave de criptografia combinada entre (GameServer e API) e (API e
 x, y, z,    -> Coordenadas em metros do jogador (z = 0 para fixado ao chão (isométrico) ).
 needEncrypt -> True = precisa encriptar (mais seguro), False = não precisa (todos os pacotes de audio e informações secretas (register_id=secretId) são livres para leitura em rede)
 */
+
 EXPORT void init(int register_id, int id, char* ip, int ip_size, unsigned short port, unsigned char *key, float x, float y, float z, bool needEncrypt);
 EXPORT void updateMyPos(int map, float x, float y, float z);
 EXPORT void updateMyRot(float x, float y, float z);
