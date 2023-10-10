@@ -21,10 +21,10 @@ namespace player{
 
     class Self{
     private:
-        int my_id;
-        int my_secret_id;
-        int talkRomm;
-        int audioNumb;
+        std::uint32_t my_id;
+        std::uint32_t my_secret_id;
+        std::uint32_t talkRomm;
+        std::uint32_t audioNumb;
         bool talkInLocal;
         bool connected;
         std::mutex mutexID;
@@ -43,30 +43,30 @@ namespace player{
 
     public:
 
-        Self(int reg_id, int id);
+        Self(std::uint32_t reg_id, std::uint32_t id);
 
         bool isConnected();
         void setConnect(bool isConnected);
 
-        int getMyID();
+        std::uint32_t getMyID();
 
-        int getMyRegID();
+        std::uint32_t getMyRegID();
 
         std::vector<unsigned char> decrypt(std::vector<unsigned char>& buffer);
         std::vector<unsigned char> encrypt(std::vector<unsigned char>& buffer);
 
         void setCrpt(unsigned char* key, unsigned char* iv);
 
-        void setMyID(int id);
+        void setMyID(std::uint32_t id);
 
-        void setMyRegID(int reg_id);
+        void setMyRegID(std::uint32_t reg_id);
 
-        void setTalkRoom(int room_id);
+        void setTalkRoom(std::uint32_t room_id);
 
         void talkLocal();
         void talkRoom();
 
-        void setPos(int map, int x, int y, int z);
+        void setPos(std::uint32_t map, int x, int y, int z);
         void setCoords(Coords coord);
         void sendPosInfo();
 
@@ -83,13 +83,13 @@ namespace player{
     class SelfImpl{
         private:
         static bool initialized;
-        static int reg_id_;
-        static int id_;
+        static std::uint32_t reg_id_;
+        static std::uint32_t id_;
         static Self* instance;
         public:
         static Self& getInstance();
 
-        static void frabric(int reg_id, int id);
+        static void frabric(std::uint32_t reg_id, std::uint32_t id);
 
     };
 }
@@ -98,7 +98,7 @@ class Player{
 
     public:
 
-        int id;
+        std::uint32_t id;
         bool echoEffect = false;
         int echoEffectValue = 1;
         int waitingCount = 0;
@@ -113,7 +113,6 @@ class Player{
 
         std::shared_mutex pushMutex;
         std::shared_mutex isPlayingMutex;
-        std::mutex moveMutex;
         std::mutex minDistanceMutex;
         std::mutex attenuationMutex;
 
@@ -146,11 +145,6 @@ class Player{
 
         ~Player(){
             removeImportantData();
-        }
-
-        void move(float new_x, float new_y, float new_z){
-            std::lock_guard<std::mutex> guard(moveMutex);
-            soundStream->setPosition(new_x, new_y, new_z);
         }
 
         void minDistance(float new_MD){
@@ -281,21 +275,21 @@ class Player{
         void setWaitAudioPackets(int waitAudioPacketsCount_);
         int getWaitAudioPackets();
 
-        void insertPlayer(int id, float x, float y, float z);
+        void insertPlayer(std::uint32_t id, float x, float y, float z);
 
         void insertPlayer(PLAYER player);
 
-        PLAYER getPlayer(int id);
+        PLAYER getPlayer(std::uint32_t id);
 
-        bool movePlayer(int id, float x, float y, float z);
+        bool setPosition(std::uint32_t id, float x, float y, float z);
 
-        bool setAttenuation(int id, float new_at);
+        bool setAttenuation(std::uint32_t id, float new_at);
 
-        bool setMinDistance(int id, float new_MD);
+        bool setMinDistance(std::uint32_t id, float new_MD);
 
-        bool existPlayer(int id);
+        bool existPlayer(std::uint32_t id);
 
-        void removePlayer(int id);
+        void removePlayer(std::uint32_t id);
 
         void clean();
 

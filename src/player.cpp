@@ -14,8 +14,8 @@ namespace player
 {
 
     bool SelfImpl::initialized = false;
-    int SelfImpl::reg_id_ = 0;
-    int SelfImpl::id_ = 0;
+    std::uint32_t SelfImpl::reg_id_ = 0;
+    std::uint32_t SelfImpl::id_ = 0;
     Self* SelfImpl::instance = nullptr;
 
     Self &SelfImpl::getInstance()
@@ -28,7 +28,7 @@ namespace player
         }
     }
 
-    void SelfImpl::frabric(int reg_id, int id)
+    void SelfImpl::frabric(std::uint32_t reg_id, std::uint32_t id)
     {
         if(!initialized){
             reg_id_ = reg_id;
@@ -38,7 +38,7 @@ namespace player
         }
     }
 
-    Self::Self(int reg_id, int id) : crpt NEW_AES_GCM
+    Self::Self(std::uint32_t reg_id, std::uint32_t id) : crpt NEW_AES_GCM
     {
         my_secret_id = id;
         my_id = id;
@@ -76,24 +76,24 @@ namespace player
         mutexDecrypt.unlock();
     }
 
-    int Self::getMyID()
+    std::uint32_t Self::getMyID()
     {
         return my_id;
     }
 
-    int Self::getMyRegID()
+    std::uint32_t Self::getMyRegID()
     {
         return my_secret_id;
     }
 
-    void Self::setMyID(int id)
+    void Self::setMyID(std::uint32_t id)
     {
         mutexID.lock();
         my_id = id;
         mutexID.unlock();
     }
 
-    void Self::setMyRegID(int reg_id)
+    void Self::setMyRegID(std::uint32_t reg_id)
     {
         mutexRegID.lock();
         my_secret_id = reg_id;
@@ -108,7 +108,7 @@ namespace player
         connected = isConnected;
     }
 
-    void  Self::setTalkRoom(int room_id){
+    void  Self::setTalkRoom(std::uint32_t room_id){
         talkRomm = room_id;
     }
 
@@ -130,7 +130,7 @@ namespace player
         coordinates.map = map;
     }
 
-    void Self::setPos(int map, int x, int y, int z)
+    void Self::setPos(std::uint32_t map, int x, int y, int z)
     {
         setMap( map );
         setX( x );
@@ -197,12 +197,12 @@ namespace player
         return waitQueueAudioCount;
     }
 
-    void PlayersManager::insertPlayer(int id, float x, float y, float z){
+    void PlayersManager::insertPlayer(std::uint32_t id, float x, float y, float z){
         insertMutex.lock();
         if(!existPlayer(id)){
             players[id] = std::make_shared<Player>();
             players[id]->id = id;
-            players[id]->move(x,y,z);
+            players[id]->setPosition(x,y,z);
         }
         insertMutex.unlock();
     }
@@ -215,23 +215,23 @@ namespace player
         insertMutex.unlock();
     }
 
-    PLAYER PlayersManager::getPlayer(int id){
+    PLAYER PlayersManager::getPlayer(std::uint32_t id){
         if(!existPlayer(id)){
             return std::make_shared<Player>();
         }
         return players[id];
     }
 
-    bool PlayersManager::movePlayer(int id, float x, float y, float z){
+    bool PlayersManager::setPosition(std::uint32_t id, float x, float y, float z){
         if(existPlayer(id)){
             PLAYER playerREF = players[id];
-            playerREF->move(x,y,z);
+            playerREF->setPosition(x,y,z);
             return true;
         }
         return false;
     }
 
-    bool PlayersManager::setAttenuation(int id, float new_at){
+    bool PlayersManager::setAttenuation(std::uint32_t id, float new_at){
         if(existPlayer(id)){
             PLAYER playerREF = players[id];
             playerREF->setAttenuation(new_at);
@@ -240,7 +240,7 @@ namespace player
         return false;
     }
 
-    bool PlayersManager::setMinDistance(int id, float new_MD){
+    bool PlayersManager::setMinDistance(std::uint32_t id, float new_MD){
         if(existPlayer(id)){
             PLAYER playerREF = players[id];
             playerREF->minDistance(new_MD);
@@ -249,14 +249,14 @@ namespace player
         return false;
     }
 
-    bool PlayersManager::existPlayer(int id){
+    bool PlayersManager::existPlayer(std::uint32_t id){
         if(players.find(id) == players.end()){
             return false;
         }
         return true;
     }
 
-    void PlayersManager::removePlayer(int id){
+    void PlayersManager::removePlayer(std::uint32_t id){
         if (!existPlayer(id)){
             return;
         }
