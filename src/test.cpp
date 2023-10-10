@@ -106,7 +106,7 @@ void testPlayers(){
     fail("Player position", "actualPlayer->getPosition()" , "{2,3,4}", "PlayersManagerImpl::getInstance().getPlayer / getPosition()");
   }
 
-  actualPlayer->move(1,2,3);
+  actualPlayer->setPosition(1,2,3);
 
   X = actualPlayer->getPosition().x;
   Y = actualPlayer->getPosition().y;
@@ -203,7 +203,7 @@ void test_BufferParser_listen(){
 
   soundmanager::listener::movePos(1,1,1);
   PLAYER actPlayer = PlayersManagerImpl::getInstance().getPlayer(3);
-  actPlayer->move(1,1,1);
+  actPlayer->setPosition(1,1,1);
   PlayersManagerImpl::getInstance().setWaitAudioPackets(4);
 
   std::cout << "test listen audio packets" << std:: endl;
@@ -256,6 +256,10 @@ void test_BufferParser_listen(){
 
   for(auto& cBuffer : protocolsBuffers){
     protocolParserImpl::getInstance().parse(cBuffer);
+    for(int i = 4; i < 8; i++){
+      cBuffer.set_id(i);
+      protocolParserImpl::getInstance().parse(cBuffer);
+    }
     data::preciseSleep(((double)SAMPLE_TIME_DEFAULT) / 1000.0);
   }
 
