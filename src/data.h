@@ -14,22 +14,22 @@
 #include "proto/protocol.pb.h"
 
 #define ERROR_NO_ERROR        0
-#define ERROR_LOW             10
-#define ERROR_MEDIUM          20 //
-#define ERROR_SERIOUS         30
+#define ERROR_TRY_AGAIN       10
+#define ERROR_RECONNECT       20
+#define ERROR_RESTART         30
 #define ERROR_ADDRESS_PROBLEM 40
 #define ERROR_MAX_ATTEMPT     50
-#define ERROR_UNKNOW          999
+#define ERROR_UNKNOW          255
 
 struct Coords{
     int x;
     int y;
     int z;
-    int map;
+    std::uint32_t map;
 };
 
-#define THREAD_POOL_ARGS (int, data::parseThreadPoll&)
-#define THREAD_POOL_ARGS_NAMED (int myid, data::parseThreadPoll& threadPoolL)
+#define THREAD_POOL_ARGS (data::parseThreadPoll&)
+#define THREAD_POOL_ARGS_NAMED (data::parseThreadPoll& threadPoolL)
 
 namespace data
 {
@@ -412,30 +412,32 @@ namespace data
         int getAvaliable();
     };
 
-    typedef std::unordered_map<int, std::shared_ptr<asyncQueue>> asyncQueueMap;
+    typedef std::unordered_map<std::uint32_t, std::shared_ptr<asyncQueue>> asyncQueueMap;
     typedef std::vector<std::shared_ptr<asyncQueue>> asyncQueueVector;
-    typedef std::unordered_map<int, std::shared_ptr<std::thread>> asyncThreadPool;
-    typedef std::unordered_map<int, std::atomic<bool>*> asyncThreadPool_State;
+    typedef std::unordered_map<std::uint32_t, std::shared_ptr<std::thread>> asyncThreadPool;
+    typedef std::vector<std::shared_ptr<std::thread>> asyncThreadPoolVector;
+    typedef std::unordered_map<std::uint32_t, std::atomic<bool>*> asyncThreadPool_State;
+    typedef std::vector<std::atomic<bool>*> asyncThreadPool_StateVector;
 
     //thread safe
     class parseThreadPoll{
 
         private:
         asyncQueueMap queue;
-        asyncThreadPool threadPool;
-        asyncThreadPool_State threadState;
+        asyncThreadPoolVector threadPool;
+        asyncThreadPool_StateVector threadState;
 
         std::shared_mutex syncMutex;
 
         public:
 
-        void parser(std::function<void THREAD_POOL_ARGS> parse, int myid){
+        void parser(std::function<void THREAD_POOL_ARGS> parse, std::uint32_t myid){
             syncMutex.lock_shared();
             bool isRuning = threadState[myid]->load();
             syncMutex.unlock_shared();
 
             while(isRuning){
-                parse(myid, *this);
+                parse(*this);
                 
                 syncMutex.lock_shared();
                 bool isRuning = threadState[myid]->load();
@@ -448,26 +450,31 @@ namespace data
         }
 
         //thread safe
-        void insert(int playerID, std::function<void THREAD_POOL_ARGS> parse){
+        void insertQueue(std::uint32_t playerID){
             if(!exist(playerID)){
                 syncMutex.lock();
-                threadState[playerID] = new std::atomic<bool>();
-                *threadState[playerID] = true;
-
                 queue[playerID] = std::make_shared<asyncQueue>();
-
-                threadPool[playerID] = std::make_shared<std::thread>([this, parse, playerID]() {
-                    parser(parse, playerID);
-                });
-                
                 syncMutex.unlock();
             }
         }
 
+        void insertThread(std::function<void THREAD_POOL_ARGS> parse){
+                syncMutex.lock();
+                threadState.push_back(new std::atomic<bool>());
+                *threadState.back() = true;
+
+                int pos = threadPool.size();
+                threadPool.push_back(std::make_shared<std::thread>([this, parse, pos]() {
+                    parser(parse, pos);
+                }));
+                
+                syncMutex.unlock();
+        }
+
         //thread safe
-        bool exist(int playerID){
+        bool exist(std::uint32_t playerID){
             syncMutex.lock_shared();
-            if(threadPool.find(playerID) != threadPool.end()){
+            if(queue.find(playerID) != queue.end()){
                 syncMutex.unlock_shared();
                 return true;
             }
@@ -476,7 +483,7 @@ namespace data
         }
 
         //thread safe
-        bool push(int playerID, protocol::Server& received){
+        bool push(std::uint32_t playerID, protocol::Server& received){
             if(exist(playerID)){
                 syncMutex.lock_shared();
                 queue[playerID]->push(received);
@@ -487,7 +494,7 @@ namespace data
         }
 
         //thread safe
-        bool pop(int playerID, protocol::Server& result){
+        bool pop(std::uint32_t playerID, protocol::Server& result){
             if(exist(playerID)){
                 syncMutex.lock_shared();
                 bool success = queue[playerID]->pop(result);
@@ -498,7 +505,23 @@ namespace data
         }
 
         //thread safe
-        void stop(int playerID){
+        bool pop(std::vector<protocol::Server>& result){
+                syncMutex.lock_shared();
+                bool popEd = false;
+                for(auto& lQueue : queue){
+                    protocol::Server serverReceived;
+                    bool success = lQueue.second->pop(serverReceived);
+                    if(success){
+                        result.push_back(serverReceived);
+                        popEd = true;
+                    }
+                }
+                syncMutex.unlock_shared();
+                return popEd;
+        }
+
+        //thread safe
+        void stop(std::uint32_t playerID){
             if(exist(playerID)){
                 syncMutex.lock();
                 *threadState[playerID] = false;
@@ -513,12 +536,12 @@ namespace data
         void stopAll(){
 
             syncMutex.lock();
-            for(auto& state : threadState){
-                *state.second = false;
+            for(auto state : threadState){
+                *state = false;
             }
             for(auto& threadL : threadPool){
-                if(threadL.second->joinable()){
-                    threadL.second->join();
+                if(threadL->joinable()){
+                    threadL->join();
                 }
             }
             threadPool.clear();
