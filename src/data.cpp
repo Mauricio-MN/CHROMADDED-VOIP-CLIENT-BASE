@@ -6,8 +6,15 @@ namespace data{
         if(num < 0 || num >= size) num = 0;
     }
 
-    asyncQueue::asyncQueue(){
-        asyncQueue(256);
+    asyncQueue::asyncQueue(): mutexes(256), objState(256), obj(256){
+        size = 256;
+
+        for(int i = 0; i < size; i++){
+            objState[i] = false;
+        }
+
+        writePos = 0;
+        readPos = 0;
     }
 
     asyncQueue::asyncQueue(size_t _size): mutexes(_size), objState(_size), obj(_size){
