@@ -424,12 +424,9 @@ int main(){
 
   std::string ip("127.0.0.1");
 
-  crmd::init(regID, myID, ip.data(), ip.size(), 443, key, 0,0,0, true);
-  if(!crmd::initialized){
-    fail("try initialize lib", "crmd::initialized", "true", "crmd::init()");
-  }
+  CRMD_init(regID, myID, ip.data(), ip.size(), 443, key, 0,0,0, true);
   std::cout << "recording";
-  crmd::enableRecAudio();
+  CRMD_enableRecAudio();
   sleep(3000);
-  crmd::disableRecAudio();
+  CRMD_disableRecAudio();
 }
