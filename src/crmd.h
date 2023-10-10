@@ -1,6 +1,8 @@
 #ifndef MAIN_H // include guard
 #define MAIN_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,58 +22,42 @@ extern "C" {
     #pragma warning Unknown dynamic link import/export semantics.
 #endif
 
-namespace crmd{
 
-//Do not write
-inline bool initialized = false;
-//Do not write
-inline bool recordingAudioData = false;
+EXPORT void CRMD_init(uint32_t register_id, uint32_t id, char* hostname, size_t hostname_size, unsigned short port, unsigned char *key, float x, float y, float z, bool needEncrypt);
+EXPORT void CRMD_updateMyPos(int map, float x, float y, float z);
+EXPORT void CRMD_updateMyRot(float x, float y, float z);
 
-/*
-register_id -> O id de registro é um id secreto combinado entre Game Server e VOIP server a cada nova autenticação.
-id          -> Id público fixo.
-ip          -> Ip do servidor VOIP (string padrão c++ g++)
-port        -> Porta do servidor VOIP.
-key         -> Chave de criptografia combinada entre (GameServer e API) e (API e Servidor VOIP) para cada jogador (16 bytes).
-x, y, z,    -> Coordenadas em metros do jogador (z = 0 para fixado ao chão (isométrico) ).
-needEncrypt -> True = precisa encriptar (mais seguro), False = não precisa (todos os pacotes de audio e informações secretas (register_id=secretId) são livres para leitura em rede)
-*/
+EXPORT void CRMD_insertPlayer(uint32_t id, float x, float y, float z);
+EXPORT void CRMD_movePlayer(uint32_t id, float x, float y, float z);
+EXPORT void CRMD_updatePlayerAttenuation(uint32_t id, float new_at);
+EXPORT void CRMD_updatePlayerMinDistance(uint32_t id, float new_MD);
+EXPORT void CRMD_enablePlayerEchoEffect(uint32_t id);
+EXPORT void CRMD_disablePlayerEchoEffect(uint32_t id);
+EXPORT void CRMD_updatePlayerEchoEffect(uint32_t id, int value);
+EXPORT void CRMD_removePlayer(uint32_t id);
 
-EXPORT void init(int register_id, int id, char* ip, int ip_size, unsigned short port, unsigned char *key, float x, float y, float z, bool needEncrypt);
-EXPORT void updateMyPos(int map, float x, float y, float z);
-EXPORT void updateMyRot(float x, float y, float z);
+EXPORT void CRMD_setTalkRoom(uint32_t id);
+EXPORT void CRMD_talkInRomm();
+EXPORT void CRMD_talkInLocal();
 
-EXPORT void insertPlayer(int id, float x, float y, float z);
-EXPORT void movePlayer(int id, float x, float y, float z);
-EXPORT void updatePlayerAttenuation(int id, float new_at);
-EXPORT void updatePlayerMinDistance(int id, float new_MD);
-EXPORT void enablePlayerEchoEffect(int id);
-EXPORT void disablePlayerEchoEffect(int id);
-EXPORT void updatePlayerEchoEffect(int id, int value);
-EXPORT void removePlayer(int id);
+EXPORT void CRMD_enableRecAudio();
+EXPORT void CRMD_disableRecAudio();
 
-EXPORT void setTalkRoom(int id);
-EXPORT void talkInRomm();
-EXPORT void talkInLocal();
+EXPORT float CRMD_getMicVolume();
+EXPORT void CRMD_setMicVolume(float volume);
+EXPORT void CRMD_addMicVolume(float volume);
 
-EXPORT void enableRecAudio();
-EXPORT void disableRecAudio();
-EXPORT float getMicVolume();
-EXPORT float setMicVolume();
+EXPORT float CRMD_getVolumeAudio();
+EXPORT void CRMD_setVolumeAudio(float volume);
+EXPORT void CRMD_addVolumeAudio(float volume);
 
-EXPORT void setVolumeAudio(float volume);
-
-EXPORT void updateWaitAudioPacketsCount(int pktWaitCount);
-
-EXPORT bool isConnected();
+EXPORT bool CRMD_isConnected();
 
 //Para fins de log e reconexão(o protocolo UDP não depende de conexão, mas a seção possui validade)
-EXPORT int getConnectionError(); //globaldefs.h errors
+EXPORT int CRMD_getConnectionError(); //RESERVED
 
-EXPORT void closeSocket(); //call and wait(100/1000 ms), call connectTo();
-EXPORT void connectTo(char* ip, int ip_size, unsigned short port);
-
-}
+EXPORT void CRMD_closeSocket();
+EXPORT void CRMD_connectTo(char* hostname, int hostname_size, unsigned short port);
 
 #ifdef __cplusplus
 }

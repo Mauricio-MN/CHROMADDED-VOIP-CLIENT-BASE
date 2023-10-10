@@ -33,111 +33,118 @@
 
 #include "crpt.h"
 
-namespace crmd{
-
-void updateMyPos(int map, float x, float y, float z){
+void CRMD_updateMyPos(int map, float x, float y, float z){
   soundmanager::listener::movePos(x,y,z); 
   player::SelfImpl::getInstance().setPos(map, static_cast<int>(x), static_cast<int>(y), static_cast<int>(z));
 }
 
-void updateMyRot(float x, float y, float z){ 
+void CRMD_updateMyRot(float x, float y, float z){ 
   soundmanager::listener::moveRot(x,y,z); 
 }
 
-void insertPlayer(int id, float x, float y, float z){
+void CRMD_insertPlayer(uint32_t id, float x, float y, float z){
   PlayersManagerImpl::getInstance().insertPlayer(id,x,y,z);
   }
 
-void movePlayer(int id, float x, float y, float z){
-  PlayersManagerImpl::getInstance().movePlayer(id,x,y,z);
+void CRMD_movePlayer(uint32_t id, float x, float y, float z){
+  PlayersManagerImpl::getInstance().setPosition(id,x,y,z);
 }
-void updatePlayerAttenuation(int id, float new_at){
+void CRMD_updatePlayerAttenuation(uint32_t id, float new_at){
   PlayersManagerImpl::getInstance().setAttenuation(id, new_at);
 }
-void updatePlayerMinDistance(int id, float new_MD){
+void CRMD_updatePlayerMinDistance(uint32_t id, float new_MD){
   PlayersManagerImpl::getInstance().setMinDistance(id, new_MD);
 }
-void enablePlayerEchoEffect(int id){
+void CRMD_enablePlayerEchoEffect(uint32_t id){
   if(PlayersManagerImpl::getInstance().existPlayer(id)){
     PlayersManagerImpl::getInstance().getPlayer(id)->echoEffect = true;
   }
 }
-void disablePlayerEchoEffect(int id){
+void CRMD_disablePlayerEchoEffect(uint32_t id){
   if(PlayersManagerImpl::getInstance().existPlayer(id)){
     PlayersManagerImpl::getInstance().getPlayer(id)->echoEffect = true;
   }
 }
-void updatePlayerEchoEffect(int id, int value){
+void CRMD_updatePlayerEchoEffect(uint32_t id, int value){
   if(value > 0){
     if(PlayersManagerImpl::getInstance().existPlayer(id)){
       PlayersManagerImpl::getInstance().getPlayer(id)->echoEffectValue = value;
     }
   }
 }
-void removePlayer(int id){ 
+void CRMD_removePlayer(uint32_t id){ 
   PlayersManagerImpl::getInstance().removePlayer(id);
 }
 void updateWaitAudioPacketsCount(int pktWaitCount){
   PlayersManagerImpl::getInstance().setWaitAudioPackets(pktWaitCount);
 }
 
-void setTalkRoom(int id){
+void CRMD_setTalkRoom(uint32_t id){
   player::SelfImpl::getInstance().setTalkRoom(id);
 }
 
-void talkInRomm(){
+void CRMD_talkInRomm(){
   player::SelfImpl::getInstance().talkRoom();
 }
-void talkInLocal(){
+void CRMD_talkInLocal(){
   player::SelfImpl::getInstance().talkLocal();
 }
 
-void enableRecAudio(){
+void CRMD_enableRecAudio(){
   soundmanager::RecorderImpl::getInstance().enableRec();
 }
 
-void disableRecAudio(){
+void CRMD_disableRecAudio(){
   soundmanager::RecorderImpl::getInstance().disableRec();
 }
 
-float getMicVolume(){
+float CRMD_getMicVolume(){
   //soundmanager::RecorderImpl::getInstance().
   
 }
 
-float setMicVolume(){
+void CRMD_setMicVolume(float volume){
   
 }
 
-void setVolumeAudio(float volume){
+void CRMD_addMicVolume(float volume){
+  
+}
+
+void CRMD_setVolumeAudio(float volume){
   sf::Listener::setGlobalVolume(volume);
 }
 
-bool isConnected(){
+bool CRMD_isConnected(){
   return socketUdpImpl::getInstance().isConnected();
 }
 
-int getConnectionError(){ //globaldefs.h errors
+int CRMD_getConnectionError(){ //globaldefs.h errors
   return 0;
 }
 
-void closeSocket(){ //call and wait, call connectTo();
+void CRMD_closeSocket(){
   socketUdpImpl::getInstance().close();
 }
 
-void connectTo(char* ip, int ip_size, unsigned short port){
-  const char* ipC = static_cast<const char*>(ip);
-  std::string ipStr(ipC, ipC + ip_size);
+void CRMD_connectTo(char* hostname, int hostname_size, unsigned short port){
+  const char* ipC = static_cast<const char*>(hostname);
+  std::string ipStr(ipC, ipC + hostname_size);
   connect(ipStr, port);
 }
 
-void connect(std::string ip, unsigned short port){
-  sf::IpAddress ipaddress(ip);
+void connect(std::string hostname, unsigned short port){
+  sf::IpAddress ipaddress(hostname);
   socketUdpImpl::refabric(ipaddress, port);
 }
 
+void disconnect(){
+  socketUdpImpl::getInstance().close();
+}
 
-void init(int register_id, int id, char* ip, int ip_size, unsigned short port, unsigned char *key, float x, float y, float z, bool needEncrypt){
+bool initialized = false;
+
+void CRMD_init(uint32_t register_id, uint32_t id, char* hostname, size_t hostname_size, unsigned short port, unsigned char *key, float x, float y, float z, bool needEncrypt){
   if(initialized == false){
     initialized = true;
 
@@ -146,7 +153,7 @@ void init(int register_id, int id, char* ip, int ip_size, unsigned short port, u
 
     player::SelfImpl::frabric(register_id, id);
 
-    connectTo(ip, ip_size, port);
+    CRMD_connectTo(hostname, hostname_size, port);
 
     player::SelfImpl::getInstance().sendConnect();
 
@@ -154,6 +161,4 @@ void init(int register_id, int id, char* ip, int ip_size, unsigned short port, u
     soundmanager::RecorderImpl::getInstance();
     
   }
-}
-
 }
