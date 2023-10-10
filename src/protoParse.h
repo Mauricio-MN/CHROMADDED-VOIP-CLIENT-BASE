@@ -33,8 +33,6 @@ struct TrivialContainerProtocolServer {
 class protocolParser{
 private:
 
-    void tempDataWait(int id, data::buffer buffer);
-
     data::parseThreadPoll threadPool;
 
 public:

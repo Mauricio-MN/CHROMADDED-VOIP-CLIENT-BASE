@@ -104,6 +104,8 @@ class socketUdp{
     }
 
     bool send(protocol::Client& client){
+        if(!isConnected()) return false;
+
         std::string buffer = client.SerializeAsString();
 
         const void* data = buffer.data();
