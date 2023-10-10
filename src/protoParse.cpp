@@ -27,16 +27,18 @@ protocolParser& protocolParserImpl::getInstance(){
 void protocolParser::m_Parser_only THREAD_POOL_ARGS_NAMED{
   OpusManager opusMng;
 
-  protocol::Server serverReceived;
+  std::vector<protocol::Server> serverReceivedVect;
 
-  bool success = threadPoolL.pop(myid, serverReceived);
+  bool success = threadPoolL.pop(serverReceivedVect);
 
   if(!success){
     std::this_thread::sleep_for(std::chrono::microseconds(100));
     return;
   }
 
-  if(!serverReceived.has_handshake() || serverReceived.handshake() == false){
+  for(auto& serverReceived : serverReceivedVect){
+
+    if(!serverReceived.has_handshake() || serverReceived.handshake() == false){
       if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.id())){
         int sampleTime = SAMPLE_TIME_DEFAULT;
         if(serverReceived.has_sampletime()){
@@ -44,7 +46,7 @@ void protocolParser::m_Parser_only THREAD_POOL_ARGS_NAMED{
         }
         PLAYER player = PLAYER(new Player(sf::milliseconds(sampleTime)));
         player->id = serverReceived.id();
-        player->move(0,0,0);
+        player->setPosition(0,0,0);
         PlayersManagerImpl::getInstance().insertPlayer(player);
 
       }
@@ -93,13 +95,14 @@ void protocolParser::m_Parser_only THREAD_POOL_ARGS_NAMED{
           }
       }
     }
+  }
 }
 
 void protocolParser::parse(protocol::Server& serverReceived){
   //std::thread(&protocolParser::m_Parser_only, this, serverReceived).detach();
 
   if(!threadPool.exist(serverReceived.id())){
-    threadPool.insert(serverReceived.id(), &protocolParser::m_Parser_only);
+    threadPool.insertQueue(serverReceived.id());
   }
   threadPool.push(serverReceived.id(), serverReceived);
   //std::thread(&protocolParser::parser_Finder, this, serverReceived).detach();
@@ -110,7 +113,7 @@ data::parseThreadPoll& protocolParser::getPool(){
 }
 
 protocolParser::protocolParser(){
-
+  threadPool.insertThread(&protocolParser::m_Parser_only);
 }
 
 protocolParser::~protocolParser(){
