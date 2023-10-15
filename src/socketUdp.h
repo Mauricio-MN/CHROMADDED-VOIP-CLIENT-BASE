@@ -26,8 +26,6 @@ class socketUdp{
 
     std::atomic<bool> closed;
 
-    std::atomic<bool> needEncrypt;
-
     std::vector<unsigned char> decrypt(data::buffer &buffer){
         std::vector<unsigned char> bufferVect(buffer.getData(), buffer.getData() + buffer.size());
         return decrypt(bufferVect);
@@ -61,24 +59,21 @@ class socketUdp{
     socketUdp(){
         needClose = false;
         isValid = false;
-        closed = false;
+        closed = true;
     }
 
-    void init(sf::IpAddress &_ip, unsigned short &_port){
+    //non thread safe
+    void open(sf::IpAddress &_ip, unsigned short &_port){
         needClose = false;
         isValid = true;
         closed = true;
         recipient = _ip;
         _port = port;
-        /*
-        if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Done)
-        {
-            isValid = false;
-        }*/
+        std::thread(&socketUdp::receive, this).detach();
     }
 
     socketUdp(sf::IpAddress _ip, unsigned short _port){
-        init(_ip, _port);
+        open(_ip, _port);
     }
 
     bool isConnected(){
@@ -87,20 +82,10 @@ class socketUdp{
 
     void close(){
         needClose = true;
-        if(!isValid){
-            closed = true;
-        }
         while(!closed){
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
-    }
-
-    bool initialise(){
-        if(isValid){
-            closed = false;
-            std::thread(&socketUdp::receive, this).detach();
-        }
-        return isValid;
+        needClose = false;
     }
 
     bool send(protocol::Client& client){
@@ -112,7 +97,7 @@ class socketUdp{
         int data_size = buffer.size();
 
         sf::Socket::Status status = sf::Socket::Status::NotReady;
-        if(needEncrypt && !client.has_secret_id()){
+        if(ConfigImpl::getInstance().isNeedCryptography() && !client.has_secret_id()){
             std::vector<unsigned char> vecBuffer(buffer.data(), buffer.data() + buffer.size());
             std::vector<unsigned char> encrypted =  player::SelfImpl::getInstance().encrypt(vecBuffer);
             data = encrypted.data();
@@ -128,6 +113,7 @@ class socketUdp{
     private:
 
     void receive(){
+        closed = false;
         while(!needClose){
             protocol::Server server;
             sf::Packet packet;

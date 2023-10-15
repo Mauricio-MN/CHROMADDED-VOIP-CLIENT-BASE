@@ -21,7 +21,6 @@
 
 #include "proto/protocol.pb.h"
 
-#include "queue.hpp"
 #include "data.h"
 
 #define TOTAL_THREAD_PARSER 32

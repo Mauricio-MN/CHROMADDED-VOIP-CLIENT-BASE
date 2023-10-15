@@ -209,7 +209,7 @@ class Player{
 
                 pushMutex.unlock();
             }
-            protocolParserImpl::getInstance().getPool().stop(id);
+            protocolParserImpl::getInstance().getPool().remove(id);
         }
 
         void actCheck(){

@@ -10,17 +10,13 @@
 
 #include <SFML/Audio.hpp>
 #include <SFML/System/Time.hpp>
-#include <SFML/Window/Keyboard.hpp>
 
 #include <AL/al.h>
 #include <AL/efx.h>
 
-#include "SoundCustomBufferRecorder.hpp"
+#include "soundmanagerRecorder.h"
 
 #include "smbPitchShift.h"
-#include "structure/CircularBuffer.h"
-#include "structure/ringbuffer.hpp"
-//#include <boost/circular_buffer.hpp>
 
 #define SAMPLE_RATE 16000
 #define SAMPLE_BITS 16
@@ -62,9 +58,12 @@ public:
     int getSampleTime();
     int getSampleCount();
 
+    void setVolume(float volume);
+    float getVolume();
+
 private:
     int sampleRate;
-    sf::SoundCustomBufferRecorder rec;
+    soundmanager::NetworkBufferRecorder rec;
     sf::Time packetTime;
 
     void initialize(int _sampleRate, sf::Time packetTime);
@@ -83,7 +82,7 @@ public:
     /// Default constructor
     ///
     ////////////////////////////////////////////////////////////
-    NetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits) : m_offset(0), m_updateOffset(false), m_circular_buffer(_sampleRate * 10), m_circular_temp(_sampleRate * 10), m_hyper_buffer(_sampleRate * 10)
+    NetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits) : m_offset(0), m_circular_temp(_sampleRate * 10)
     {
         // Set the sound parameters
         sampleTime = _sampleTime;
@@ -469,12 +468,6 @@ private:
     std::vector<std::int16_t> m_tempBuffer;
     std::size_t               m_offset;
     std::size_t               m_offset_last;
-    bool                      m_updateOffset;
-    bool                      m_updateOffsetRCV;
-    //boost::circular_buffer<std::vector<std::int16_t>> m_circular_buffer;
-    ConcurrentCircularBuffer<sf::Int16> m_circular_buffer;
-    hyperBuffer<sf::Int16> m_hyper_buffer;
-    jnk0le::Ringbuffer<sf::Int16, 131072> m_r_buffer;
     std::vector<std::int16_t> m_circular_temp;
     data::AudioQueue audioQueue;
 
@@ -490,8 +483,6 @@ private:
     data::buffer bufferAudio;
 
     sf::Clock clock;
-
-    //data::LockFreeQueue<std::int16_t> queueBuff;
 
     std::shared_mutex geralMutexLockData;
 };

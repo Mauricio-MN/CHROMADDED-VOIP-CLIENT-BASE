@@ -521,13 +521,10 @@ namespace data
         }
 
         //thread safe
-        void stop(std::uint32_t playerID){
+        void remove(std::uint32_t playerID){
             if(exist(playerID)){
                 syncMutex.lock();
-                *threadState[playerID] = false;
-                if(threadPool[playerID]->joinable()){
-                    threadPool[playerID]->join();
-                }
+                queue.erase(playerID);
                 syncMutex.unlock();
             }
         }

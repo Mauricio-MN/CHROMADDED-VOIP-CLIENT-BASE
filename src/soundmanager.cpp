@@ -4,7 +4,7 @@
 #include <SFML/System/Time.hpp>
 #include <SFML/Window/Keyboard.hpp>
 
-#include "SoundCustomBufferRecorder.hpp"
+#include "soundmanagerRecorder.h"
 
 #include "soundmanager.h"
 #include "player.h"
@@ -28,11 +28,18 @@ Recorder &RecorderImpl::getInstance()
 }
 
 void Recorder::enableRec(){
-  rec.enableProcessSound();
+  rec.start();
 }
 
 void Recorder::disableRec(){
-  rec.disableProcessSound();
+  rec.stop();
+}
+
+void Recorder::setVolume(float volume){
+  rec.setVolume(volume);
+}
+float Recorder::getVolume(){
+  rec.getVolume();
 }
 
 sf::SoundBuffer Recorder::recordForTest(){

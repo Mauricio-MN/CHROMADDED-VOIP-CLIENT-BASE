@@ -45,11 +45,9 @@ EXPORT void CRMD_disableRecAudio();
 
 EXPORT float CRMD_getMicVolume();
 EXPORT void CRMD_setMicVolume(float volume);
-EXPORT void CRMD_addMicVolume(float volume);
 
 EXPORT float CRMD_getVolumeAudio();
 EXPORT void CRMD_setVolumeAudio(float volume);
-EXPORT void CRMD_addVolumeAudio(float volume);
 
 EXPORT bool CRMD_isConnected();
 

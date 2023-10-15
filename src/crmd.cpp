@@ -15,7 +15,7 @@
 #include <SFML/System/Time.hpp>
 #include <SFML/Window/Keyboard.hpp>
 
-#include "SoundCustomBufferRecorder.hpp"
+#include "soundmanagerRecorder.h"
 
 //#include "../libs/AL/al.h"
 //#include "../libs/AL/alc.h"
@@ -99,18 +99,16 @@ void CRMD_disableRecAudio(){
 }
 
 float CRMD_getMicVolume(){
-  //soundmanager::RecorderImpl::getInstance().
+  soundmanager::RecorderImpl::getInstance().
   
 }
-
 void CRMD_setMicVolume(float volume){
   
 }
 
-void CRMD_addMicVolume(float volume){
-  
+float CRMD_getVolumeAudio(){
+  sf::Listener::getGlobalVolume();
 }
-
 void CRMD_setVolumeAudio(float volume){
   sf::Listener::setGlobalVolume(volume);
 }
@@ -127,15 +125,15 @@ void CRMD_closeSocket(){
   socketUdpImpl::getInstance().close();
 }
 
+void connect(std::string hostname, unsigned short port){
+  sf::IpAddress ipaddress(hostname);
+  socketUdpImpl::refabric(ipaddress, port);
+}
+
 void CRMD_connectTo(char* hostname, int hostname_size, unsigned short port){
   const char* ipC = static_cast<const char*>(hostname);
   std::string ipStr(ipC, ipC + hostname_size);
   connect(ipStr, port);
-}
-
-void connect(std::string hostname, unsigned short port){
-  sf::IpAddress ipaddress(hostname);
-  socketUdpImpl::refabric(ipaddress, port);
 }
 
 void disconnect(){

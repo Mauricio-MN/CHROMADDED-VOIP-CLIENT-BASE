@@ -9,7 +9,7 @@ LDFLAGS += -DSFML_STATIC
 #LIBS= -Wl,-Bstatic -static-libstdc++ -static-libgcc -lsfml-audio-s -lsfml-network-s -lsfml-system-s -lwinmm -lflac -lvorbisenc -lvorbisfile -lvorbis -logg -lssl -lcrypto -lws2_32 -lwsock32 -lshlwapi -lopus -lprotobuf -Wl,-Bdynamic -lopenal 
 LIBS= -lsfml-audio-s -lsfml-network-s -lsfml-system-s -lwinmm -lflac -lvorbisenc -lvorbisfile -lvorbis -logg -lssl -lcrypto -lws2_32 -lwsock32 -lshlwapi -lopus -lprotobuf -lopenal
 
-_SRCS=soundmanager.cpp player.cpp SoundCustomBufferRecorder.cpp smbPitchShift.cpp opusmanager.cpp socketUdp.cpp protoParse.cpp crmd.cpp
+_SRCS=data.cpp soundmanager.cpp soundmanagerRecorder.cpp player.cpp smbPitchShift.cpp opusmanager.cpp socketUdp.cpp protoParse.cpp crmd.cpp
 _SRCSCC=proto/protocol.pb.cc
 INCLUDE_FILES=crmd.h
 

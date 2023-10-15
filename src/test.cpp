@@ -19,10 +19,11 @@
 #include "player.h"
 #include "socketUdp.h"
 #include "soundmanager.h"
-#include "SoundCustomBufferRecorder.hpp"
+#include "soundmanagerRecorder.h"
 #include "opusmanager.h"
 #include "proto/protocol.pb.h"
 #include "memusage.h"
+#include <SFML/Window/Keyboard.hpp>
 
 bool sucess = true;
 void sucessMSG(const char* module, const char* testFunction){
@@ -364,44 +365,6 @@ void test_data_structure_memory(){
 }
 
 int main(){
-
-  /*
-  PLAYER player = std::make_shared<Player>();
-  player->id = 999;
-  data::PlayerThread_BinaryTree test(player);
-
-  PLAYER playerA = std::make_shared<Player>();
-  playerA->id = 1;
-  PLAYER playerB = std::make_shared<Player>();
-  playerB->id = 2;
-  PLAYER playerC = std::make_shared<Player>();
-  playerC->id = 3;
-  PLAYER playerD = std::make_shared<Player>();
-  playerD->id = 4;
-  PLAYER playerE= std::make_shared<Player>();
-  playerE->id = 5;
-  PLAYER playerF = std::make_shared<Player>();
-  playerF->id = 6;
-
-  test.insert(playerA, 1);
-  test.insert(playerB, 2);
-  test.insert(playerC, 3);
-  test.insert(playerD, 4);
-  test.insert(playerE, 5);
-  test.insert(playerF, 6);
-
-  data::PlayerThread_BinaryTree* rec = test.search(3);
-
-  if(rec != nullptr){
-    PLAYER rec3 = rec->getPlayer();
-
-    if(rec3->id == playerC->id){
-      std::cout << "apppp" << std::endl;
-    }
-  } else {
-    std::cout << "aEEEE" << std::endl;
-  }
-  */
 
   testCrypt();
 
