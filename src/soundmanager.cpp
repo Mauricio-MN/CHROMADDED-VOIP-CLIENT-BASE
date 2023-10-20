@@ -21,14 +21,33 @@ namespace soundmanager{
     }
   }
 
+bool RecorderImpl::initialized = false;
+int RecorderImpl::sampleRate = SAMPLE_RATE;
+sf::Time RecorderImpl::packetTime = sf::milliseconds(20);
+Recorder* RecorderImpl::instance = nullptr;
+
 Recorder &RecorderImpl::getInstance()
 {
-  static Recorder instance;
-  return instance;
+  if (initialized)
+  {
+      return *instance;
+  } else {
+      perror("fabric soundmanager::Recorder");
+  }
+}
+
+void RecorderImpl::fabric(int _sampleRate, sf::Time _packetTime)
+{
+  if(!initialized){
+    sampleRate = _sampleRate;
+    packetTime = _packetTime;
+    instance = new Recorder(sampleRate, packetTime);
+    initialized = true;
+  }
 }
 
 void Recorder::enableRec(){
-  rec.start();
+  rec.start(sampleRate);
 }
 
 void Recorder::disableRec(){
@@ -78,7 +97,7 @@ void Recorder::initialize(int _sampleRate, sf::Time packetTime){
   rec.setProcessingIntervalOverride(packetTime);
   rec.setListen(DEBUG_AUDIO);
   rec.setProcessingBufferFunction(player::Self::sendAudio);
-  rec.start(_sampleRate);
+  //rec.start(_sampleRate);
   sampleRate = _sampleRate;
 }
 
