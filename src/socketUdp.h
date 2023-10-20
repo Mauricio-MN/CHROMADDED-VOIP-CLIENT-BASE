@@ -26,6 +26,8 @@ class socketUdp{
 
     std::atomic<bool> closed;
 
+    std::shared_mutex syncSocket;
+
     std::vector<unsigned char> decrypt(data::buffer &buffer){
         std::vector<unsigned char> bufferVect(buffer.getData(), buffer.getData() + buffer.size());
         return decrypt(bufferVect);
@@ -62,13 +64,14 @@ class socketUdp{
         closed = true;
     }
 
-    //non thread safe
+    //just only one thread to be safe, call close first
     void open(sf::IpAddress &_ip, unsigned short &_port){
         needClose = false;
         isValid = true;
         closed = true;
         recipient = _ip;
-        _port = port;
+        port = _port;
+        socket.bind(sf::Socket::AnyPort);
         std::thread(&socketUdp::receive, this).detach();
     }
 
@@ -81,6 +84,7 @@ class socketUdp{
     }
 
     void close(){
+        //Closing receive
         needClose = true;
         while(!closed){
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -89,9 +93,13 @@ class socketUdp{
     }
 
     bool send(protocol::Client& client){
-        if(!isConnected()) return false;
+
+        if(!isConnected()){
+            return false;
+        }
 
         std::string buffer = client.SerializeAsString();
+        //client.SerializeToString();
 
         const void* data = buffer.data();
         int data_size = buffer.size();
@@ -102,7 +110,15 @@ class socketUdp{
             std::vector<unsigned char> encrypted =  player::SelfImpl::getInstance().encrypt(vecBuffer);
             data = encrypted.data();
         }
-        socket.send(data, data_size, recipient, port);
+        sf::IpAddress recipientL = recipient;
+        unsigned short portL = port;
+
+        syncSocket.lock_shared();
+        if(!isConnected()){
+            return false;
+        }
+        status = socket.send(data, data_size, recipientL, portL);
+        syncSocket.unlock_shared();
 
         if(status != sf::Socket::Status::Done){
             return false;
@@ -112,6 +128,16 @@ class socketUdp{
 
     private:
 
+    //Just call on receive
+    void closeSocket(){
+        syncSocket.lock();
+        socket.unbind();
+        isValid = false;
+        closed = true;
+        needClose = false;
+        syncSocket.unlock();
+    }
+
     void receive(){
         closed = false;
         while(!needClose){
@@ -120,15 +146,34 @@ class socketUdp{
             
             const auto retryCount = 10;
 
-            for (auto receiveTries = 1; socket.receive(packet, recipient, port) != sf::Socket::Done; ++receiveTries)
+            bool closeThread = false;
+
+            sf::IpAddress recipientL = recipient;
+            unsigned short portL = port;
+            sf::Socket::Status status = socket.receive(packet, recipientL, portL);
+            for (auto receiveTries = 1; status != sf::Socket::Done; ++receiveTries)
             {
+                if(status == sf::Socket::Status::Disconnected){
+                    unsigned short lPort = socket.getLocalPort();
+                    syncSocket.lock();
+                    socket.unbind();
+                    socket.bind(lPort);
+                    syncSocket.unlock();
+                }
+                if(needClose){
+                    closeThread = true;
+                    break;
+                }
                 if (receiveTries >= retryCount)
                 {
                     std::cerr << "Unable to receive" << "\n";
-                    closed = true;
-                    return;
+                    closeThread = true;
+                    break;
                 }
+
+                status = socket.receive(packet, recipientL, portL);
             }
+            if(closeThread) break;
 
             bool isOk = deserialize(server, packet);
 
@@ -136,7 +181,7 @@ class socketUdp{
                 //parse
             }
         }
-        closed = true;
+        closeSocket();
     }
 
 
