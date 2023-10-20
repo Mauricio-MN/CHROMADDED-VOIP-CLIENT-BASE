@@ -123,11 +123,6 @@ void testPlayers(){
     fail("Player remove", "*" , "false", "PlayersManagerImpl::getInstance().removePlayer / existPlayer");
   }
 
-  PlayersManagerImpl::getInstance().setWaitAudioPackets(4);
-  if(PlayersManagerImpl::getInstance().getWaitAudioPackets() != 4){
-    fail("Wait Audio Packets", "players::waitQueueAudioCount" , "4", "players::setWaitAudioPackets");
-  }
-
   sucessMSG("players::", "testPlayers");
 }
 
@@ -159,7 +154,7 @@ void test_BufferParser_listen(){
 
   std::cout << "test opus encode/decode" << std::endl;
   soundmanager::NetworkAudioStream opusStream(sf::milliseconds(SAMPLE_TIME_DEFAULT), SAMPLE_CHANNELS, SAMPLE_RATE, SAMPLE_BITS);
-  OpusManagerImpl::fabric(SAMPLE_RATE);
+  OpusManager opusManager(SAMPLE_RATE);
 
   int sampleSize = opusStream.getSampleCount();
 
@@ -170,13 +165,13 @@ void test_BufferParser_listen(){
   for (int i = 0; i < audio_size - sampleSize; i += sampleSize)
   {
 
-    data::buffer encBuffer = OpusManagerImpl::getInstance().encode((sf::Int16 *)audio + i, sampleSize);
-    data::buffer decBuffer = OpusManagerImpl::getInstance().decode(encBuffer, sampleSize);
+    data::buffer encBuffer = opusManager.encode((sf::Int16 *)audio + i, sampleSize);
+    data::buffer decBuffer = opusManager.decode(encBuffer, sampleSize);
     totalLen += encBuffer.size() / sizeof(sf::Int16);
     totalSample += sampleSize;
 
     if(decBuffer.size() != sampleSize * sizeof(sf::Int16)){
-      fail("buffer audio", "encBuffer/decBuffer", "valid size", "OpusManagerImpl::getInstance().encode/decode");
+      fail("buffer audio", "encBuffer/decBuffer", "valid size", "opusManager.encode/decode");
       break;
     }
 
@@ -205,18 +200,15 @@ void test_BufferParser_listen(){
   soundmanager::listener::movePos(1,1,1);
   PLAYER actPlayer = PlayersManagerImpl::getInstance().getPlayer(3);
   actPlayer->setPosition(1,1,1);
-  PlayersManagerImpl::getInstance().setWaitAudioPackets(4);
 
   std::cout << "test listen audio packets" << std:: endl;
-
-  player::SelfImpl::frabric(3, 3);
 
   int k = 0;
   std::vector<protocol::Server> protocolsBuffers;
   std::vector<std::pair<int, data::buffer>> noParse;
   for (int i = 0; i < audio_size - sampleSize; i += sampleSize)
   {
-    data::buffer encBuffer = OpusManagerImpl::getInstance().encode((sf::Int16 *)audio + i, sampleSize);
+    data::buffer encBuffer = opusManager.encode((sf::Int16 *)audio + i, sampleSize);
 
     protocol::Server cBuffer;
 
@@ -256,12 +248,16 @@ void test_BufferParser_listen(){
   std::cout << "PARSE audio test" << std::endl;
 
   for(auto& cBuffer : protocolsBuffers){
+    clock.restart();
     protocolParserImpl::getInstance().parse(cBuffer);
     for(int i = 4; i < 8; i++){
       cBuffer.set_id(i);
       protocolParserImpl::getInstance().parse(cBuffer);
     }
-    data::preciseSleep(((double)SAMPLE_TIME_DEFAULT) / 1000.0);
+    int elapsed = clock.getElapsedTime().asMilliseconds();
+    double sleepTime = ((double)SAMPLE_TIME_DEFAULT - (double) elapsed) / 1000.0;
+    if(sleepTime < 0) sleepTime = 0;
+    data::preciseSleep(sleepTime);
   }
 
   std::cout << "listen ending, tap X to jump." << std::endl;
@@ -322,6 +318,68 @@ void test_BufferParser_listen(){
 
 }
 
+void test_parser_protocol(){
+
+  OpusManager opusManager(SAMPLE_RATE);
+  std::cout << "Protocol parse" << std::endl;
+
+  int an = 0;
+
+  protocolParser parser;
+
+  for(int k = 0; k < 3; k++){
+
+    for(int i = 0; i < 1000; i++){
+
+      for(int j = 0; j < 10; j++){
+        protocol::Server server;
+        std::vector<sf::Int16> audio(320);
+        data::buffer encoded = opusManager.encode(audio.data(), audio.size());
+        server.set_id(10);
+        server.set_audio(encoded.getData(), encoded.size());
+        server.set_audionum(an);
+        parser.parse(server);
+        an++;
+        if(an >= 256) an = 0;
+        std::cout << "." << k << "." << i << "." << j << std::endl;
+      }
+        sf::sleep(sf::milliseconds(1));
+      }
+
+      std::cout << "memory check: " << getCurrentRSS() << std::endl;
+  }
+
+  std::cout << "memory check: " << getCurrentRSS() << std::endl;
+
+  std::cout << "Protocol parse Global" << std::endl;
+
+  an = 0;
+
+  for(int k = 0; k < 3; k++){
+
+    for(int i = 0; i < 1000; i++){
+
+      for(int j = 0; j < 10; j++){
+        protocol::Server server;
+        std::vector<sf::Int16> audio(320);
+        data::buffer encoded = opusManager.encode(audio.data(), audio.size());
+        server.set_id(10);
+        server.set_audio(encoded.getData(), audio.size());
+        server.set_audionum(an);
+        protocolParserImpl::getInstance().parse(server);
+        an++;
+        if(an >= 256) an = 0;
+      }
+        sf::sleep(sf::milliseconds(1));
+      }
+
+      std::cout << "memory check: " << getCurrentRSS() << std::endl;
+  }
+
+  std::cout << "memory check: " << getCurrentRSS() << std::endl;
+
+}
+
 void test_data_structure_memory_aux(data::buffer buffer){
   data::buffer data(buffer);
 }
@@ -333,7 +391,9 @@ void test_data_structure_memory(){
   size_t lastSize = getCurrentRSS( );
   size_t peakSize    = getPeakRSS( );
 
-  for(int k = 0; k < 60; k++){
+  std::cout << "memory check: " << getCurrentRSS() << std::endl;
+
+  for(int k = 0; k < 3; k++){
 
     for(int i = 0; i < 1000; i++){
 
@@ -355,6 +415,122 @@ void test_data_structure_memory(){
       std::cout << "memory check: " << getCurrentRSS() << std::endl;
   }
 
+  std::cout << "memory check: " << getCurrentRSS() << std::endl;
+
+  test_parser_protocol();
+
+  std::cout << "Check server" << std::endl;
+
+  for(int k = 0; k < 3; k++){
+
+    for(int i = 0; i < 1000; i++){
+
+      for(int j = 0; j < 10; j++){
+        protocol::Server server;
+        data::buffer audio(320);
+        server.set_id(10);
+        server.set_audio(audio.getData(), audio.size());
+        server.clear_audio();
+      }
+        sf::sleep(sf::milliseconds(1));
+      }
+
+      std::cout << "memory check: " << getCurrentRSS() << std::endl;
+  }
+
+  std::cout << "memory check: " << getCurrentRSS() << std::endl;
+
+  test_parser_protocol();
+
+  std::cout << "Check queue" << std::endl;
+
+  data::asyncQueue queue;
+
+  for(int k = 0; k < 3; k++){
+
+    for(int i = 0; i < 1000; i++){
+
+      for(int j = 0; j < 10; j++){
+        protocol::Server server;
+        std::vector<sf::Int16> audio(320);
+        server.set_id(10);
+        server.set_audio(audio.data(), audio.size());
+        queue.push(server);
+      }
+        sf::sleep(sf::milliseconds(1));
+      }
+
+      std::cout << "memory check: " << getCurrentRSS() << std::endl;
+  }
+
+  std::cout << "memory check: " << getCurrentRSS() << std::endl;
+
+  std::cout << "Check queue pop" << std::endl;
+
+  for(int k = 0; k < 3; k++){
+
+    for(int i = 0; i < 1000; i++){
+
+      for(int j = 0; j < 10; j++){
+        bool success = false;
+        protocol::Server server = queue.pop(success); 
+      }
+        sf::sleep(sf::milliseconds(1));
+      }
+
+      std::cout << "memory check: " << getCurrentRSS() << std::endl;
+  }
+
+  std::cout << "memory check: " << getCurrentRSS() << std::endl;
+
+  test_parser_protocol();
+
+  std::cout << "Audio queue" << std::endl;
+
+  int an = 0;
+
+  data::AudioQueue audQueue;
+
+  for(int k = 0; k < 3; k++){
+
+    for(int i = 0; i < 1000; i++){
+
+      for(int j = 0; j < 10; j++){
+        std::vector<sf::Int16> audio(320);
+        audQueue.push(an, audio);
+        an++;
+        if(an >= 256) an = 0;
+      }
+        sf::sleep(sf::milliseconds(1));
+      }
+
+      std::cout << "memory check: " << getCurrentRSS() << std::endl;
+  }
+
+  std::cout << "memory check: " << getCurrentRSS() << std::endl;
+
+  std::cout << "Audio queue pop" << std::endl;
+
+  for(int k = 0; k < 3; k++){
+
+    for(int i = 0; i < 1000; i++){
+
+      for(int j = 0; j < 10; j++){
+        std::vector<sf::Int16> audio(320);
+        audQueue.pop(audio);
+      }
+        sf::sleep(sf::milliseconds(1));
+      }
+
+      std::cout << "memory check: " << getCurrentRSS() << std::endl;
+  }
+
+  std::cout << "memory check: " << getCurrentRSS() << std::endl;
+
+  test_parser_protocol();
+
+  std::cout << "..." << std::endl;
+
     size_t currentSize = getCurrentRSS( );
     if(currentSize > lastSize + 50000){
       std::cout << "memory leak" << std::endl;
@@ -366,18 +542,41 @@ void test_data_structure_memory(){
 
 int main(){
 
+  //geral test -> use debug audio in server
+  //add player 1 3 12345678901234567890123456789012 PadinBK
+  unsigned char *key = new unsigned char[32];
+  strcpy( (char*) key, "12345678901234567890123456789012" );
+  
+  int myID = 3;
+  int regID = 1;
+
+  std::string ip("127.0.0.1");
+
+  CRMD_init(1, 3, ip.data(), ip.size(), 443, key, 0,0,0,0, false);
+  std::cout << "recording";
+  CRMD_enableRecAudio();
+  sleep(3000);
+  CRMD_disableRecAudio();
+
+  return 0;
+
   testCrypt();
+
+  player::SelfImpl::frabric(3, 3);
+
+  PlayersManagerImpl::getInstance();
 
   testPlayers(); //parcial
 
   test_BufferParser_listen(); //parcial
 
+  for(int i = 0; i < 3; i++){
+    test_data_structure_memory();
+  }
+
   return 0;
 
-  test_data_structure_memory();
-
-  return 1;
-
+  /*
   //geral test -> use debug audio in server
   unsigned char *key = new unsigned char[32];
   strcpy( (char*) key, "abcdefghijklmnopqsrtuvwxyz123456" );
@@ -392,4 +591,5 @@ int main(){
   CRMD_enableRecAudio();
   sleep(3000);
   CRMD_disableRecAudio();
+  */
 }
