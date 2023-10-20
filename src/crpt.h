@@ -10,43 +10,62 @@
 #include <vector>
 
 #define NEW_AES_GCM ((unsigned char*)ConfigImpl::getInstance().getCryptoKey().data(), (unsigned char*)ConfigImpl::getInstance().getCryptoIV().data())
+#define IV_SIZE 12
+#define TAG_SIZE EVP_GCM_TLS_TAG_LEN
 
 class AES_GCM {
 public:
     AES_GCM(const unsigned char* key, const unsigned char* iv) {
         keyVct.insert(keyVct.end(), key, key + 32);
-        ivVct.insert(ivVct.end(), iv, iv + 16);
+        ivVct.insert(ivVct.end(), iv, iv + IV_SIZE);
         key_ = keyVct.data();
         iv_ = ivVct.data();
+
+        // Inicializar o contexto do EVP_CIPHER
+        ctxEncrypt = EVP_CIPHER_CTX_new();
+        EVP_EncryptInit_ex(ctxEncrypt, EVP_aes_256_gcm(), NULL, NULL, NULL);
+        // Definir a chave e o IV
+        EVP_EncryptInit_ex(ctxEncrypt, NULL, NULL, key_, iv_);
+
+        EVP_CIPHER_CTX_ctrl(ctxEncrypt, EVP_CTRL_GCM_SET_IVLEN, IV_SIZE, iv_);
+
+        // Inicializar o contexto do EVP_CIPHERuk
+        ctxDecrypt = EVP_CIPHER_CTX_new();
+        EVP_DecryptInit_ex(ctxDecrypt, EVP_aes_256_gcm(), NULL, NULL, NULL);
+        // Definir a chave e o IV
+        EVP_DecryptInit_ex(ctxDecrypt, NULL, NULL, key_, iv_);
+
+        EVP_CIPHER_CTX_ctrl(ctxDecrypt, EVP_CTRL_GCM_SET_IVLEN, IV_SIZE, iv_);
+    }
+
+    ~AES_GCM(){
+        // Limpar o contexto
+        EVP_CIPHER_CTX_free(ctxEncrypt);
+        EVP_CIPHER_CTX_free(ctxDecrypt);
     }
 
     std::vector<unsigned char> encrypt(std::vector<unsigned char> &plaintext) {
-        // Inicializar o contexto do EVP_CIPHER
-        EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-        EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
 
+        EVP_EncryptInit_ex(ctxEncrypt, EVP_aes_256_gcm(), NULL, NULL, NULL);
         // Definir a chave e o IV
-        EVP_EncryptInit_ex(ctx, NULL, NULL, key_, iv_);
+        EVP_EncryptInit_ex(ctxEncrypt, NULL, NULL, key_, iv_);
 
         // Obter o tamanho do texto cifrado
-        int ciphertext_len = plaintext.size() + EVP_CIPHER_CTX_block_size(ctx);
+        int ciphertext_len = plaintext.size() + EVP_CIPHER_CTX_block_size(ctxEncrypt);
         unsigned char* ciphertext = new unsigned char[ciphertext_len];
 
         // Criptografar o texto
         int len;
-        EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext.data(), plaintext.size());
+        EVP_EncryptUpdate(ctxEncrypt, ciphertext, &len, plaintext.data(), plaintext.size());
         ciphertext_len = len;
 
         // Finalizar a criptografia
-        EVP_EncryptFinal_ex(ctx, ciphertext + len, &len);
+        EVP_EncryptFinal_ex(ctxEncrypt, ciphertext + len, &len);
         ciphertext_len += len;
 
         // Obter o valor do MAC (tag)
         unsigned char tag[EVP_GCM_TLS_TAG_LEN];
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, sizeof(tag), tag);
-
-        // Limpar o contexto
-        EVP_CIPHER_CTX_free(ctx);
+        EVP_CIPHER_CTX_ctrl(ctxEncrypt, EVP_CTRL_GCM_GET_TAG, sizeof(tag), tag);
 
         // Construir a mensagem cifrada com a tag
         std::vector<unsigned char> result(ciphertext, ciphertext + ciphertext_len);
@@ -58,12 +77,10 @@ public:
     }
 
     std::vector<unsigned char> decrypt(std::vector<unsigned char>& encrypted_message) {
-        // Inicializar o contexto do EVP_CIPHERuk
-        EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-        EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
 
+        EVP_DecryptInit_ex(ctxDecrypt, EVP_aes_256_gcm(), NULL, NULL, NULL);
         // Definir a chave e o IV
-        EVP_DecryptInit_ex(ctx, NULL, NULL, key_, iv_);
+        EVP_DecryptInit_ex(ctxDecrypt, NULL, NULL, key_, iv_);
 
         // Obter o tamanho do texto decifrado
         int plaintext_len = encrypted_message.size() - EVP_GCM_TLS_TAG_LEN;
@@ -71,20 +88,17 @@ public:
 
         // Decifrar o texto
         int len;
-        EVP_DecryptUpdate(ctx, plaintext, &len, (const unsigned char*)encrypted_message.data(), encrypted_message.size() - EVP_GCM_TLS_TAG_LEN);
+        EVP_DecryptUpdate(ctxDecrypt, plaintext, &len, (const unsigned char*)encrypted_message.data(), encrypted_message.size() - EVP_GCM_TLS_TAG_LEN);
         plaintext_len = len;
 
         // Definir o valor do MAC (tag)
         unsigned char tag[EVP_GCM_TLS_TAG_LEN];
         memcpy(tag, encrypted_message.data() + encrypted_message.size() - EVP_GCM_TLS_TAG_LEN, EVP_GCM_TLS_TAG_LEN);
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, EVP_GCM_TLS_TAG_LEN, tag);
+        EVP_CIPHER_CTX_ctrl(ctxDecrypt, EVP_CTRL_GCM_SET_TAG, EVP_GCM_TLS_TAG_LEN, tag);
 
         // Finalizar a decifragem
-        int result = EVP_DecryptFinal_ex(ctx, plaintext + len, &len);
+        int result = EVP_DecryptFinal_ex(ctxDecrypt, plaintext + len, &len);
         plaintext_len += len;
-
-        // Limpar o contexto
-        EVP_CIPHER_CTX_free(ctx);
 
         // Verificar se a autenticação do MAC (tag) falhou
         if (result <= 0) {
@@ -104,6 +118,9 @@ private:
     unsigned char* iv_;
     std::vector<unsigned char> keyVct;
     std::vector<unsigned char> ivVct;
+
+    EVP_CIPHER_CTX* ctxEncrypt;
+    EVP_CIPHER_CTX* ctxDecrypt;
 };
 
 class AESGCM256EncryptorDecryptor {
