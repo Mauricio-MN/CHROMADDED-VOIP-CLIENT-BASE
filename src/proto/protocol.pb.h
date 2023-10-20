@@ -271,43 +271,43 @@ class Client final :
   void _internal_set_audionum(int32_t value);
   public:
 
-  // optional int32 coordX = 5;
+  // optional float coordX = 5;
   bool has_coordx() const;
   private:
   bool _internal_has_coordx() const;
   public:
   void clear_coordx();
-  int32_t coordx() const;
-  void set_coordx(int32_t value);
+  float coordx() const;
+  void set_coordx(float value);
   private:
-  int32_t _internal_coordx() const;
-  void _internal_set_coordx(int32_t value);
+  float _internal_coordx() const;
+  void _internal_set_coordx(float value);
   public:
 
-  // optional int32 coordY = 6;
+  // optional float coordY = 6;
   bool has_coordy() const;
   private:
   bool _internal_has_coordy() const;
   public:
   void clear_coordy();
-  int32_t coordy() const;
-  void set_coordy(int32_t value);
+  float coordy() const;
+  void set_coordy(float value);
   private:
-  int32_t _internal_coordy() const;
-  void _internal_set_coordy(int32_t value);
+  float _internal_coordy() const;
+  void _internal_set_coordy(float value);
   public:
 
-  // optional int32 coordZ = 7;
+  // optional float coordZ = 7;
   bool has_coordz() const;
   private:
   bool _internal_has_coordz() const;
   public:
   void clear_coordz();
-  int32_t coordz() const;
-  void set_coordz(int32_t value);
+  float coordz() const;
+  void set_coordz(float value);
   private:
-  int32_t _internal_coordz() const;
-  void _internal_set_coordz(int32_t value);
+  float _internal_coordz() const;
+  void _internal_set_coordz(float value);
   public:
 
   // optional int32 mapNum = 8;
@@ -390,9 +390,9 @@ class Client final :
     int32_t secret_id_;
     int32_t id_;
     int32_t audionum_;
-    int32_t coordx_;
-    int32_t coordy_;
-    int32_t coordz_;
+    float coordx_;
+    float coordy_;
+    float coordz_;
     int32_t mapnum_;
     int32_t blockplayer_id_;
     int32_t talkinroom_id_;
@@ -531,7 +531,7 @@ class Server final :
     kAudioNumFieldNumber = 4,
     kCoordXFieldNumber = 5,
     kHandShakeFieldNumber = 1,
-    kNotConnectedFieldNumber = 10,
+    kIsAllOKFieldNumber = 10,
     kCoordYFieldNumber = 6,
     kCoordZFieldNumber = 7,
     kMapNumFieldNumber = 8,
@@ -595,17 +595,17 @@ class Server final :
   void _internal_set_audionum(int32_t value);
   public:
 
-  // optional int32 coordX = 5;
+  // optional float coordX = 5;
   bool has_coordx() const;
   private:
   bool _internal_has_coordx() const;
   public:
   void clear_coordx();
-  int32_t coordx() const;
-  void set_coordx(int32_t value);
+  float coordx() const;
+  void set_coordx(float value);
   private:
-  int32_t _internal_coordx() const;
-  void _internal_set_coordx(int32_t value);
+  float _internal_coordx() const;
+  void _internal_set_coordx(float value);
   public:
 
   // optional bool handShake = 1;
@@ -621,43 +621,43 @@ class Server final :
   void _internal_set_handshake(bool value);
   public:
 
-  // optional bool notConnected = 10;
-  bool has_notconnected() const;
+  // optional bool isAllOK = 10;
+  bool has_isallok() const;
   private:
-  bool _internal_has_notconnected() const;
+  bool _internal_has_isallok() const;
   public:
-  void clear_notconnected();
-  bool notconnected() const;
-  void set_notconnected(bool value);
+  void clear_isallok();
+  bool isallok() const;
+  void set_isallok(bool value);
   private:
-  bool _internal_notconnected() const;
-  void _internal_set_notconnected(bool value);
+  bool _internal_isallok() const;
+  void _internal_set_isallok(bool value);
   public:
 
-  // optional int32 coordY = 6;
+  // optional float coordY = 6;
   bool has_coordy() const;
   private:
   bool _internal_has_coordy() const;
   public:
   void clear_coordy();
-  int32_t coordy() const;
-  void set_coordy(int32_t value);
+  float coordy() const;
+  void set_coordy(float value);
   private:
-  int32_t _internal_coordy() const;
-  void _internal_set_coordy(int32_t value);
+  float _internal_coordy() const;
+  void _internal_set_coordy(float value);
   public:
 
-  // optional int32 coordZ = 7;
+  // optional float coordZ = 7;
   bool has_coordz() const;
   private:
   bool _internal_has_coordz() const;
   public:
   void clear_coordz();
-  int32_t coordz() const;
-  void set_coordz(int32_t value);
+  float coordz() const;
+  void set_coordz(float value);
   private:
-  int32_t _internal_coordz() const;
-  void _internal_set_coordz(int32_t value);
+  float _internal_coordz() const;
+  void _internal_set_coordz(float value);
   public:
 
   // optional int32 mapNum = 8;
@@ -700,11 +700,11 @@ class Server final :
     ::PROTOBUF_NAMESPACE_ID::Timestamp* packettime_;
     int32_t id_;
     int32_t audionum_;
-    int32_t coordx_;
+    float coordx_;
     bool handshake_;
-    bool notconnected_;
-    int32_t coordy_;
-    int32_t coordz_;
+    bool isallok_;
+    float coordy_;
+    float coordz_;
     int32_t mapnum_;
     int32_t sampletime_;
   };
@@ -874,7 +874,7 @@ inline void Client::set_audionum(int32_t value) {
   // @@protoc_insertion_point(field_set:protocol.Client.audioNum)
 }
 
-// optional int32 coordX = 5;
+// optional float coordX = 5;
 inline bool Client::_internal_has_coordx() const {
   bool value = (_impl_._has_bits_[0] & 0x00000020u) != 0;
   return value;
@@ -886,23 +886,23 @@ inline void Client::clear_coordx() {
   _impl_.coordx_ = 0;
   _impl_._has_bits_[0] &= ~0x00000020u;
 }
-inline int32_t Client::_internal_coordx() const {
+inline float Client::_internal_coordx() const {
   return _impl_.coordx_;
 }
-inline int32_t Client::coordx() const {
+inline float Client::coordx() const {
   // @@protoc_insertion_point(field_get:protocol.Client.coordX)
   return _internal_coordx();
 }
-inline void Client::_internal_set_coordx(int32_t value) {
+inline void Client::_internal_set_coordx(float value) {
   _impl_._has_bits_[0] |= 0x00000020u;
   _impl_.coordx_ = value;
 }
-inline void Client::set_coordx(int32_t value) {
+inline void Client::set_coordx(float value) {
   _internal_set_coordx(value);
   // @@protoc_insertion_point(field_set:protocol.Client.coordX)
 }
 
-// optional int32 coordY = 6;
+// optional float coordY = 6;
 inline bool Client::_internal_has_coordy() const {
   bool value = (_impl_._has_bits_[0] & 0x00000040u) != 0;
   return value;
@@ -914,23 +914,23 @@ inline void Client::clear_coordy() {
   _impl_.coordy_ = 0;
   _impl_._has_bits_[0] &= ~0x00000040u;
 }
-inline int32_t Client::_internal_coordy() const {
+inline float Client::_internal_coordy() const {
   return _impl_.coordy_;
 }
-inline int32_t Client::coordy() const {
+inline float Client::coordy() const {
   // @@protoc_insertion_point(field_get:protocol.Client.coordY)
   return _internal_coordy();
 }
-inline void Client::_internal_set_coordy(int32_t value) {
+inline void Client::_internal_set_coordy(float value) {
   _impl_._has_bits_[0] |= 0x00000040u;
   _impl_.coordy_ = value;
 }
-inline void Client::set_coordy(int32_t value) {
+inline void Client::set_coordy(float value) {
   _internal_set_coordy(value);
   // @@protoc_insertion_point(field_set:protocol.Client.coordY)
 }
 
-// optional int32 coordZ = 7;
+// optional float coordZ = 7;
 inline bool Client::_internal_has_coordz() const {
   bool value = (_impl_._has_bits_[0] & 0x00000080u) != 0;
   return value;
@@ -942,18 +942,18 @@ inline void Client::clear_coordz() {
   _impl_.coordz_ = 0;
   _impl_._has_bits_[0] &= ~0x00000080u;
 }
-inline int32_t Client::_internal_coordz() const {
+inline float Client::_internal_coordz() const {
   return _impl_.coordz_;
 }
-inline int32_t Client::coordz() const {
+inline float Client::coordz() const {
   // @@protoc_insertion_point(field_get:protocol.Client.coordZ)
   return _internal_coordz();
 }
-inline void Client::_internal_set_coordz(int32_t value) {
+inline void Client::_internal_set_coordz(float value) {
   _impl_._has_bits_[0] |= 0x00000080u;
   _impl_.coordz_ = value;
 }
-inline void Client::set_coordz(int32_t value) {
+inline void Client::set_coordz(float value) {
   _internal_set_coordz(value);
   // @@protoc_insertion_point(field_set:protocol.Client.coordZ)
 }
@@ -1333,7 +1333,7 @@ inline void Server::set_audionum(int32_t value) {
   // @@protoc_insertion_point(field_set:protocol.Server.audioNum)
 }
 
-// optional int32 coordX = 5;
+// optional float coordX = 5;
 inline bool Server::_internal_has_coordx() const {
   bool value = (_impl_._has_bits_[0] & 0x00000008u) != 0;
   return value;
@@ -1345,23 +1345,23 @@ inline void Server::clear_coordx() {
   _impl_.coordx_ = 0;
   _impl_._has_bits_[0] &= ~0x00000008u;
 }
-inline int32_t Server::_internal_coordx() const {
+inline float Server::_internal_coordx() const {
   return _impl_.coordx_;
 }
-inline int32_t Server::coordx() const {
+inline float Server::coordx() const {
   // @@protoc_insertion_point(field_get:protocol.Server.coordX)
   return _internal_coordx();
 }
-inline void Server::_internal_set_coordx(int32_t value) {
+inline void Server::_internal_set_coordx(float value) {
   _impl_._has_bits_[0] |= 0x00000008u;
   _impl_.coordx_ = value;
 }
-inline void Server::set_coordx(int32_t value) {
+inline void Server::set_coordx(float value) {
   _internal_set_coordx(value);
   // @@protoc_insertion_point(field_set:protocol.Server.coordX)
 }
 
-// optional int32 coordY = 6;
+// optional float coordY = 6;
 inline bool Server::_internal_has_coordy() const {
   bool value = (_impl_._has_bits_[0] & 0x00000040u) != 0;
   return value;
@@ -1373,23 +1373,23 @@ inline void Server::clear_coordy() {
   _impl_.coordy_ = 0;
   _impl_._has_bits_[0] &= ~0x00000040u;
 }
-inline int32_t Server::_internal_coordy() const {
+inline float Server::_internal_coordy() const {
   return _impl_.coordy_;
 }
-inline int32_t Server::coordy() const {
+inline float Server::coordy() const {
   // @@protoc_insertion_point(field_get:protocol.Server.coordY)
   return _internal_coordy();
 }
-inline void Server::_internal_set_coordy(int32_t value) {
+inline void Server::_internal_set_coordy(float value) {
   _impl_._has_bits_[0] |= 0x00000040u;
   _impl_.coordy_ = value;
 }
-inline void Server::set_coordy(int32_t value) {
+inline void Server::set_coordy(float value) {
   _internal_set_coordy(value);
   // @@protoc_insertion_point(field_set:protocol.Server.coordY)
 }
 
-// optional int32 coordZ = 7;
+// optional float coordZ = 7;
 inline bool Server::_internal_has_coordz() const {
   bool value = (_impl_._has_bits_[0] & 0x00000080u) != 0;
   return value;
@@ -1401,18 +1401,18 @@ inline void Server::clear_coordz() {
   _impl_.coordz_ = 0;
   _impl_._has_bits_[0] &= ~0x00000080u;
 }
-inline int32_t Server::_internal_coordz() const {
+inline float Server::_internal_coordz() const {
   return _impl_.coordz_;
 }
-inline int32_t Server::coordz() const {
+inline float Server::coordz() const {
   // @@protoc_insertion_point(field_get:protocol.Server.coordZ)
   return _internal_coordz();
 }
-inline void Server::_internal_set_coordz(int32_t value) {
+inline void Server::_internal_set_coordz(float value) {
   _impl_._has_bits_[0] |= 0x00000080u;
   _impl_.coordz_ = value;
 }
-inline void Server::set_coordz(int32_t value) {
+inline void Server::set_coordz(float value) {
   _internal_set_coordz(value);
   // @@protoc_insertion_point(field_set:protocol.Server.coordZ)
 }
@@ -1473,32 +1473,32 @@ inline void Server::set_sampletime(int32_t value) {
   // @@protoc_insertion_point(field_set:protocol.Server.sampleTime)
 }
 
-// optional bool notConnected = 10;
-inline bool Server::_internal_has_notconnected() const {
+// optional bool isAllOK = 10;
+inline bool Server::_internal_has_isallok() const {
   bool value = (_impl_._has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
-inline bool Server::has_notconnected() const {
-  return _internal_has_notconnected();
+inline bool Server::has_isallok() const {
+  return _internal_has_isallok();
 }
-inline void Server::clear_notconnected() {
-  _impl_.notconnected_ = false;
+inline void Server::clear_isallok() {
+  _impl_.isallok_ = false;
   _impl_._has_bits_[0] &= ~0x00000020u;
 }
-inline bool Server::_internal_notconnected() const {
-  return _impl_.notconnected_;
+inline bool Server::_internal_isallok() const {
+  return _impl_.isallok_;
 }
-inline bool Server::notconnected() const {
-  // @@protoc_insertion_point(field_get:protocol.Server.notConnected)
-  return _internal_notconnected();
+inline bool Server::isallok() const {
+  // @@protoc_insertion_point(field_get:protocol.Server.isAllOK)
+  return _internal_isallok();
 }
-inline void Server::_internal_set_notconnected(bool value) {
+inline void Server::_internal_set_isallok(bool value) {
   _impl_._has_bits_[0] |= 0x00000020u;
-  _impl_.notconnected_ = value;
+  _impl_.isallok_ = value;
 }
-inline void Server::set_notconnected(bool value) {
-  _internal_set_notconnected(value);
-  // @@protoc_insertion_point(field_set:protocol.Server.notConnected)
+inline void Server::set_isallok(bool value) {
+  _internal_set_isallok(value);
+  // @@protoc_insertion_point(field_set:protocol.Server.isAllOK)
 }
 
 // optional .google.protobuf.Timestamp packetTime = 11;

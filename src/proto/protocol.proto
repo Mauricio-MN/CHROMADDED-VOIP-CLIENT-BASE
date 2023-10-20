@@ -11,9 +11,9 @@ message Client {
   optional int32 id = 2;  // Unique public ID number for this person.
   optional bytes audio = 3;
   optional int32 audioNum = 4;
-  optional int32 coordX = 5;
-  optional int32 coordY = 6;
-  optional int32 coordZ = 7;
+  optional float coordX = 5;
+  optional float coordY = 6;
+  optional float coordZ = 7;
   optional int32 mapNum = 8;
   optional int32 blockPlayer_id = 9;
   optional int32 talkInRoom_id = 10;
@@ -29,12 +29,12 @@ message Server {
   int32 id = 2;  // Unique public ID number for this person.
   optional bytes audio = 3;
   optional int32 audioNum = 4;
-  optional int32 coordX = 5;
-  optional int32 coordY = 6;
-  optional int32 coordZ = 7;
+  optional float coordX = 5;
+  optional float coordY = 6;
+  optional float coordZ = 7;
   optional int32 mapNum = 8;
   optional int32 sampleTime = 9;
-  optional bool notConnected = 10;
+  optional bool isAllOK = 10;
 
   optional google.protobuf.Timestamp packetTime = 11;
 }

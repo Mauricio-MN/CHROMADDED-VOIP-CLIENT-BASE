@@ -79,37 +79,37 @@ public final class Protocol {
     int getAudioNum();
 
     /**
-     * <code>optional int32 coordX = 5;</code>
+     * <code>optional float coordX = 5;</code>
      * @return Whether the coordX field is set.
      */
     boolean hasCoordX();
     /**
-     * <code>optional int32 coordX = 5;</code>
+     * <code>optional float coordX = 5;</code>
      * @return The coordX.
      */
-    int getCoordX();
+    float getCoordX();
 
     /**
-     * <code>optional int32 coordY = 6;</code>
+     * <code>optional float coordY = 6;</code>
      * @return Whether the coordY field is set.
      */
     boolean hasCoordY();
     /**
-     * <code>optional int32 coordY = 6;</code>
+     * <code>optional float coordY = 6;</code>
      * @return The coordY.
      */
-    int getCoordY();
+    float getCoordY();
 
     /**
-     * <code>optional int32 coordZ = 7;</code>
+     * <code>optional float coordZ = 7;</code>
      * @return Whether the coordZ field is set.
      */
     boolean hasCoordZ();
     /**
-     * <code>optional int32 coordZ = 7;</code>
+     * <code>optional float coordZ = 7;</code>
      * @return The coordZ.
      */
-    int getCoordZ();
+    float getCoordZ();
 
     /**
      * <code>optional int32 mapNum = 8;</code>
@@ -320,9 +320,9 @@ public final class Protocol {
     }
 
     public static final int COORDX_FIELD_NUMBER = 5;
-    private int coordX_ = 0;
+    private float coordX_ = 0F;
     /**
-     * <code>optional int32 coordX = 5;</code>
+     * <code>optional float coordX = 5;</code>
      * @return Whether the coordX field is set.
      */
     @java.lang.Override
@@ -330,18 +330,18 @@ public final class Protocol {
       return ((bitField0_ & 0x00000010) != 0);
     }
     /**
-     * <code>optional int32 coordX = 5;</code>
+     * <code>optional float coordX = 5;</code>
      * @return The coordX.
      */
     @java.lang.Override
-    public int getCoordX() {
+    public float getCoordX() {
       return coordX_;
     }
 
     public static final int COORDY_FIELD_NUMBER = 6;
-    private int coordY_ = 0;
+    private float coordY_ = 0F;
     /**
-     * <code>optional int32 coordY = 6;</code>
+     * <code>optional float coordY = 6;</code>
      * @return Whether the coordY field is set.
      */
     @java.lang.Override
@@ -349,18 +349,18 @@ public final class Protocol {
       return ((bitField0_ & 0x00000020) != 0);
     }
     /**
-     * <code>optional int32 coordY = 6;</code>
+     * <code>optional float coordY = 6;</code>
      * @return The coordY.
      */
     @java.lang.Override
-    public int getCoordY() {
+    public float getCoordY() {
       return coordY_;
     }
 
     public static final int COORDZ_FIELD_NUMBER = 7;
-    private int coordZ_ = 0;
+    private float coordZ_ = 0F;
     /**
-     * <code>optional int32 coordZ = 7;</code>
+     * <code>optional float coordZ = 7;</code>
      * @return Whether the coordZ field is set.
      */
     @java.lang.Override
@@ -368,11 +368,11 @@ public final class Protocol {
       return ((bitField0_ & 0x00000040) != 0);
     }
     /**
-     * <code>optional int32 coordZ = 7;</code>
+     * <code>optional float coordZ = 7;</code>
      * @return The coordZ.
      */
     @java.lang.Override
-    public int getCoordZ() {
+    public float getCoordZ() {
       return coordZ_;
     }
 
@@ -524,13 +524,13 @@ public final class Protocol {
         output.writeInt32(4, audioNum_);
       }
       if (((bitField0_ & 0x00000010) != 0)) {
-        output.writeInt32(5, coordX_);
+        output.writeFloat(5, coordX_);
       }
       if (((bitField0_ & 0x00000020) != 0)) {
-        output.writeInt32(6, coordY_);
+        output.writeFloat(6, coordY_);
       }
       if (((bitField0_ & 0x00000040) != 0)) {
-        output.writeInt32(7, coordZ_);
+        output.writeFloat(7, coordZ_);
       }
       if (((bitField0_ & 0x00000080) != 0)) {
         output.writeInt32(8, mapNum_);
@@ -577,15 +577,15 @@ public final class Protocol {
       }
       if (((bitField0_ & 0x00000010) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(5, coordX_);
+          .computeFloatSize(5, coordX_);
       }
       if (((bitField0_ & 0x00000020) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(6, coordY_);
+          .computeFloatSize(6, coordY_);
       }
       if (((bitField0_ & 0x00000040) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(7, coordZ_);
+          .computeFloatSize(7, coordZ_);
       }
       if (((bitField0_ & 0x00000080) != 0)) {
         size += com.google.protobuf.CodedOutputStream
@@ -648,18 +648,21 @@ public final class Protocol {
       }
       if (hasCoordX() != other.hasCoordX()) return false;
       if (hasCoordX()) {
-        if (getCoordX()
-            != other.getCoordX()) return false;
+        if (java.lang.Float.floatToIntBits(getCoordX())
+            != java.lang.Float.floatToIntBits(
+                other.getCoordX())) return false;
       }
       if (hasCoordY() != other.hasCoordY()) return false;
       if (hasCoordY()) {
-        if (getCoordY()
-            != other.getCoordY()) return false;
+        if (java.lang.Float.floatToIntBits(getCoordY())
+            != java.lang.Float.floatToIntBits(
+                other.getCoordY())) return false;
       }
       if (hasCoordZ() != other.hasCoordZ()) return false;
       if (hasCoordZ()) {
-        if (getCoordZ()
-            != other.getCoordZ()) return false;
+        if (java.lang.Float.floatToIntBits(getCoordZ())
+            != java.lang.Float.floatToIntBits(
+                other.getCoordZ())) return false;
       }
       if (hasMapNum() != other.hasMapNum()) return false;
       if (hasMapNum()) {
@@ -720,15 +723,18 @@ public final class Protocol {
       }
       if (hasCoordX()) {
         hash = (37 * hash) + COORDX_FIELD_NUMBER;
-        hash = (53 * hash) + getCoordX();
+        hash = (53 * hash) + java.lang.Float.floatToIntBits(
+            getCoordX());
       }
       if (hasCoordY()) {
         hash = (37 * hash) + COORDY_FIELD_NUMBER;
-        hash = (53 * hash) + getCoordY();
+        hash = (53 * hash) + java.lang.Float.floatToIntBits(
+            getCoordY());
       }
       if (hasCoordZ()) {
         hash = (37 * hash) + COORDZ_FIELD_NUMBER;
-        hash = (53 * hash) + getCoordZ();
+        hash = (53 * hash) + java.lang.Float.floatToIntBits(
+            getCoordZ());
       }
       if (hasMapNum()) {
         hash = (37 * hash) + MAPNUM_FIELD_NUMBER;
@@ -898,9 +904,9 @@ public final class Protocol {
         id_ = 0;
         audio_ = com.google.protobuf.ByteString.EMPTY;
         audioNum_ = 0;
-        coordX_ = 0;
-        coordY_ = 0;
-        coordZ_ = 0;
+        coordX_ = 0F;
+        coordY_ = 0F;
+        coordZ_ = 0F;
         mapNum_ = 0;
         blockPlayerId_ = 0;
         talkInRoomId_ = 0;
@@ -1131,21 +1137,21 @@ public final class Protocol {
                 bitField0_ |= 0x00000008;
                 break;
               } // case 32
-              case 40: {
-                coordX_ = input.readInt32();
+              case 45: {
+                coordX_ = input.readFloat();
                 bitField0_ |= 0x00000010;
                 break;
-              } // case 40
-              case 48: {
-                coordY_ = input.readInt32();
+              } // case 45
+              case 53: {
+                coordY_ = input.readFloat();
                 bitField0_ |= 0x00000020;
                 break;
-              } // case 48
-              case 56: {
-                coordZ_ = input.readInt32();
+              } // case 53
+              case 61: {
+                coordZ_ = input.readFloat();
                 bitField0_ |= 0x00000040;
                 break;
-              } // case 56
+              } // case 61
               case 64: {
                 mapNum_ = input.readInt32();
                 bitField0_ |= 0x00000080;
@@ -1387,9 +1393,9 @@ public final class Protocol {
         return this;
       }
 
-      private int coordX_ ;
+      private float coordX_ ;
       /**
-       * <code>optional int32 coordX = 5;</code>
+       * <code>optional float coordX = 5;</code>
        * @return Whether the coordX field is set.
        */
       @java.lang.Override
@@ -1397,19 +1403,19 @@ public final class Protocol {
         return ((bitField0_ & 0x00000010) != 0);
       }
       /**
-       * <code>optional int32 coordX = 5;</code>
+       * <code>optional float coordX = 5;</code>
        * @return The coordX.
        */
       @java.lang.Override
-      public int getCoordX() {
+      public float getCoordX() {
         return coordX_;
       }
       /**
-       * <code>optional int32 coordX = 5;</code>
+       * <code>optional float coordX = 5;</code>
        * @param value The coordX to set.
        * @return This builder for chaining.
        */
-      public Builder setCoordX(int value) {
+      public Builder setCoordX(float value) {
         
         coordX_ = value;
         bitField0_ |= 0x00000010;
@@ -1417,19 +1423,19 @@ public final class Protocol {
         return this;
       }
       /**
-       * <code>optional int32 coordX = 5;</code>
+       * <code>optional float coordX = 5;</code>
        * @return This builder for chaining.
        */
       public Builder clearCoordX() {
         bitField0_ = (bitField0_ & ~0x00000010);
-        coordX_ = 0;
+        coordX_ = 0F;
         onChanged();
         return this;
       }
 
-      private int coordY_ ;
+      private float coordY_ ;
       /**
-       * <code>optional int32 coordY = 6;</code>
+       * <code>optional float coordY = 6;</code>
        * @return Whether the coordY field is set.
        */
       @java.lang.Override
@@ -1437,19 +1443,19 @@ public final class Protocol {
         return ((bitField0_ & 0x00000020) != 0);
       }
       /**
-       * <code>optional int32 coordY = 6;</code>
+       * <code>optional float coordY = 6;</code>
        * @return The coordY.
        */
       @java.lang.Override
-      public int getCoordY() {
+      public float getCoordY() {
         return coordY_;
       }
       /**
-       * <code>optional int32 coordY = 6;</code>
+       * <code>optional float coordY = 6;</code>
        * @param value The coordY to set.
        * @return This builder for chaining.
        */
-      public Builder setCoordY(int value) {
+      public Builder setCoordY(float value) {
         
         coordY_ = value;
         bitField0_ |= 0x00000020;
@@ -1457,19 +1463,19 @@ public final class Protocol {
         return this;
       }
       /**
-       * <code>optional int32 coordY = 6;</code>
+       * <code>optional float coordY = 6;</code>
        * @return This builder for chaining.
        */
       public Builder clearCoordY() {
         bitField0_ = (bitField0_ & ~0x00000020);
-        coordY_ = 0;
+        coordY_ = 0F;
         onChanged();
         return this;
       }
 
-      private int coordZ_ ;
+      private float coordZ_ ;
       /**
-       * <code>optional int32 coordZ = 7;</code>
+       * <code>optional float coordZ = 7;</code>
        * @return Whether the coordZ field is set.
        */
       @java.lang.Override
@@ -1477,19 +1483,19 @@ public final class Protocol {
         return ((bitField0_ & 0x00000040) != 0);
       }
       /**
-       * <code>optional int32 coordZ = 7;</code>
+       * <code>optional float coordZ = 7;</code>
        * @return The coordZ.
        */
       @java.lang.Override
-      public int getCoordZ() {
+      public float getCoordZ() {
         return coordZ_;
       }
       /**
-       * <code>optional int32 coordZ = 7;</code>
+       * <code>optional float coordZ = 7;</code>
        * @param value The coordZ to set.
        * @return This builder for chaining.
        */
-      public Builder setCoordZ(int value) {
+      public Builder setCoordZ(float value) {
         
         coordZ_ = value;
         bitField0_ |= 0x00000040;
@@ -1497,12 +1503,12 @@ public final class Protocol {
         return this;
       }
       /**
-       * <code>optional int32 coordZ = 7;</code>
+       * <code>optional float coordZ = 7;</code>
        * @return This builder for chaining.
        */
       public Builder clearCoordZ() {
         bitField0_ = (bitField0_ & ~0x00000040);
-        coordZ_ = 0;
+        coordZ_ = 0F;
         onChanged();
         return this;
       }
@@ -1937,37 +1943,37 @@ public final class Protocol {
     int getAudioNum();
 
     /**
-     * <code>optional int32 coordX = 5;</code>
+     * <code>optional float coordX = 5;</code>
      * @return Whether the coordX field is set.
      */
     boolean hasCoordX();
     /**
-     * <code>optional int32 coordX = 5;</code>
+     * <code>optional float coordX = 5;</code>
      * @return The coordX.
      */
-    int getCoordX();
+    float getCoordX();
 
     /**
-     * <code>optional int32 coordY = 6;</code>
+     * <code>optional float coordY = 6;</code>
      * @return Whether the coordY field is set.
      */
     boolean hasCoordY();
     /**
-     * <code>optional int32 coordY = 6;</code>
+     * <code>optional float coordY = 6;</code>
      * @return The coordY.
      */
-    int getCoordY();
+    float getCoordY();
 
     /**
-     * <code>optional int32 coordZ = 7;</code>
+     * <code>optional float coordZ = 7;</code>
      * @return Whether the coordZ field is set.
      */
     boolean hasCoordZ();
     /**
-     * <code>optional int32 coordZ = 7;</code>
+     * <code>optional float coordZ = 7;</code>
      * @return The coordZ.
      */
-    int getCoordZ();
+    float getCoordZ();
 
     /**
      * <code>optional int32 mapNum = 8;</code>
@@ -1992,15 +1998,15 @@ public final class Protocol {
     int getSampleTime();
 
     /**
-     * <code>optional bool notConnected = 10;</code>
-     * @return Whether the notConnected field is set.
+     * <code>optional bool isAllOK = 10;</code>
+     * @return Whether the isAllOK field is set.
      */
-    boolean hasNotConnected();
+    boolean hasIsAllOK();
     /**
-     * <code>optional bool notConnected = 10;</code>
-     * @return The notConnected.
+     * <code>optional bool isAllOK = 10;</code>
+     * @return The isAllOK.
      */
-    boolean getNotConnected();
+    boolean getIsAllOK();
 
     /**
      * <code>optional .google.protobuf.Timestamp packetTime = 11;</code>
@@ -2132,9 +2138,9 @@ public final class Protocol {
     }
 
     public static final int COORDX_FIELD_NUMBER = 5;
-    private int coordX_ = 0;
+    private float coordX_ = 0F;
     /**
-     * <code>optional int32 coordX = 5;</code>
+     * <code>optional float coordX = 5;</code>
      * @return Whether the coordX field is set.
      */
     @java.lang.Override
@@ -2142,18 +2148,18 @@ public final class Protocol {
       return ((bitField0_ & 0x00000008) != 0);
     }
     /**
-     * <code>optional int32 coordX = 5;</code>
+     * <code>optional float coordX = 5;</code>
      * @return The coordX.
      */
     @java.lang.Override
-    public int getCoordX() {
+    public float getCoordX() {
       return coordX_;
     }
 
     public static final int COORDY_FIELD_NUMBER = 6;
-    private int coordY_ = 0;
+    private float coordY_ = 0F;
     /**
-     * <code>optional int32 coordY = 6;</code>
+     * <code>optional float coordY = 6;</code>
      * @return Whether the coordY field is set.
      */
     @java.lang.Override
@@ -2161,18 +2167,18 @@ public final class Protocol {
       return ((bitField0_ & 0x00000010) != 0);
     }
     /**
-     * <code>optional int32 coordY = 6;</code>
+     * <code>optional float coordY = 6;</code>
      * @return The coordY.
      */
     @java.lang.Override
-    public int getCoordY() {
+    public float getCoordY() {
       return coordY_;
     }
 
     public static final int COORDZ_FIELD_NUMBER = 7;
-    private int coordZ_ = 0;
+    private float coordZ_ = 0F;
     /**
-     * <code>optional int32 coordZ = 7;</code>
+     * <code>optional float coordZ = 7;</code>
      * @return Whether the coordZ field is set.
      */
     @java.lang.Override
@@ -2180,11 +2186,11 @@ public final class Protocol {
       return ((bitField0_ & 0x00000020) != 0);
     }
     /**
-     * <code>optional int32 coordZ = 7;</code>
+     * <code>optional float coordZ = 7;</code>
      * @return The coordZ.
      */
     @java.lang.Override
-    public int getCoordZ() {
+    public float getCoordZ() {
       return coordZ_;
     }
 
@@ -2226,23 +2232,23 @@ public final class Protocol {
       return sampleTime_;
     }
 
-    public static final int NOTCONNECTED_FIELD_NUMBER = 10;
-    private boolean notConnected_ = false;
+    public static final int ISALLOK_FIELD_NUMBER = 10;
+    private boolean isAllOK_ = false;
     /**
-     * <code>optional bool notConnected = 10;</code>
-     * @return Whether the notConnected field is set.
+     * <code>optional bool isAllOK = 10;</code>
+     * @return Whether the isAllOK field is set.
      */
     @java.lang.Override
-    public boolean hasNotConnected() {
+    public boolean hasIsAllOK() {
       return ((bitField0_ & 0x00000100) != 0);
     }
     /**
-     * <code>optional bool notConnected = 10;</code>
-     * @return The notConnected.
+     * <code>optional bool isAllOK = 10;</code>
+     * @return The isAllOK.
      */
     @java.lang.Override
-    public boolean getNotConnected() {
-      return notConnected_;
+    public boolean getIsAllOK() {
+      return isAllOK_;
     }
 
     public static final int PACKETTIME_FIELD_NUMBER = 11;
@@ -2298,13 +2304,13 @@ public final class Protocol {
         output.writeInt32(4, audioNum_);
       }
       if (((bitField0_ & 0x00000008) != 0)) {
-        output.writeInt32(5, coordX_);
+        output.writeFloat(5, coordX_);
       }
       if (((bitField0_ & 0x00000010) != 0)) {
-        output.writeInt32(6, coordY_);
+        output.writeFloat(6, coordY_);
       }
       if (((bitField0_ & 0x00000020) != 0)) {
-        output.writeInt32(7, coordZ_);
+        output.writeFloat(7, coordZ_);
       }
       if (((bitField0_ & 0x00000040) != 0)) {
         output.writeInt32(8, mapNum_);
@@ -2313,7 +2319,7 @@ public final class Protocol {
         output.writeInt32(9, sampleTime_);
       }
       if (((bitField0_ & 0x00000100) != 0)) {
-        output.writeBool(10, notConnected_);
+        output.writeBool(10, isAllOK_);
       }
       if (((bitField0_ & 0x00000200) != 0)) {
         output.writeMessage(11, getPacketTime());
@@ -2345,15 +2351,15 @@ public final class Protocol {
       }
       if (((bitField0_ & 0x00000008) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(5, coordX_);
+          .computeFloatSize(5, coordX_);
       }
       if (((bitField0_ & 0x00000010) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(6, coordY_);
+          .computeFloatSize(6, coordY_);
       }
       if (((bitField0_ & 0x00000020) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(7, coordZ_);
+          .computeFloatSize(7, coordZ_);
       }
       if (((bitField0_ & 0x00000040) != 0)) {
         size += com.google.protobuf.CodedOutputStream
@@ -2365,7 +2371,7 @@ public final class Protocol {
       }
       if (((bitField0_ & 0x00000100) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(10, notConnected_);
+          .computeBoolSize(10, isAllOK_);
       }
       if (((bitField0_ & 0x00000200) != 0)) {
         size += com.google.protobuf.CodedOutputStream
@@ -2405,18 +2411,21 @@ public final class Protocol {
       }
       if (hasCoordX() != other.hasCoordX()) return false;
       if (hasCoordX()) {
-        if (getCoordX()
-            != other.getCoordX()) return false;
+        if (java.lang.Float.floatToIntBits(getCoordX())
+            != java.lang.Float.floatToIntBits(
+                other.getCoordX())) return false;
       }
       if (hasCoordY() != other.hasCoordY()) return false;
       if (hasCoordY()) {
-        if (getCoordY()
-            != other.getCoordY()) return false;
+        if (java.lang.Float.floatToIntBits(getCoordY())
+            != java.lang.Float.floatToIntBits(
+                other.getCoordY())) return false;
       }
       if (hasCoordZ() != other.hasCoordZ()) return false;
       if (hasCoordZ()) {
-        if (getCoordZ()
-            != other.getCoordZ()) return false;
+        if (java.lang.Float.floatToIntBits(getCoordZ())
+            != java.lang.Float.floatToIntBits(
+                other.getCoordZ())) return false;
       }
       if (hasMapNum() != other.hasMapNum()) return false;
       if (hasMapNum()) {
@@ -2428,10 +2437,10 @@ public final class Protocol {
         if (getSampleTime()
             != other.getSampleTime()) return false;
       }
-      if (hasNotConnected() != other.hasNotConnected()) return false;
-      if (hasNotConnected()) {
-        if (getNotConnected()
-            != other.getNotConnected()) return false;
+      if (hasIsAllOK() != other.hasIsAllOK()) return false;
+      if (hasIsAllOK()) {
+        if (getIsAllOK()
+            != other.getIsAllOK()) return false;
       }
       if (hasPacketTime() != other.hasPacketTime()) return false;
       if (hasPacketTime()) {
@@ -2466,15 +2475,18 @@ public final class Protocol {
       }
       if (hasCoordX()) {
         hash = (37 * hash) + COORDX_FIELD_NUMBER;
-        hash = (53 * hash) + getCoordX();
+        hash = (53 * hash) + java.lang.Float.floatToIntBits(
+            getCoordX());
       }
       if (hasCoordY()) {
         hash = (37 * hash) + COORDY_FIELD_NUMBER;
-        hash = (53 * hash) + getCoordY();
+        hash = (53 * hash) + java.lang.Float.floatToIntBits(
+            getCoordY());
       }
       if (hasCoordZ()) {
         hash = (37 * hash) + COORDZ_FIELD_NUMBER;
-        hash = (53 * hash) + getCoordZ();
+        hash = (53 * hash) + java.lang.Float.floatToIntBits(
+            getCoordZ());
       }
       if (hasMapNum()) {
         hash = (37 * hash) + MAPNUM_FIELD_NUMBER;
@@ -2484,10 +2496,10 @@ public final class Protocol {
         hash = (37 * hash) + SAMPLETIME_FIELD_NUMBER;
         hash = (53 * hash) + getSampleTime();
       }
-      if (hasNotConnected()) {
-        hash = (37 * hash) + NOTCONNECTED_FIELD_NUMBER;
+      if (hasIsAllOK()) {
+        hash = (37 * hash) + ISALLOK_FIELD_NUMBER;
         hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-            getNotConnected());
+            getIsAllOK());
       }
       if (hasPacketTime()) {
         hash = (37 * hash) + PACKETTIME_FIELD_NUMBER;
@@ -2632,12 +2644,12 @@ public final class Protocol {
         id_ = 0;
         audio_ = com.google.protobuf.ByteString.EMPTY;
         audioNum_ = 0;
-        coordX_ = 0;
-        coordY_ = 0;
-        coordZ_ = 0;
+        coordX_ = 0F;
+        coordY_ = 0F;
+        coordZ_ = 0F;
         mapNum_ = 0;
         sampleTime_ = 0;
-        notConnected_ = false;
+        isAllOK_ = false;
         packetTime_ = null;
         if (packetTimeBuilder_ != null) {
           packetTimeBuilder_.dispose();
@@ -2713,7 +2725,7 @@ public final class Protocol {
           to_bitField0_ |= 0x00000080;
         }
         if (((from_bitField0_ & 0x00000200) != 0)) {
-          result.notConnected_ = notConnected_;
+          result.isAllOK_ = isAllOK_;
           to_bitField0_ |= 0x00000100;
         }
         if (((from_bitField0_ & 0x00000400) != 0)) {
@@ -2796,8 +2808,8 @@ public final class Protocol {
         if (other.hasSampleTime()) {
           setSampleTime(other.getSampleTime());
         }
-        if (other.hasNotConnected()) {
-          setNotConnected(other.getNotConnected());
+        if (other.hasIsAllOK()) {
+          setIsAllOK(other.getIsAllOK());
         }
         if (other.hasPacketTime()) {
           mergePacketTime(other.getPacketTime());
@@ -2848,21 +2860,21 @@ public final class Protocol {
                 bitField0_ |= 0x00000008;
                 break;
               } // case 32
-              case 40: {
-                coordX_ = input.readInt32();
+              case 45: {
+                coordX_ = input.readFloat();
                 bitField0_ |= 0x00000010;
                 break;
-              } // case 40
-              case 48: {
-                coordY_ = input.readInt32();
+              } // case 45
+              case 53: {
+                coordY_ = input.readFloat();
                 bitField0_ |= 0x00000020;
                 break;
-              } // case 48
-              case 56: {
-                coordZ_ = input.readInt32();
+              } // case 53
+              case 61: {
+                coordZ_ = input.readFloat();
                 bitField0_ |= 0x00000040;
                 break;
-              } // case 56
+              } // case 61
               case 64: {
                 mapNum_ = input.readInt32();
                 bitField0_ |= 0x00000080;
@@ -2874,7 +2886,7 @@ public final class Protocol {
                 break;
               } // case 72
               case 80: {
-                notConnected_ = input.readBool();
+                isAllOK_ = input.readBool();
                 bitField0_ |= 0x00000200;
                 break;
               } // case 80
@@ -3066,9 +3078,9 @@ public final class Protocol {
         return this;
       }
 
-      private int coordX_ ;
+      private float coordX_ ;
       /**
-       * <code>optional int32 coordX = 5;</code>
+       * <code>optional float coordX = 5;</code>
        * @return Whether the coordX field is set.
        */
       @java.lang.Override
@@ -3076,19 +3088,19 @@ public final class Protocol {
         return ((bitField0_ & 0x00000010) != 0);
       }
       /**
-       * <code>optional int32 coordX = 5;</code>
+       * <code>optional float coordX = 5;</code>
        * @return The coordX.
        */
       @java.lang.Override
-      public int getCoordX() {
+      public float getCoordX() {
         return coordX_;
       }
       /**
-       * <code>optional int32 coordX = 5;</code>
+       * <code>optional float coordX = 5;</code>
        * @param value The coordX to set.
        * @return This builder for chaining.
        */
-      public Builder setCoordX(int value) {
+      public Builder setCoordX(float value) {
         
         coordX_ = value;
         bitField0_ |= 0x00000010;
@@ -3096,19 +3108,19 @@ public final class Protocol {
         return this;
       }
       /**
-       * <code>optional int32 coordX = 5;</code>
+       * <code>optional float coordX = 5;</code>
        * @return This builder for chaining.
        */
       public Builder clearCoordX() {
         bitField0_ = (bitField0_ & ~0x00000010);
-        coordX_ = 0;
+        coordX_ = 0F;
         onChanged();
         return this;
       }
 
-      private int coordY_ ;
+      private float coordY_ ;
       /**
-       * <code>optional int32 coordY = 6;</code>
+       * <code>optional float coordY = 6;</code>
        * @return Whether the coordY field is set.
        */
       @java.lang.Override
@@ -3116,19 +3128,19 @@ public final class Protocol {
         return ((bitField0_ & 0x00000020) != 0);
       }
       /**
-       * <code>optional int32 coordY = 6;</code>
+       * <code>optional float coordY = 6;</code>
        * @return The coordY.
        */
       @java.lang.Override
-      public int getCoordY() {
+      public float getCoordY() {
         return coordY_;
       }
       /**
-       * <code>optional int32 coordY = 6;</code>
+       * <code>optional float coordY = 6;</code>
        * @param value The coordY to set.
        * @return This builder for chaining.
        */
-      public Builder setCoordY(int value) {
+      public Builder setCoordY(float value) {
         
         coordY_ = value;
         bitField0_ |= 0x00000020;
@@ -3136,19 +3148,19 @@ public final class Protocol {
         return this;
       }
       /**
-       * <code>optional int32 coordY = 6;</code>
+       * <code>optional float coordY = 6;</code>
        * @return This builder for chaining.
        */
       public Builder clearCoordY() {
         bitField0_ = (bitField0_ & ~0x00000020);
-        coordY_ = 0;
+        coordY_ = 0F;
         onChanged();
         return this;
       }
 
-      private int coordZ_ ;
+      private float coordZ_ ;
       /**
-       * <code>optional int32 coordZ = 7;</code>
+       * <code>optional float coordZ = 7;</code>
        * @return Whether the coordZ field is set.
        */
       @java.lang.Override
@@ -3156,19 +3168,19 @@ public final class Protocol {
         return ((bitField0_ & 0x00000040) != 0);
       }
       /**
-       * <code>optional int32 coordZ = 7;</code>
+       * <code>optional float coordZ = 7;</code>
        * @return The coordZ.
        */
       @java.lang.Override
-      public int getCoordZ() {
+      public float getCoordZ() {
         return coordZ_;
       }
       /**
-       * <code>optional int32 coordZ = 7;</code>
+       * <code>optional float coordZ = 7;</code>
        * @param value The coordZ to set.
        * @return This builder for chaining.
        */
-      public Builder setCoordZ(int value) {
+      public Builder setCoordZ(float value) {
         
         coordZ_ = value;
         bitField0_ |= 0x00000040;
@@ -3176,12 +3188,12 @@ public final class Protocol {
         return this;
       }
       /**
-       * <code>optional int32 coordZ = 7;</code>
+       * <code>optional float coordZ = 7;</code>
        * @return This builder for chaining.
        */
       public Builder clearCoordZ() {
         bitField0_ = (bitField0_ & ~0x00000040);
-        coordZ_ = 0;
+        coordZ_ = 0F;
         onChanged();
         return this;
       }
@@ -3266,42 +3278,42 @@ public final class Protocol {
         return this;
       }
 
-      private boolean notConnected_ ;
+      private boolean isAllOK_ ;
       /**
-       * <code>optional bool notConnected = 10;</code>
-       * @return Whether the notConnected field is set.
+       * <code>optional bool isAllOK = 10;</code>
+       * @return Whether the isAllOK field is set.
        */
       @java.lang.Override
-      public boolean hasNotConnected() {
+      public boolean hasIsAllOK() {
         return ((bitField0_ & 0x00000200) != 0);
       }
       /**
-       * <code>optional bool notConnected = 10;</code>
-       * @return The notConnected.
+       * <code>optional bool isAllOK = 10;</code>
+       * @return The isAllOK.
        */
       @java.lang.Override
-      public boolean getNotConnected() {
-        return notConnected_;
+      public boolean getIsAllOK() {
+        return isAllOK_;
       }
       /**
-       * <code>optional bool notConnected = 10;</code>
-       * @param value The notConnected to set.
+       * <code>optional bool isAllOK = 10;</code>
+       * @param value The isAllOK to set.
        * @return This builder for chaining.
        */
-      public Builder setNotConnected(boolean value) {
+      public Builder setIsAllOK(boolean value) {
         
-        notConnected_ = value;
+        isAllOK_ = value;
         bitField0_ |= 0x00000200;
         onChanged();
         return this;
       }
       /**
-       * <code>optional bool notConnected = 10;</code>
+       * <code>optional bool isAllOK = 10;</code>
        * @return This builder for chaining.
        */
-      public Builder clearNotConnected() {
+      public Builder clearIsAllOK() {
         bitField0_ = (bitField0_ & ~0x00000200);
-        notConnected_ = false;
+        isAllOK_ = false;
         onChanged();
         return this;
       }
@@ -3511,8 +3523,8 @@ public final class Protocol {
       "buf/timestamp.proto\"\370\003\n\006Client\022\026\n\tsecret" +
       "_id\030\001 \001(\005H\000\210\001\001\022\017\n\002id\030\002 \001(\005H\001\210\001\001\022\022\n\005audio" +
       "\030\003 \001(\014H\002\210\001\001\022\025\n\010audioNum\030\004 \001(\005H\003\210\001\001\022\023\n\006co" +
-      "ordX\030\005 \001(\005H\004\210\001\001\022\023\n\006coordY\030\006 \001(\005H\005\210\001\001\022\023\n\006" +
-      "coordZ\030\007 \001(\005H\006\210\001\001\022\023\n\006mapNum\030\010 \001(\005H\007\210\001\001\022\033" +
+      "ordX\030\005 \001(\002H\004\210\001\001\022\023\n\006coordY\030\006 \001(\002H\005\210\001\001\022\023\n\006" +
+      "coordZ\030\007 \001(\002H\006\210\001\001\022\023\n\006mapNum\030\010 \001(\005H\007\210\001\001\022\033" +
       "\n\016blockPlayer_id\030\t \001(\005H\010\210\001\001\022\032\n\rtalkInRoo" +
       "m_id\030\n \001(\005H\t\210\001\001\022\026\n\ttalkLocal\030\013 \001(\010H\n\210\001\001\022" +
       "\027\n\nsampleTime\030\014 \001(\005H\013\210\001\001\0223\n\npacketTime\030\r" +
@@ -3521,18 +3533,17 @@ public final class Protocol {
       "mB\t\n\007_coordXB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_m" +
       "apNumB\021\n\017_blockPlayer_idB\020\n\016_talkInRoom_" +
       "idB\014\n\n_talkLocalB\r\n\013_sampleTimeB\r\n\013_pack" +
-      "etTime\"\224\003\n\006Server\022\026\n\thandShake\030\001 \001(\010H\000\210\001" +
+      "etTime\"\212\003\n\006Server\022\026\n\thandShake\030\001 \001(\010H\000\210\001" +
       "\001\022\n\n\002id\030\002 \001(\005\022\022\n\005audio\030\003 \001(\014H\001\210\001\001\022\025\n\010aud" +
-      "ioNum\030\004 \001(\005H\002\210\001\001\022\023\n\006coordX\030\005 \001(\005H\003\210\001\001\022\023\n" +
-      "\006coordY\030\006 \001(\005H\004\210\001\001\022\023\n\006coordZ\030\007 \001(\005H\005\210\001\001\022" +
+      "ioNum\030\004 \001(\005H\002\210\001\001\022\023\n\006coordX\030\005 \001(\002H\003\210\001\001\022\023\n" +
+      "\006coordY\030\006 \001(\002H\004\210\001\001\022\023\n\006coordZ\030\007 \001(\002H\005\210\001\001\022" +
       "\023\n\006mapNum\030\010 \001(\005H\006\210\001\001\022\027\n\nsampleTime\030\t \001(\005" +
-      "H\007\210\001\001\022\031\n\014notConnected\030\n \001(\010H\010\210\001\001\0223\n\npack" +
-      "etTime\030\013 \001(\0132\032.google.protobuf.Timestamp" +
-      "H\t\210\001\001B\014\n\n_handShakeB\010\n\006_audioB\013\n\t_audioN" +
-      "umB\t\n\007_coordXB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_" +
-      "mapNumB\r\n\013_sampleTimeB\017\n\r_notConnectedB\r" +
-      "\n\013_packetTimeB\026\n\024pasaud.voip.protocolb\006p" +
-      "roto3"
+      "H\007\210\001\001\022\024\n\007isAllOK\030\n \001(\010H\010\210\001\001\0223\n\npacketTim" +
+      "e\030\013 \001(\0132\032.google.protobuf.TimestampH\t\210\001\001" +
+      "B\014\n\n_handShakeB\010\n\006_audioB\013\n\t_audioNumB\t\n" +
+      "\007_coordXB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_mapNu" +
+      "mB\r\n\013_sampleTimeB\n\n\010_isAllOKB\r\n\013_packetT" +
+      "imeB\026\n\024pasaud.voip.protocolb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -3550,7 +3561,7 @@ public final class Protocol {
     internal_static_protocol_Server_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_protocol_Server_descriptor,
-        new java.lang.String[] { "HandShake", "Id", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "SampleTime", "NotConnected", "PacketTime", "HandShake", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "SampleTime", "NotConnected", "PacketTime", });
+        new java.lang.String[] { "HandShake", "Id", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "SampleTime", "IsAllOK", "PacketTime", "HandShake", "Audio", "AudioNum", "CoordX", "CoordY", "CoordZ", "MapNum", "SampleTime", "IsAllOK", "PacketTime", });
     com.google.protobuf.TimestampProto.getDescriptor();
   }
 

@@ -57,7 +57,7 @@ PROTOBUF_CONSTEXPR Server::Server(
   , /*decltype(_impl_.audionum_)*/0
   , /*decltype(_impl_.coordx_)*/0
   , /*decltype(_impl_.handshake_)*/false
-  , /*decltype(_impl_.notconnected_)*/false
+  , /*decltype(_impl_.isallok_)*/false
   , /*decltype(_impl_.coordy_)*/0
   , /*decltype(_impl_.coordz_)*/0
   , /*decltype(_impl_.mapnum_)*/0
@@ -124,7 +124,7 @@ const uint32_t TableStruct_protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.coordz_),
   PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.mapnum_),
   PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.sampletime_),
-  PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.notconnected_),
+  PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.isallok_),
   PROTOBUF_FIELD_OFFSET(::protocol::Server, _impl_.packettime_),
   4,
   ~0u,
@@ -153,8 +153,8 @@ const char descriptor_table_protodef_protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "buf/timestamp.proto\"\370\003\n\006Client\022\026\n\tsecret"
   "_id\030\001 \001(\005H\000\210\001\001\022\017\n\002id\030\002 \001(\005H\001\210\001\001\022\022\n\005audio"
   "\030\003 \001(\014H\002\210\001\001\022\025\n\010audioNum\030\004 \001(\005H\003\210\001\001\022\023\n\006co"
-  "ordX\030\005 \001(\005H\004\210\001\001\022\023\n\006coordY\030\006 \001(\005H\005\210\001\001\022\023\n\006"
-  "coordZ\030\007 \001(\005H\006\210\001\001\022\023\n\006mapNum\030\010 \001(\005H\007\210\001\001\022\033"
+  "ordX\030\005 \001(\002H\004\210\001\001\022\023\n\006coordY\030\006 \001(\002H\005\210\001\001\022\023\n\006"
+  "coordZ\030\007 \001(\002H\006\210\001\001\022\023\n\006mapNum\030\010 \001(\005H\007\210\001\001\022\033"
   "\n\016blockPlayer_id\030\t \001(\005H\010\210\001\001\022\032\n\rtalkInRoo"
   "m_id\030\n \001(\005H\t\210\001\001\022\026\n\ttalkLocal\030\013 \001(\010H\n\210\001\001\022"
   "\027\n\nsampleTime\030\014 \001(\005H\013\210\001\001\0223\n\npacketTime\030\r"
@@ -163,25 +163,24 @@ const char descriptor_table_protodef_protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "mB\t\n\007_coordXB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_m"
   "apNumB\021\n\017_blockPlayer_idB\020\n\016_talkInRoom_"
   "idB\014\n\n_talkLocalB\r\n\013_sampleTimeB\r\n\013_pack"
-  "etTime\"\224\003\n\006Server\022\026\n\thandShake\030\001 \001(\010H\000\210\001"
+  "etTime\"\212\003\n\006Server\022\026\n\thandShake\030\001 \001(\010H\000\210\001"
   "\001\022\n\n\002id\030\002 \001(\005\022\022\n\005audio\030\003 \001(\014H\001\210\001\001\022\025\n\010aud"
-  "ioNum\030\004 \001(\005H\002\210\001\001\022\023\n\006coordX\030\005 \001(\005H\003\210\001\001\022\023\n"
-  "\006coordY\030\006 \001(\005H\004\210\001\001\022\023\n\006coordZ\030\007 \001(\005H\005\210\001\001\022"
+  "ioNum\030\004 \001(\005H\002\210\001\001\022\023\n\006coordX\030\005 \001(\002H\003\210\001\001\022\023\n"
+  "\006coordY\030\006 \001(\002H\004\210\001\001\022\023\n\006coordZ\030\007 \001(\002H\005\210\001\001\022"
   "\023\n\006mapNum\030\010 \001(\005H\006\210\001\001\022\027\n\nsampleTime\030\t \001(\005"
-  "H\007\210\001\001\022\031\n\014notConnected\030\n \001(\010H\010\210\001\001\0223\n\npack"
-  "etTime\030\013 \001(\0132\032.google.protobuf.Timestamp"
-  "H\t\210\001\001B\014\n\n_handShakeB\010\n\006_audioB\013\n\t_audioN"
-  "umB\t\n\007_coordXB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_"
-  "mapNumB\r\n\013_sampleTimeB\017\n\r_notConnectedB\r"
-  "\n\013_packetTimeB\026\n\024pasaud.voip.protocolb\006p"
-  "roto3"
+  "H\007\210\001\001\022\024\n\007isAllOK\030\n \001(\010H\010\210\001\001\0223\n\npacketTim"
+  "e\030\013 \001(\0132\032.google.protobuf.TimestampH\t\210\001\001"
+  "B\014\n\n_handShakeB\010\n\006_audioB\013\n\t_audioNumB\t\n"
+  "\007_coordXB\t\n\007_coordYB\t\n\007_coordZB\t\n\007_mapNu"
+  "mB\r\n\013_sampleTimeB\n\n\010_isAllOKB\r\n\013_packetT"
+  "imeB\026\n\024pasaud.voip.protocolb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_protocol_2eproto_deps[1] = {
   &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
 static ::_pbi::once_flag descriptor_table_protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_protocol_2eproto = {
-    false, false, 1005, descriptor_table_protodef_protocol_2eproto,
+    false, false, 995, descriptor_table_protodef_protocol_2eproto,
     "protocol.proto",
     &descriptor_table_protocol_2eproto_once, descriptor_table_protocol_2eproto_deps, 1, 2,
     schemas, file_default_instances, TableStruct_protocol_2eproto::offsets,
@@ -414,30 +413,30 @@ const char* Client::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // optional int32 coordX = 5;
+      // optional float coordX = 5;
       case 5:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 45)) {
           _Internal::set_has_coordx(&has_bits);
-          _impl_.coordx_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
+          _impl_.coordx_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
         } else
           goto handle_unusual;
         continue;
-      // optional int32 coordY = 6;
+      // optional float coordY = 6;
       case 6:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 53)) {
           _Internal::set_has_coordy(&has_bits);
-          _impl_.coordy_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
+          _impl_.coordy_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
         } else
           goto handle_unusual;
         continue;
-      // optional int32 coordZ = 7;
+      // optional float coordZ = 7;
       case 7:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 61)) {
           _Internal::set_has_coordz(&has_bits);
-          _impl_.coordz_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
+          _impl_.coordz_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
         } else
           goto handle_unusual;
         continue;
@@ -548,22 +547,22 @@ uint8_t* Client::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteInt32ToArray(4, this->_internal_audionum(), target);
   }
 
-  // optional int32 coordX = 5;
+  // optional float coordX = 5;
   if (_internal_has_coordx()) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(5, this->_internal_coordx(), target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(5, this->_internal_coordx(), target);
   }
 
-  // optional int32 coordY = 6;
+  // optional float coordY = 6;
   if (_internal_has_coordy()) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(6, this->_internal_coordy(), target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(6, this->_internal_coordy(), target);
   }
 
-  // optional int32 coordZ = 7;
+  // optional float coordZ = 7;
   if (_internal_has_coordz()) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(7, this->_internal_coordz(), target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(7, this->_internal_coordz(), target);
   }
 
   // optional int32 mapNum = 8;
@@ -650,19 +649,19 @@ size_t Client::ByteSizeLong() const {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_audionum());
     }
 
-    // optional int32 coordX = 5;
+    // optional float coordX = 5;
     if (cached_has_bits & 0x00000020u) {
-      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_coordx());
+      total_size += 1 + 4;
     }
 
-    // optional int32 coordY = 6;
+    // optional float coordY = 6;
     if (cached_has_bits & 0x00000040u) {
-      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_coordy());
+      total_size += 1 + 4;
     }
 
-    // optional int32 coordZ = 7;
+    // optional float coordZ = 7;
     if (cached_has_bits & 0x00000080u) {
-      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_coordz());
+      total_size += 1 + 4;
     }
 
   }
@@ -825,7 +824,7 @@ class Server::_Internal {
   static void set_has_sampletime(HasBits* has_bits) {
     (*has_bits)[0] |= 512u;
   }
-  static void set_has_notconnected(HasBits* has_bits) {
+  static void set_has_isallok(HasBits* has_bits) {
     (*has_bits)[0] |= 32u;
   }
   static const ::PROTOBUF_NAMESPACE_ID::Timestamp& packettime(const Server* msg);
@@ -860,7 +859,7 @@ Server::Server(const Server& from)
     , decltype(_impl_.audionum_){}
     , decltype(_impl_.coordx_){}
     , decltype(_impl_.handshake_){}
-    , decltype(_impl_.notconnected_){}
+    , decltype(_impl_.isallok_){}
     , decltype(_impl_.coordy_){}
     , decltype(_impl_.coordz_){}
     , decltype(_impl_.mapnum_){}
@@ -897,7 +896,7 @@ inline void Server::SharedCtor(
     , decltype(_impl_.audionum_){0}
     , decltype(_impl_.coordx_){0}
     , decltype(_impl_.handshake_){false}
-    , decltype(_impl_.notconnected_){false}
+    , decltype(_impl_.isallok_){false}
     , decltype(_impl_.coordy_){0}
     , decltype(_impl_.coordz_){0}
     , decltype(_impl_.mapnum_){0}
@@ -1001,30 +1000,30 @@ const char* Server::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // optional int32 coordX = 5;
+      // optional float coordX = 5;
       case 5:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 45)) {
           _Internal::set_has_coordx(&has_bits);
-          _impl_.coordx_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
+          _impl_.coordx_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
         } else
           goto handle_unusual;
         continue;
-      // optional int32 coordY = 6;
+      // optional float coordY = 6;
       case 6:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 53)) {
           _Internal::set_has_coordy(&has_bits);
-          _impl_.coordy_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
+          _impl_.coordy_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
         } else
           goto handle_unusual;
         continue;
-      // optional int32 coordZ = 7;
+      // optional float coordZ = 7;
       case 7:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 61)) {
           _Internal::set_has_coordz(&has_bits);
-          _impl_.coordz_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
+          _impl_.coordz_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
         } else
           goto handle_unusual;
         continue;
@@ -1046,11 +1045,11 @@ const char* Server::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // optional bool notConnected = 10;
+      // optional bool isAllOK = 10;
       case 10:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
-          _Internal::set_has_notconnected(&has_bits);
-          _impl_.notconnected_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          _Internal::set_has_isallok(&has_bits);
+          _impl_.isallok_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -1117,22 +1116,22 @@ uint8_t* Server::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteInt32ToArray(4, this->_internal_audionum(), target);
   }
 
-  // optional int32 coordX = 5;
+  // optional float coordX = 5;
   if (_internal_has_coordx()) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(5, this->_internal_coordx(), target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(5, this->_internal_coordx(), target);
   }
 
-  // optional int32 coordY = 6;
+  // optional float coordY = 6;
   if (_internal_has_coordy()) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(6, this->_internal_coordy(), target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(6, this->_internal_coordy(), target);
   }
 
-  // optional int32 coordZ = 7;
+  // optional float coordZ = 7;
   if (_internal_has_coordz()) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(7, this->_internal_coordz(), target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(7, this->_internal_coordz(), target);
   }
 
   // optional int32 mapNum = 8;
@@ -1147,10 +1146,10 @@ uint8_t* Server::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteInt32ToArray(9, this->_internal_sampletime(), target);
   }
 
-  // optional bool notConnected = 10;
-  if (_internal_has_notconnected()) {
+  // optional bool isAllOK = 10;
+  if (_internal_has_isallok()) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteBoolToArray(10, this->_internal_notconnected(), target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(10, this->_internal_isallok(), target);
   }
 
   // optional .google.protobuf.Timestamp packetTime = 11;
@@ -1204,9 +1203,9 @@ size_t Server::ByteSizeLong() const {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_audionum());
     }
 
-    // optional int32 coordX = 5;
+    // optional float coordX = 5;
     if (cached_has_bits & 0x00000008u) {
-      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_coordx());
+      total_size += 1 + 4;
     }
 
     // optional bool handShake = 1;
@@ -1214,19 +1213,19 @@ size_t Server::ByteSizeLong() const {
       total_size += 1 + 1;
     }
 
-    // optional bool notConnected = 10;
+    // optional bool isAllOK = 10;
     if (cached_has_bits & 0x00000020u) {
       total_size += 1 + 1;
     }
 
-    // optional int32 coordY = 6;
+    // optional float coordY = 6;
     if (cached_has_bits & 0x00000040u) {
-      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_coordy());
+      total_size += 1 + 4;
     }
 
-    // optional int32 coordZ = 7;
+    // optional float coordZ = 7;
     if (cached_has_bits & 0x00000080u) {
-      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_coordz());
+      total_size += 1 + 4;
     }
 
   }
@@ -1284,7 +1283,7 @@ void Server::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBU
       _this->_impl_.handshake_ = from._impl_.handshake_;
     }
     if (cached_has_bits & 0x00000020u) {
-      _this->_impl_.notconnected_ = from._impl_.notconnected_;
+      _this->_impl_.isallok_ = from._impl_.isallok_;
     }
     if (cached_has_bits & 0x00000040u) {
       _this->_impl_.coordy_ = from._impl_.coordy_;
