@@ -18,9 +18,14 @@ namespace soundmanager
 
     bool NetworkBufferRecorder::onStart()
     {
+        if(firstStart){
+            firstStart = false;
+            setProcessingIntervalOverride(timeBuffer);
+            volume = 1.0F;
+        }
+        
         m_samples.clear();
         m_buffer = sf::SoundBuffer();
-        setProcessingIntervalOverride(timeBuffer);
         recording = true;
 
         return true;
@@ -58,10 +63,10 @@ namespace soundmanager
     }
 
     void NetworkBufferRecorder::setVolume(float value){
-        
+        volume = value;
     }
     float NetworkBufferRecorder::getVolume(){
-
+        return volume.load();
     }
 
     sf::SoundBuffer NetworkBufferRecorder::getBufferFromQueue(){

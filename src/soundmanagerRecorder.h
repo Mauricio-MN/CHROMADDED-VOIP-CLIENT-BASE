@@ -65,9 +65,10 @@ namespace soundmanager
         static void doNothingFunctionToBuffers DEFAULT_BUFFER_ARGS;
         void (*send)DEFAULT_BUFFER_ARGS = &doNothingFunctionToBuffers;
         bool listen = false;
-        sf::Time timeBuffer = sf::milliseconds(100);
+        sf::Time timeBuffer = sf::milliseconds(40);
         int sampleCountToProcess = 640;
         std::atomic<float> volume;
+        bool firstStart = true;
     };
 
 }
