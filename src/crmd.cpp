@@ -33,9 +33,16 @@
 
 #include "crpt.h"
 
-void CRMD_updateMyPos(int map, float x, float y, float z){
+void CRMD_updateMyPos(uint32_t map, float x, float y, float z){
   soundmanager::listener::movePos(x,y,z); 
   player::SelfImpl::getInstance().setPos(map, static_cast<int>(x), static_cast<int>(y), static_cast<int>(z));
+}
+
+void CRMD_updateMyPos_map(uint32_t map){
+
+}
+void CRMD_updateMyPos_coords(float x, float y, float z){
+  
 }
 
 void CRMD_updateMyRot(float x, float y, float z){ 
@@ -75,8 +82,8 @@ void CRMD_updatePlayerEchoEffect(uint32_t id, int value){
 void CRMD_removePlayer(uint32_t id){ 
   PlayersManagerImpl::getInstance().removePlayer(id);
 }
-void updateWaitAudioPacketsCount(int pktWaitCount){
-  PlayersManagerImpl::getInstance().setWaitAudioPackets(pktWaitCount);
+void CRMD_setAudioPacketWaitCount(int pktWaitCount){
+  
 }
 
 void CRMD_setTalkRoom(uint32_t id){
@@ -99,11 +106,10 @@ void CRMD_disableRecAudio(){
 }
 
 float CRMD_getMicVolume(){
-  soundmanager::RecorderImpl::getInstance().
-  
+  return soundmanager::RecorderImpl::getInstance().getVolume();
 }
 void CRMD_setMicVolume(float volume){
-  
+  soundmanager::RecorderImpl::getInstance().setVolume(volume);
 }
 
 float CRMD_getVolumeAudio(){
@@ -142,11 +148,16 @@ void disconnect(){
 
 bool initialized = false;
 
-void CRMD_init(uint32_t register_id, uint32_t id, char* hostname, size_t hostname_size, unsigned short port, unsigned char *key, float x, float y, float z, bool needEncrypt){
+void CRMD_init(uint32_t register_id, uint32_t id, char* hostname, size_t hostname_size, unsigned short port, unsigned char *key, uint32_t map, float x, float y, float z, bool needEncrypt){
   if(initialized == false){
     initialized = true;
 
+    data::buffer ivBuffer(IV_SIZE);
+    std::string iv("123456789012");
+    ivBuffer.writeover(0, iv.data(), IV_SIZE);
+
     ConfigImpl::getInstance().setCryptoKey(std::vector<char>(key, key + 32));
+    ConfigImpl::getInstance().setCryptoIV(ivBuffer.getVector());
     ConfigImpl::getInstance().setNeedCryptography(needEncrypt);
 
     player::SelfImpl::frabric(register_id, id);
@@ -156,7 +167,7 @@ void CRMD_init(uint32_t register_id, uint32_t id, char* hostname, size_t hostnam
     player::SelfImpl::getInstance().sendConnect();
 
     soundmanager::listener::movePos(x,y,z);
-    soundmanager::RecorderImpl::getInstance();
+    soundmanager::RecorderImpl::fabric(SAMPLE_RATE, sf::milliseconds(20));
     
   }
 }
