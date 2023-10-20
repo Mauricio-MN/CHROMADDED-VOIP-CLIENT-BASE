@@ -71,8 +71,14 @@ private:
 
 class RecorderImpl
 {
+    static bool initialized;
+    static int sampleRate;
+    static sf::Time packetTime;
+
+    static Recorder* instance;
 public:
     static Recorder &getInstance();
+    static void fabric(int _sampleRate, sf::Time _packetTime);
 };
 
 class NetworkAudioStream : public sf::SoundStream
@@ -82,9 +88,10 @@ public:
     /// Default constructor
     ///
     ////////////////////////////////////////////////////////////
-    NetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits) : m_offset(0), m_circular_temp(_sampleRate * 10)
+    NetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits) : m_offset(0)
     {
         // Set the sound parameters
+        canInitDelay = true;
         sampleTime = _sampleTime;
         sampleTime_MS = sampleTime.asMilliseconds();
         sampleCount = sampleTimeGetCount(_sampleTime, _sampleRate);
@@ -160,12 +167,7 @@ private:
     /// /see SoundStream::OnGetData
     ///
     ////////////////////////////////////////////////////////////
-    int failCount = 0;
-    bool alterPitch = false;
-    bool canIgnoreMutex = false;
-
-    int selectedSpeed = 0;
-    bool canInitDelay = true;
+    bool canInitDelay;
     bool onGetData(sf::SoundStream::Chunk& data) override
     {
         if(canInitDelay){
@@ -398,40 +400,6 @@ private:
             }
         }
         */
-
-        if(alterPitch){
-            alterPitch = false;
-            setPitch((float)1.0F);
-        }
-
-        m_tempBuffer.clear();
-
-        if(canIgnoreMutex){
-            std::swap(m_tempBuffer, m_swapSamples);
-            canIgnoreMutex = false;
-        } else {
-            std::scoped_lock lock(m_mutex);
-            std::swap(m_tempBuffer, m_swapSamples);
-        }
-
-        m_offset = 0;
-
-         // Fill audio data to pass to the stream
-        data.samples     = m_tempBuffer.data();
-        data.sampleCount = m_tempBuffer.size();
-
-        return false;
-    }
-
-
-    void tryIgnoreMutex(){
-        if(m_mutex.try_lock()){
-            canIgnoreMutex = true;
-            while(canIgnoreMutex){
-                sf::sleep(sf::milliseconds(1));
-            }
-            m_mutex.unlock();
-        }
     }
 
     ////////////////////////////////////////////////////////////
@@ -462,14 +430,9 @@ private:
     ////////////////////////////////////////////////////////////
     // Member data
     ////////////////////////////////////////////////////////////
-    std::recursive_mutex      m_mutex;
     std::vector<std::int16_t> m_samples;
-    std::vector<std::int16_t> m_swapSamples;
-    std::vector<std::int16_t> m_tempBuffer;
-    std::size_t               m_offset;
-    std::size_t               m_offset_last;
-    std::vector<std::int16_t> m_circular_temp;
     data::AudioQueue audioQueue;
+    std::size_t               m_offset;
 
     sf::Time sampleTime;
     int sampleTime_MS;
