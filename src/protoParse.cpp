@@ -25,86 +25,80 @@ protocolParser& protocolParserImpl::getInstance(){
 }
 
 void protocolParser::m_Parser_only THREAD_POOL_ARGS_NAMED{
-  OpusManager opusMng;
 
-  std::vector<protocol::Server> serverReceivedVect;
+  //OpusManager opusMng;
 
-  bool success = threadPoolL.pop(serverReceivedVect);
+  bool success = false;
+  protocol::Server serverReceived = threadPoolL.pop(threadId, success);
 
   if(!success){
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
     return;
   }
 
-  for(auto& serverReceived : serverReceivedVect){
+  if(!serverReceived.has_handshake() || serverReceived.handshake() == false){
+    if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.id())){
+      int sampleTime = SAMPLE_TIME_DEFAULT;
+      if(serverReceived.has_sampletime()){
+        sampleTime = serverReceived.sampletime();
+      }
+      PLAYER player(new Player(sf::milliseconds(sampleTime)));
+      player->id = serverReceived.id();
+      player->setPosition(0,0,0);
+      PlayersManagerImpl::getInstance().insertPlayer(player);
 
-    if(!serverReceived.has_handshake() || serverReceived.handshake() == false){
-      if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.id())){
+    }
+
+    Coords coordinate = player::SelfImpl::getInstance().getCoords();
+    bool altCoord = false;
+    if(serverReceived.has_coordx()){
+        coordinate.x = serverReceived.coordx();
+        altCoord = true;
+    }
+    if(serverReceived.has_coordy()){
+        coordinate.x = serverReceived.coordy();
+        altCoord = true;
+    }
+    if(serverReceived.has_coordz()){
+        coordinate.x = serverReceived.coordz();
+        altCoord = true;
+    }
+    if(altCoord){
+      player::SelfImpl::getInstance().setCoords(coordinate);
+    }
+
+    if(serverReceived.has_audio()){
+        PLAYER player = PlayersManagerImpl::getInstance().getPlayer(serverReceived.id());
+
+        int audioNum = 0;
         int sampleTime = SAMPLE_TIME_DEFAULT;
+        if(serverReceived.has_audionum()){
+          audioNum = serverReceived.audionum();
+        }
         if(serverReceived.has_sampletime()){
           sampleTime = serverReceived.sampletime();
         }
-        PLAYER player = PLAYER(new Player(sf::milliseconds(sampleTime)));
-        player->id = serverReceived.id();
-        player->setPosition(0,0,0);
-        PlayersManagerImpl::getInstance().insertPlayer(player);
 
-      }
+        int sampleCount = sampleTimeGetCount(sampleTime, SAMPLE_RATE);
+        data::buffer decodedAud =  opusManager->decode(
+          reinterpret_cast<const unsigned char*>(serverReceived.audio().data()), serverReceived.audio().size(), sampleCount);
 
-      Coords coordinate = player::SelfImpl::getInstance().getCoords();
-      bool altCoord = false;
-      if(serverReceived.has_coordx()){
-          coordinate.x = serverReceived.coordx();
-          altCoord = true;
-      }
-      if(serverReceived.has_coordy()){
-          coordinate.x = serverReceived.coordy();
-          altCoord = true;
-      }
-      if(serverReceived.has_coordz()){
-          coordinate.x = serverReceived.coordz();
-          altCoord = true;
-      }
-      if(altCoord){
-        player::SelfImpl::getInstance().setCoords(coordinate);
-      }
+        player->push(audioNum, decodedAud, sampleTime);
+    }
 
-      if(serverReceived.has_audio()){
-          PLAYER player = PlayersManagerImpl::getInstance().getPlayer(serverReceived.id());
-
-          int audioNum = 0;
-          int sampleTime = SAMPLE_TIME_DEFAULT;
-          if(serverReceived.has_audionum()){
-            audioNum = serverReceived.audionum();
-          }
-          if(serverReceived.has_sampletime()){
-            sampleTime = serverReceived.sampletime();
-          }
-
-          int sampleCount = sampleTimeGetCount(sampleTime, SAMPLE_RATE);
-          data::buffer decodedAud = opusMng.decode(
-            reinterpret_cast<const unsigned char*>(serverReceived.audio().data()), serverReceived.audio().size(), sampleCount);
-
-          player->push(audioNum, decodedAud, sampleTime);
-      }
-
-    } else {
-      if(serverReceived.handshake()){
-          if(serverReceived.id() == player::SelfImpl::getInstance().getMyID()){
-              player::SelfImpl::getInstance().setConnect(true);
-          }
-      }
+  } else {
+    if(serverReceived.handshake()){
+        if(serverReceived.id() == player::SelfImpl::getInstance().getMyID()){
+            player::SelfImpl::getInstance().setConnect(true);
+        }
     }
   }
+  
 }
 
 void protocolParser::parse(protocol::Server& serverReceived){
   //std::thread(&protocolParser::m_Parser_only, this, serverReceived).detach();
-
-  if(!threadPool.exist(serverReceived.id())){
-    threadPool.insertQueue(serverReceived.id());
-  }
-  threadPool.push(serverReceived.id(), serverReceived);
+  threadPool.push(serverReceived);
   //std::thread(&protocolParser::parser_Finder, this, serverReceived).detach();
 }
 
@@ -113,6 +107,12 @@ data::parseThreadPoll& protocolParser::getPool(){
 }
 
 protocolParser::protocolParser(){
+  threadPool.insertThread(&protocolParser::m_Parser_only);
+  threadPool.insertThread(&protocolParser::m_Parser_only);
+  threadPool.insertThread(&protocolParser::m_Parser_only);
+  threadPool.insertThread(&protocolParser::m_Parser_only);
+  
+  threadPool.insertThread(&protocolParser::m_Parser_only);
   threadPool.insertThread(&protocolParser::m_Parser_only);
 }
 
