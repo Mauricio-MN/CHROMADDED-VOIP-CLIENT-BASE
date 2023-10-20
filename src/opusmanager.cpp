@@ -1,34 +1,16 @@
 #include "opusmanager.h"
 
-    int OpusManagerImpl::sampleRate = SAMPLE_RATE;
-    OpusManager* OpusManagerImpl::instance = nullptr;
-    bool OpusManagerImpl::initialized = false;
-
-    OpusManager& OpusManagerImpl::getInstance(){
-        assert(initialized && "Error: fabric OpusManagerImpl");
-        return *instance;
-    }
-
-    void OpusManagerImpl::fabric(int _sampleRate){
-        assert(!initialized && "Error: OpusManagerImpl already initialized");
-        if(!initialized){
-            initialized = true;
-            sampleRate = _sampleRate;
-            instance = new OpusManager(sampleRate);
-        }
-    }
-
     OpusManager::OpusManager(){
         Encerror = 0;
         Decerror = 0;
         encoder = opus_encoder_create(SAMPLE_RATE, SAMPLE_CHANNELS, OPUS_APPLICATION_VOIP, &Encerror);
         decoder = opus_decoder_create(SAMPLE_RATE, SAMPLE_CHANNELS, &Decerror);
-        opus_encoder_ctl(encoder, OPUS_SET_BITRATE(OPUS_AUTO));
+        /*opus_encoder_ctl(encoder, OPUS_SET_BITRATE(OPUS_AUTO));
         opus_encoder_ctl(encoder, OPUS_SET_BANDWIDTH(OPUS_BANDWIDTH_MEDIUMBAND));
         opus_encoder_ctl(encoder, OPUS_SET_VBR(1));
         opus_encoder_ctl(encoder, OPUS_SET_COMPLEXITY(10));
         opus_encoder_ctl(encoder, OPUS_SET_INBAND_FEC(1));
-        opus_encoder_ctl(encoder, OPUS_SET_PACKET_LOSS_PERC(5));
+        opus_encoder_ctl(encoder, OPUS_SET_PACKET_LOSS_PERC(5));*/
     }
 
     OpusManager::OpusManager(int sampleRate){
@@ -76,4 +58,9 @@
         data::buffer outDataBuffer(decodedSamples, decodedLen);
         delete[] decodedSamples;
         return outDataBuffer;
+    }
+
+    OpusManager::~OpusManager(){
+        opus_decoder_destroy(decoder);
+        opus_encoder_destroy(encoder);
     }

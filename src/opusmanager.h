@@ -24,16 +24,8 @@ public:
     OpusManager();
     OpusManager(int sampleRate);
 
-};
+    ~OpusManager();
 
-class OpusManagerImpl{
-    private:
-    static int sampleRate;
-    static OpusManager* instance;
-    static bool initialized;
-    public:
-    static OpusManager& getInstance();
-    static void fabric(int _sampleRate);
 };
 
 #endif
