@@ -40,7 +40,7 @@ namespace player
 
     Self::Self(std::uint32_t reg_id, std::uint32_t id) : crpt NEW_AES_GCM
     {
-        my_secret_id = id;
+        my_secret_id = reg_id;
         my_id = id;
         talkRomm = 0;
         talkInLocal = true;
@@ -122,15 +122,15 @@ namespace player
         }
     }
 
-    void Self::setX(int x) { coordinates.x = x; }
-    void Self::setY(int y) { coordinates.y = y; }
-    void Self::setZ(int z) { coordinates.z = z; }
+    void Self::setX(float x) { coordinates.x = x; }
+    void Self::setY(float y) { coordinates.y = y; }
+    void Self::setZ(float z) { coordinates.z = z; }
 
-    void Self::setMap(int map){
+    void Self::setMap(std::uint32_t map){
         coordinates.map = map;
     }
 
-    void Self::setPos(std::uint32_t map, int x, int y, int z)
+    void Self::setPos(std::uint32_t map, float x, float y, float z)
     {
         setMap( map );
         setX( x );
@@ -188,43 +188,43 @@ namespace player
     }
 
 }
-    
-    void PlayersManager::setWaitAudioPackets(int waitAudioPacketsCount_){
-        waitQueueAudioCount = waitAudioPacketsCount_;
-    }
 
-    int PlayersManager::getWaitAudioPackets(){
-        return waitQueueAudioCount;
-    }
-
+    //thread safe
     void PlayersManager::insertPlayer(std::uint32_t id, float x, float y, float z){
-        insertMutex.lock();
-        if(!existPlayer(id)){
+        syncMutex.lock();
+        if(!existPlayerUnsafe(id)){
             players[id] = std::make_shared<Player>();
             players[id]->id = id;
             players[id]->setPosition(x,y,z);
         }
-        insertMutex.unlock();
+        syncMutex.unlock();
     }
 
     void PlayersManager::insertPlayer(PLAYER player){
-        insertMutex.lock();
-        if(!existPlayer(player->id)){
+        syncMutex.lock();
+        if(!existPlayerUnsafe(player->id)){
             players[player->id] = player;
         }
-        insertMutex.unlock();
+        syncMutex.unlock();
     }
 
     PLAYER PlayersManager::getPlayer(std::uint32_t id){
-        if(!existPlayer(id)){
+        if(existPlayer(id)){
+            syncMutex.lock_shared();
+            PLAYER player = players[id];
+            syncMutex.unlock_shared();
+            return player;
+        } else {
             return std::make_shared<Player>();
         }
-        return players[id];
     }
 
     bool PlayersManager::setPosition(std::uint32_t id, float x, float y, float z){
         if(existPlayer(id)){
+            syncMutex.lock_shared();
             PLAYER playerREF = players[id];
+            syncMutex.unlock_shared();
+
             playerREF->setPosition(x,y,z);
             return true;
         }
@@ -233,7 +233,10 @@ namespace player
 
     bool PlayersManager::setAttenuation(std::uint32_t id, float new_at){
         if(existPlayer(id)){
+            syncMutex.lock_shared();
             PLAYER playerREF = players[id];
+            syncMutex.unlock_shared();
+
             playerREF->setAttenuation(new_at);
             return true;
         }
@@ -242,7 +245,10 @@ namespace player
 
     bool PlayersManager::setMinDistance(std::uint32_t id, float new_MD){
         if(existPlayer(id)){
+            syncMutex.lock_shared();
             PLAYER playerREF = players[id];
+            syncMutex.unlock_shared();
+
             playerREF->minDistance(new_MD);
             return true;
         }
@@ -250,34 +256,48 @@ namespace player
     }
 
     bool PlayersManager::existPlayer(std::uint32_t id){
+        syncMutex.lock_shared();
+        bool result = existPlayerUnsafe(id);
+        syncMutex.unlock_shared();
+        return result;
+    }
+
+    bool PlayersManager::existPlayerUnsafe(std::uint32_t id){
         if(players.find(id) == players.end()){
+            syncMutex.unlock_shared();
             return false;
         }
         return true;
     }
 
     void PlayersManager::removePlayer(std::uint32_t id){
-        if (!existPlayer(id)){
+        syncMutex.lock();
+        if (!existPlayerUnsafe(id)){
+            syncMutex.unlock();
             return;
         }
         players.erase(id);
+        syncMutex.unlock();
     }
 
     void PlayersManager::clean(){
+        syncMutex.lock();
         players.clear();
+        syncMutex.unlock();
     }
 
     void PlayersManager::playersActCheckThread(bool &canRun){
         while(canRun){
+            syncMutex.lock_shared();
             for(auto& playerPair : players){
                 playerPair.second->actCheck();
             }
+            syncMutex.unlock_shared();
             std::this_thread::sleep_for(std::chrono::milliseconds(10000));
         }
     }
 
     PlayersManager::PlayersManager(){
-        waitQueueAudioCount = 0;
     }
 
     bool PlayersManagerImpl::initialized = false;
@@ -285,11 +305,18 @@ namespace player
 
     bool PlayersManagerImpl::canRun = true;
 
+    std::mutex PlayersManagerImpl::syncMutex = std::mutex();
+
+    //Initialize to make it thread safe
     PlayersManager& PlayersManagerImpl::getInstance(){
         static PlayersManager instance;
         if(!initialized){
-            actCheckThread = std::thread(&PlayersManager::playersActCheckThread, &instance, std::ref(std::ref(canRun)));
-            initialized = true;
+            syncMutex.lock();
+            if(!initialized){
+                actCheckThread = std::thread(&PlayersManager::playersActCheckThread, &instance, std::ref(std::ref(canRun)));
+                initialized = true;
+            }
+            syncMutex.unlock();
         }
         return instance;
     }

@@ -33,11 +33,6 @@ namespace player{
         std::atomic<int> sampleNumber;
         AES_GCM crpt;
 
-        void setMap(int map);
-        void setX(int x);
-        void setY(int y);
-        void setZ(int z);
-
         std::mutex mutexEncrypt;
         std::mutex mutexDecrypt;
 
@@ -66,7 +61,12 @@ namespace player{
         void talkLocal();
         void talkRoom();
 
-        void setPos(std::uint32_t map, int x, int y, int z);
+        void setMap(std::uint32_t map);
+        void setX(float x);
+        void setY(float y);
+        void setZ(float z);
+        
+        void setPos(std::uint32_t map, float x, float y, float z);
         void setCoords(Coords coord);
         void sendPosInfo();
 
@@ -159,6 +159,7 @@ class Player{
             soundStream->setAttenuation(new_at);
         }
 
+        //thread safe
         bool isPlaying(){
             if(!streamIsValid.load()) return false;
             isPlayingMutex.lock_shared();
@@ -168,6 +169,7 @@ class Player{
             return isp;
         }
 
+        //thread safe
         void stop(){
             if(streamIsValid.load()){
                 pushMutex.lock();
@@ -209,7 +211,6 @@ class Player{
 
                 pushMutex.unlock();
             }
-            protocolParserImpl::getInstance().getPool().remove(id);
         }
 
         void actCheck(){
@@ -236,6 +237,7 @@ class Player{
             pushClock.restart();
         }
 
+        //thread safe
         void push(int audioNum, data::buffer &audio, int sampleTime = SAMPLE_TIME_DEFAULT){
             pushMutex.lock();
             pushClock.restart();
@@ -266,29 +268,37 @@ class Player{
 
         int waitQueueAudioCount;
         std::unordered_map<int, PLAYER> players;
-        std::mutex insertMutex;
+        std::shared_mutex syncMutex;
 
     public:
 
         PlayersManager();
 
-        void setWaitAudioPackets(int waitAudioPacketsCount_);
-        int getWaitAudioPackets();
-
+        //thread safe
         void insertPlayer(std::uint32_t id, float x, float y, float z);
 
+        //thread safe
         void insertPlayer(PLAYER player);
 
+        //thread safe
         PLAYER getPlayer(std::uint32_t id);
 
+        //Only one thread by player to be thread safe
         bool setPosition(std::uint32_t id, float x, float y, float z);
 
+        //Only one thread by player to be thread safe
         bool setAttenuation(std::uint32_t id, float new_at);
 
+        //Only one thread by player to be thread safe
         bool setMinDistance(std::uint32_t id, float new_MD);
 
+        //thread safe
         bool existPlayer(std::uint32_t id);
 
+        //UNSAFE - thread unsafe
+        bool existPlayerUnsafe(std::uint32_t id);
+
+        //thread safe
         void removePlayer(std::uint32_t id);
 
         void clean();
@@ -303,6 +313,7 @@ class Player{
         static bool initialized;
         static std::thread actCheckThread;
         static bool canRun;
+        static std::mutex syncMutex;
     public:
         static PlayersManager &getInstance();
         static void exit();
