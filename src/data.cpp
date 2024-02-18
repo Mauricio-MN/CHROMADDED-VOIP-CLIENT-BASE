@@ -1,5 +1,13 @@
 #include "data.h"
-#include "opusmanager.h"
+
+#include <iostream>
+#include <vector>
+#include <thread>
+#include <future>
+#include <queue>
+#include <functional>
+#include <mutex>
+#include <condition_variable>
 
 namespace data{
 
@@ -88,17 +96,13 @@ namespace data{
         bool isRuning = threadState[threadId]->load();
         syncMutex.unlock_shared();
 
-        OpusManager* opusManager = new OpusManager(SAMPLE_RATE);
-
         while(isRuning){
-            parse(threadId, *this, opusManager);
+            parse(threadId, *this);
             
             syncMutex.lock_shared();
             isRuning = threadState[threadId]->load();
             syncMutex.unlock_shared();
         }
-
-        delete opusManager;
     }
 
     parseThreadPoll::parseThreadPoll(){
