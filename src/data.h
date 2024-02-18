@@ -21,17 +21,72 @@
 #define ERROR_MAX_ATTEMPT     50
 #define ERROR_UNKNOW          255
 
-struct Coords{
-    int x;
-    int y;
-    int z;
+struct SimpleCoords{
+    float x;
+    float y;
+    float z;
     std::uint32_t map;
 };
 
-class OpusManager;
+class Coords{
+    private:
+    std::atomic<float> x;
+    std::atomic<float> y;
+    std::atomic<float> z;
+    std::atomic_uint32_t map;
+    public:
+    Coords(){
 
-#define THREAD_POOL_ARGS (int, data::parseThreadPoll&, OpusManager*)
-#define THREAD_POOL_ARGS_NAMED (int threadId, data::parseThreadPoll& threadPoolL, OpusManager* opusManager)
+    }
+    void setCoords(Coords& coord){
+        x = coord.getX();
+        y = coord.getY();
+        z = coord.getZ();
+        map = coord.getMap();
+    }
+    void setCoords(std::uint32_t _map, float _x, float _y, float _z){
+        x = _x;
+        y = _y;
+        z = _z;
+        map = _map;
+    }
+    void setMap(std::uint32_t _map){
+        map = _map;
+    }
+    void setX(float _x){
+        x = _x;
+    }
+    void setY(float _y){
+        y = _y;
+    }
+    void setZ(float _z){
+        z = _z;
+    }
+    float getX(){
+        return x.load();
+    }
+    float getY(){
+        return y.load();
+    }
+    float getZ(){
+        return z.load();
+    }
+    std::uint32_t getMap(){
+        return map.load();
+    }
+
+    SimpleCoords getCoord(){
+        SimpleCoords coord;
+        coord.x = getX();
+        coord.y = getY();
+        coord.z = getZ();
+        coord.map = getMap();
+        return coord;
+    }
+};
+
+#define THREAD_POOL_ARGS (int, data::parseThreadPoll&)
+#define THREAD_POOL_ARGS_NAMED (int threadId, data::parseThreadPoll& threadPoolL)
 
 namespace data
 {
@@ -254,8 +309,11 @@ namespace data
     private:
         std::vector<std::vector<std::int16_t>> audio;
         std::vector<std::atomic<bool>> audioState;
+        std::vector<std::atomic<int>> audioSize;
         std::vector<std::mutex> mutexes;
-        int readPos;
+        std::atomic<int> readPos;
+        std::atomic<int> lastPoped;
+        std::atomic<int> lastPush;
 
         std::atomic<int> _size;
 
@@ -264,16 +322,23 @@ namespace data
             for(int i = 1; i <= 5; i++){
                 int ant = readPos - i;
                 if(ant < 0) ant += 256;
-                if(audioState[ant].load()){
+                if(audioState[ant].load() && ant > lastPoped.load()){
                     result = ant;
                 } 
             }
             return result;
         }
 
+        void checkPos(int& pos){
+            if(pos < 0){ pos += 256; }
+            else if (pos >= 256){ pos -= 256; }
+        }
+
     public:
-        AudioQueue(): mutexes(256), audioState(256){
+        AudioQueue(): mutexes(256), audioState(256), audioSize(256){
             readPos = 0;
+            lastPoped = 0;
+            lastPush = 0;
             audio.resize(256);
 
             for(auto& samplePack : audio){
@@ -286,47 +351,95 @@ namespace data
             for(int i = 0; i < 256; i++){
                 audioState[i] = false;
             }
+
+            for(int i = 0; i < 256; i++){
+                audioSize[i] = 0;
+            }
         }
 
+        //thread safe
         void push(int audioNumb, std::vector<std::int16_t>& audioPack){
             if(audioNumb < 0 || audioNumb >= 256) audioNumb = 0;
-
                 mutexes[audioNumb].lock();
+                lastPush = audioNumb;
+
                 if(!audioState[audioNumb].load()){
                     _size++;
                 }
                 audio[audioNumb] = audioPack;
                 audioState[audioNumb] = true;
+                audioSize[audioNumb] = audioPack.size();
                 mutexes[audioNumb].unlock();
         }
 
-        //unsafe
+        //unsafe, just one thread
         bool pop(std::vector<std::int16_t>& result){
-            if(readPos >= 256) readPos -= 256;
+            int readPosC = readPos.load();
+            if(readPosC >= 256) readPosC -= 256;
+
             bool success = false;
 
             int checkAnt = checkValues();
             if(checkAnt > -1){
                 readPos = checkAnt;
+                readPosC = checkAnt;
             }
 
-            if(audioState[readPos].load()){
-                mutexes[readPos].lock();
-                if(audioState[readPos].load()){
-                    result.insert(result.end(), audio[readPos].begin(), audio[readPos].end());
-                    mutexes[readPos].unlock();
+            if(audioState[readPosC].load()){
+                mutexes[readPosC].lock();
+                if(audioState[readPosC].load()){
+                    result.insert(result.end(), audio[readPosC].begin(), audio[readPosC].end());
+                    mutexes[readPosC].unlock();
                     success = true;
-                    audioState[readPos] = false;
+                    audioState[readPosC] = false;
+                    audioSize[readPosC] = 0;
+                    lastPoped = readPosC;
                     _size--;
                 } else {
-                    mutexes[readPos].unlock();
+                    mutexes[readPosC].unlock();
                 }
             }
 
             readPos++;
-            if(readPos >= 256) readPos -= 256;
+            if(readPos >= 256) readPos = 0;
 
             return success;
+        }
+
+        //thread safe - Relative - fast
+        void setReadPos(int pos){
+            if(pos >= 256) { pos -= 256; }
+            else if (pos < 0) pos += 256;
+            readPos = pos;
+        }
+
+        //thread safe - fast
+        int getReadPos(){
+            return readPos.load();
+        }
+
+        //thread safe - fast
+        int getLastPoped(){
+            return lastPoped.load();
+        }
+
+        int getLastPush(){
+            return lastPush.load();
+        }
+
+        //thread safe - fast
+        int getSampleCountInFrame(int posA, int posB){
+            int absSize = 0;
+            for(int i = posA; i <= posB; i++){
+                absSize += audioSize[i];
+            }
+            return absSize;
+        }
+
+        //thread safe - fast
+        bool slotState(int slot){
+            checkPos(slot);
+            return audioState[slot].load();
         }
 
         int size(){
@@ -355,6 +468,35 @@ namespace data
             return absSize;
         }
 
+        //thread safe - fast - estimativa
+        int relativeCompleteCountSamples(){
+            int readPosC = readPos.load();
+            int toPos = readPosC + 10;
+            if(toPos >= 256) toPos -= 256;
+            return getSampleCountInFrame(readPosC, toPos);
+        }
+
+        //thread safe - fast - estimativa
+        void clearFrames(int from, int to){
+            checkPos(from);
+            checkPos(to);
+            if(from > to){
+                for(int i = from; i < 256; i++){
+                    audioState[i] = false;
+                    audioSize[i] = 0;
+                }
+                for(int i = 0; i <= to; i++){
+                    audioState[i] = false;
+                    audioSize[i] = 0;
+                }
+            } else {
+                for(int i = from; i <= to; i++){
+                    audioState[i] = false;
+                    audioSize[i] = 0;
+                }
+            }
+        }
+
         bool canReadNext(){
             return audioState[readPos].load();
         }
@@ -378,6 +520,295 @@ namespace data
                     mutexes[i].unlock();
                 }
             }
+        }
+
+        bool preview(std::vector<std::int16_t>& result){
+            int readPosC = readPos.load();
+            if(readPosC >= 256) readPosC -= 256;
+
+            bool success = false;
+
+            if(audioState[readPosC].load()){
+                mutexes[readPosC].lock();
+                if(audioState[readPosC].load()){
+                    result.insert(result.end(), audio[readPosC].begin(), audio[readPosC].end());
+                    mutexes[readPosC].unlock();
+                    success = true;
+                } else {
+                    mutexes[readPosC].unlock();
+                }
+            }
+
+            return success;
+        }
+    };
+
+    class OpusQueue{
+
+    private:
+        std::vector<std::vector<char>> audio;
+        std::vector<std::atomic<bool>> audioState;
+        std::vector<std::atomic<int>> audioSize;
+        std::vector<std::mutex> mutexes;
+        std::atomic<int> readPos;
+        std::atomic<int> lastPoped;
+        std::atomic<int> lastPush;
+
+        std::atomic<int> _size;
+
+        int checkValues(){
+            int result = -1;
+            for(int i = 1; i <= 5; i++){
+                int ant = readPos - i;
+                if(ant < 0) ant += 256;
+                if(audioState[ant].load() && ant > lastPoped.load()){
+                    result = ant;
+                } 
+            }
+            return result;
+        }
+
+        void checkPos(int& pos){
+            if(pos < 0){ pos += 256; }
+            else if (pos >= 256){ pos -= 256; }
+        }
+
+    public:
+        OpusQueue(): mutexes(256), audioState(256), audioSize(256){
+            readPos = 0;
+            lastPoped = 0;
+            lastPush = 0;
+            audio.resize(256);
+
+            for(auto& samplePack : audio){
+                samplePack.resize(256);
+                for(auto& sample : samplePack){
+                    sample = 0;
+                }
+            }
+
+            for(int i = 0; i < 256; i++){
+                audioState[i] = false;
+            }
+
+            for(int i = 0; i < 256; i++){
+                audioSize[i] = 0;
+            }
+        }
+
+        //thread safe
+        void push(int audioNumb, int sampleCount, const std::vector<char>& audioPack){
+            if(audioNumb < 0 || audioNumb >= 256) audioNumb = 0;
+
+                mutexes[audioNumb].lock();
+                if(!audioState[audioNumb].load()){
+                    _size++;
+                }
+                audio[audioNumb] = audioPack;
+                audioSize[audioNumb] = sampleCount;
+                audioState[audioNumb] = true;
+                lastPush = audioNumb;
+
+                mutexes[audioNumb].unlock();
+        }
+
+        //unsafe, just one thread
+        int pop(std::vector<char>& result){
+            int readPosC = readPos.load();
+            if(readPosC >= 256) readPosC -= 256;
+
+            int returnSize = 0;
+
+            int checkAnt = checkValues();
+            if(checkAnt > -1){
+                readPos = checkAnt;
+                readPosC = checkAnt;
+            }
+
+            if(audioState[readPosC].load()){
+                mutexes[readPosC].lock();
+                if(audioState[readPosC].load()){
+                    result.insert(result.end(), audio[readPosC].begin(), audio[readPosC].end());
+                    returnSize = audioSize[readPosC];
+                    mutexes[readPosC].unlock();
+                    audioSize[readPosC] = 0;
+                    audioState[readPosC] = false;
+                    lastPoped = readPosC;
+                    _size--;
+                } else {
+                    mutexes[readPosC].unlock();
+                }
+            }
+
+            readPos++;
+            if(readPos >= 256) readPos = 0;
+
+            return returnSize;
+        }
+
+        //thread safe - Relative - fast
+        void setReadPos(int pos){
+            if(pos >= 256) { pos -= 256; }
+            else if (pos < 0) pos += 256;
+            readPos = pos;
+        }
+
+        //thread safe - fast
+        int getReadPos(){
+            return readPos.load();
+        }
+
+        //thread safe - fast
+        int getLastPoped(){
+            return lastPoped.load();
+        }
+
+        //thread safe - fast
+        int getLastPush(){
+            return lastPush.load();
+        }
+
+        //thread safe - fast
+        int getSampleCountInFrame(int posA, int posB){
+            int absSize = 0;
+            if(posA > posB + 2){
+                for(int i = posA; i < 256; i++){
+                    if(audioState[i].load()){
+                        absSize += audioSize[i];
+                    }
+                }
+                for(int i = 0; i <= posB; i++){
+                    if(audioState[i].load()){
+                        absSize += audioSize[i];
+                    }
+                }
+            } else {
+                for(int i = posA; i <= posB; i++){
+                    if(audioState[i].load()){
+                        absSize += audioSize[i];
+                    }
+                }
+            }
+            return absSize;
+        }
+
+        //thread safe - fast
+        int getSampleCountInFrame(int frame){
+            if(audioState[frame].load()){
+                return audioSize[frame];
+            } else {
+                return 0;
+            }
+        }
+
+        //thread safe - fast
+        bool slotState(int slot){
+            if(slot >= 256 || slot < 0){
+                slot = 0;
+            }
+            bool result = false;
+            result = audioState[slot].load();
+            return result;
+        }
+
+        int size(){
+            return _size.load();
+        }
+
+        int absoluteSize(){
+            int absSize = 0;
+            for(int i = 0; i < 256; i++){
+                if(audioState[i].load()){
+                    absSize++;
+                }
+            }
+            return absSize;
+        }
+
+        int relativeCompleteSize(){
+            int absSize = 0;
+            for(int i = readPos; i < 256; i++){
+                if(audioState[i].load()){
+                    absSize++;
+                } else {
+                    break;
+                }
+            }
+            return absSize;
+        }
+
+        //thread safe - fast - estimativa
+        int relativeCompleteCountSamples(){
+            int readPosC = readPos.load();
+            int toPos = readPosC + 10;
+            if(toPos >= 256) toPos -= 256;
+            return getSampleCountInFrame(readPosC, toPos);
+        }
+
+        //thread safe - fast - estimativa
+        void clearFrames(int from, int to){
+            checkPos(from);
+            checkPos(to);
+            if(from > to){
+                for(int i = from; i < 256; i++){
+                    audioState[i] = false;
+                    audioSize[i] = 0;
+                }
+                for(int i = 0; i <= to; i++){
+                    audioState[i] = false;
+                    audioSize[i] = 0;
+                }
+            } else {
+                for(int i = from; i <= to; i++){
+                    audioState[i] = false;
+                    audioSize[i] = 0;
+                }
+            }
+        }
+
+        bool canReadNext(){
+            return audioState[readPos].load();
+        }
+
+        void hyperSearch(){
+            for(int i = 0; i < 256; i++){
+                if(audioState[i].load()){
+                    mutexes[i].lock();
+                    readPos = i;
+                    mutexes[i].unlock();
+                }
+            }
+        }
+
+        void hyperClean(){
+            for(int i = 0; i < readPos; i++){
+                if(audioState[i].load()){
+                    mutexes[i].lock();
+                    audioState[i] = false;
+                    _size--;
+                    mutexes[i].unlock();
+                }
+            }
+        }
+
+        int preview(std::vector<char>& result){
+            int readPosC = readPos.load();
+            if(readPosC >= 256) readPosC -= 256;
+
+            int returnSize = 0;
+
+            if(audioState[readPosC].load()){
+                mutexes[readPosC].lock();
+                if(audioState[readPosC].load()){
+                    result.insert(result.end(), audio[readPosC].begin(), audio[readPosC].end());
+                    returnSize = audioSize[readPosC];
+                    mutexes[readPosC].unlock();
+                } else {
+                    mutexes[readPosC].unlock();
+                }
+            }
+
+            return returnSize;
         }
     };
 
