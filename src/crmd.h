@@ -22,8 +22,30 @@ extern "C" {
     #pragma warning Unknown dynamic link import/export semantics.
 #endif
 
+#define callInvalidSession
 
-EXPORT void CRMD_init(uint32_t register_id, uint32_t id, char* hostname, size_t hostname_size, unsigned short port, unsigned char *key, uint32_t map, float x, float y, float z, bool needEncrypt);
+struct CRMD_SessionDTO{
+    uint32_t id;
+    uint32_t secret_id;
+
+    char* hostname;
+    size_t hostname_size;
+    unsigned short port;
+
+    unsigned char *key;
+
+    uint32_t map;
+    float x;
+    float y;
+    float z;
+
+    bool needEncrypt;
+};
+
+//First Call
+EXPORT void CRMD_init(CRMD_SessionDTO session);
+EXPORT bool CRMD_needCallNewSession();
+
 EXPORT void CRMD_updateMyPos(uint32_t map, float x, float y, float z);
 EXPORT void CRMD_updateMyPos_map(uint32_t map);
 EXPORT void CRMD_updateMyPos_coords(float x, float y, float z);
@@ -38,14 +60,13 @@ EXPORT void CRMD_disablePlayerEchoEffect(uint32_t id);
 EXPORT void CRMD_updatePlayerEchoEffect(uint32_t id, int value);
 EXPORT void CRMD_removePlayer(uint32_t id);
 
-EXPORT void CRMD_setAudioPacketWaitCount(int pktWaitCount);
-
 EXPORT void CRMD_setTalkRoom(uint32_t id);
 EXPORT void CRMD_talkInRomm();
 EXPORT void CRMD_talkInLocal();
 
 EXPORT void CRMD_enableRecAudio();
 EXPORT void CRMD_disableRecAudio();
+EXPORT void CRMD_setListenRecAudio(bool needListen);
 
 EXPORT float CRMD_getMicVolume();
 EXPORT void CRMD_setMicVolume(float volume);
@@ -59,7 +80,6 @@ EXPORT bool CRMD_isConnected();
 EXPORT int CRMD_getConnectionError(); //RESERVED
 
 EXPORT void CRMD_closeSocket();
-EXPORT void CRMD_connectTo(char* hostname, int hostname_size, unsigned short port);
 
 #ifdef __cplusplus
 }
