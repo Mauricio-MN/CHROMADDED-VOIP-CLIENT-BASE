@@ -2,7 +2,6 @@
 #define OPUSMANAGER_H
 
 #include "data.h"
-#include "soundmanager.h"
 #include "SFML/Audio.hpp"
 
 #include <opus/opus.h>
@@ -13,6 +12,7 @@ private:
     int Decerror;
     OpusEncoder* encoder;
     OpusDecoder* decoder;
+
 public:
 
     data::buffer encode(sf::Int16 *samples);
@@ -20,6 +20,7 @@ public:
     data::buffer decode(data::buffer &buffer);
     data::buffer decode(data::buffer &buffer, int sampleCount);
     data::buffer decode(const unsigned char* buffer, int bufferSize, int sampleCount);
+    data::buffer decodeC(const unsigned char* buffer, int bufferSize, int sampleCount, int isFECbuff);
 
     OpusManager();
     OpusManager(int sampleRate);
