@@ -27,6 +27,8 @@
         decoder = opus_decoder_create(sampleRate, SAMPLE_CHANNELS, &Decerror);
         opus_decoder_ctl(decoder, OPUS_SET_INBAND_FEC(1)); // Habilitar In-Band FEC
         //opus_decoder_ctl(decoder, OPUS_SET_)
+
+        opus_encoder_ctl(encoder, OPUS_SET_BITRATE(15000*2));
     }
 
     //Default 640 samples only 16000 sample rate
@@ -36,6 +38,20 @@
     //Default 640 samples only 16000 sample rate
     data::buffer OpusManager::decode(data::buffer &buffer){
         return decode(buffer, 640);
+    }
+
+    void OpusManager::setBitRate(int _bitRate){
+        if(_bitRate >= 500 && _bitRate <= 512000){
+            bitRate = _bitRate;
+            opus_encoder_ctl(encoder, OPUS_SET_BITRATE(bitRate));
+        }
+    }
+    int OpusManager::getBitRate(){
+        return bitRate;
+    }
+    void OpusManager::resetBitRate(){
+        opus_encoder_ctl(encoder, OPUS_SET_BITRATE(OPUS_AUTO));
+        bitRate = -1;
     }
 
     data::buffer OpusManager::encode(sf::Int16 *samples, int sampleCount){
@@ -62,7 +78,7 @@
         //std::cout << "DEC: " << sampleCount << std::endl;
         int decodedLen = opus_decode(decoder, buffer, bufferSize, decodedSamples, sampleCount, isFECbuff);
         if(decodedLen < sampleCount){
-            data::buffer emptyBuff;
+            data::buffer emptyBuff(sampleCount);
             //OPUS_BAD_ARG
             //OPUS_BUFFER_TOO_SMALL
             //OPUS_INTERNAL_ERROR

@@ -57,7 +57,7 @@ void testCrypt(){
   ConfigImpl::getInstance().setCryptoKey(std::vector<char>(key, key + 32));
   ConfigImpl::getInstance().setCryptoIV(std::vector<char>(iv, iv + 16));
 
-  AES_GCM crpt(key, iv);
+  AES_GCM crpt(ConfigImpl::getInstance().getCryptoKey(), ConfigImpl::getInstance().getCryptoIV());
 
   char* text = new char[35];
   text = strdup("o rato roeu a roupa do rei de roma");
@@ -156,7 +156,7 @@ void test_BufferParser_listen(){
   soundmanager::NetworkAudioStream opusStream(sf::milliseconds(SAMPLE_TIME_DEFAULT), SAMPLE_CHANNELS, SAMPLE_RATE, SAMPLE_BITS);
   OpusManager opusManager(SAMPLE_RATE);
 
-  int sampleSize = opusStream.getSampleCount();
+  int sampleSize = sampleTimeGetCount(sf::milliseconds(SAMPLE_TIME_DEFAULT), SAMPLE_RATE);
 
   int finalLen = 0;
   int totalLen = 0;
@@ -228,7 +228,7 @@ void test_BufferParser_listen(){
 
   sf::Clock clock;
   for(auto& cBuffer : noParse){
-    std::thread(&soundmanager::NetworkAudioStream::insert, &opusStream, cBuffer.first, std::ref(cBuffer.second)).detach();
+    std::thread(&soundmanager::NetworkAudioStream::insert, &opusStream, cBuffer.first, std::ref(cBuffer.second), SAMPLE_TIME_DEFAULT).detach();
     data::preciseSleep(((double)SAMPLE_TIME_DEFAULT) / 1000.0);
   }
   std::cout << "Time process " << clock.getElapsedTime().asMilliseconds() << std::endl;
@@ -247,12 +247,14 @@ void test_BufferParser_listen(){
 
   std::cout << "PARSE audio test" << std::endl;
 
+  ProtocolParser protoParser;
+
   for(auto& cBuffer : protocolsBuffers){
     clock.restart();
-    protocolParserImpl::getInstance().parse(cBuffer);
+    protoParser.parse(cBuffer);
     for(int i = 4; i < 8; i++){
       cBuffer.set_id(i);
-      protocolParserImpl::getInstance().parse(cBuffer);
+      protoParser.parse(cBuffer);
     }
     int elapsed = clock.getElapsedTime().asMilliseconds();
     double sleepTime = ((double)SAMPLE_TIME_DEFAULT - (double) elapsed) / 1000.0;
@@ -325,33 +327,7 @@ void test_parser_protocol(){
 
   int an = 0;
 
-  protocolParser parser;
-
-  for(int k = 0; k < 3; k++){
-
-    for(int i = 0; i < 1000; i++){
-
-      for(int j = 0; j < 10; j++){
-        protocol::Server server;
-        std::vector<sf::Int16> audio(320);
-        data::buffer encoded = opusManager.encode(audio.data(), audio.size());
-        server.set_id(10);
-        server.set_audio(encoded.getData(), encoded.size());
-        server.set_audionum(an);
-        parser.parse(server);
-        an++;
-        if(an >= 256) an = 0;
-        std::cout << "." << k << "." << i << "." << j << std::endl;
-      }
-        sf::sleep(sf::milliseconds(1));
-      }
-
-      std::cout << "memory check: " << getCurrentRSS() << std::endl;
-  }
-
-  std::cout << "memory check: " << getCurrentRSS() << std::endl;
-
-  std::cout << "Protocol parse Global" << std::endl;
+  ProtocolParser parser;
 
   an = 0;
 
@@ -366,7 +342,7 @@ void test_parser_protocol(){
         server.set_id(10);
         server.set_audio(encoded.getData(), audio.size());
         server.set_audionum(an);
-        protocolParserImpl::getInstance().parse(server);
+        parser.parse(server);
         an++;
         if(an >= 256) an = 0;
       }
@@ -540,29 +516,108 @@ void test_data_structure_memory(){
   
 }
 
-int main(){
+bool is_number(const std::string& s)
+{
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
+
+int main(int argc, char *argv[]){
 
   //geral test -> use debug audio in server
-  //add player 1 3 12345678901234567890123456789012 PadinBK
+  /*
+set iv 123456789012
+remove player 3
+remove player 4
+remove player 5
+add player 2 3 12345678901234567890123456789012 PadinBK
+add player 1 4 12345678901234567890123456789012 MandyFairy
+add player 3 5 12345678901234567890123456789012 Uchoa
+
+  */
   unsigned char *key = new unsigned char[32];
   strcpy( (char*) key, "12345678901234567890123456789012" );
   
   int myID = 3;
-  int regID = 1;
+  int regID = 2;
 
   std::string ip("127.0.0.1");
 
-  CRMD_init(1, 3, ip.data(), ip.size(), 443, key, 0,0,0,0, false);
+  if(argc > 1){
+    if(argv[1][0] == "1"[0]){
+        myID = 4;
+        regID = 1;
+        ip = "192.168.0.114";
+    }
+    if(argv[1][0] == "2"[0]){
+        myID = 5;
+        regID = 3;
+        ip = "149.56.67.2";
+    }
+    if(argv[1][0] == "3"[0]){
+      ip = "149.56.67.2";
+    }
+    int arg = 0;
+    if(is_number(std::string(argv[1]))){
+      arg = std::stoi(std::string(argv[1]));
+      if(arg >= 6){
+        ip = "149.56.67.2";
+        myID = arg;
+        regID = arg;
+      }
+    }
+  }
+
+  CRMD_SessionDTO mySession = {0};
+
+  mySession.id = myID;
+  mySession.secret_id = regID;
+  mySession.hostname = ip.data();
+  mySession.hostname_size = ip.size();
+  mySession.port = 443;
+  mySession.key = key;
+  mySession.map = 0;
+  mySession.x = 0;
+  mySession.y = 0;
+  mySession.z = 0;
+  mySession.needEncrypt = true;
+  mySession.needEffects = true;
+
+  CRMD_init(mySession);
   std::cout << "recording";
+  
+  //CRMD_setListenRecAudio(true);
   CRMD_enableRecAudio();
-  sleep(3000);
+  CRMD_enableSendAudio();
+  CRMD_setEcho(true, 0.15, 8000);
+  CRMD_enableAutoDetect();
+  //CRMD_setAutoDetect(0.48f);
+  CRMD_setMicVolume(4.5f);
+  //CRMD_enableReverb(1.0f, 1.0f, 0.32f, 0.89f, 1.49f, 0.83f);
+  while(true){
+    CRMD_updateMyPos(0, 143.0, 126.0, 0.0);
+    CRMD_updateMyDir(1.0f, 1.0f, 0.0f);
+    CRMD_sendMyPos();
+    CRMD_setUpVector(0.0f, 0.0f, 1.0f);
+    //CRMD_enablePlayerEchoEffect(9000, 3, 2000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    if(CRMD_needCallNewSession()){
+      CRMD_init(mySession);
+    }
+    uint32_t* players = new uint32_t[400];
+		uint32_t outsize = 0;
+		CRMD_getAllPlayerTalking(players, 400, &outsize);
+    delete[] players;
+  }
+  
   CRMD_disableRecAudio();
 
   return 0;
 
   testCrypt();
 
-  player::SelfImpl::frabric(3, 3);
+  player::SelfImpl::fabric(3, 3);
 
   PlayersManagerImpl::getInstance();
 

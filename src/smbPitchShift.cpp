@@ -45,7 +45,7 @@
 #define M_PI 3.14159265358979323846
 
 void smbFft(float *fftBuffer, long fftFrameSize, long sign);
-double smbAtan2(double x, double y);
+//double smbAtan2(double x, double y);
 
 
 // -----------------------------------------------------------------------------------------------------------------

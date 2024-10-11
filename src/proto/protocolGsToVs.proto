@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option java_package = "pasaud.voip.protocol";
+package protocol;
+
+import "google/protobuf/timestamp.proto";
+
+// [START messages]
+message GSClient {
+  optional uint32 secret_id = 1; // Secret ID to connect
+  optional uint32 id = 2;  // Unique public ID number for this person.
+  optional bytes cryptoKey = 3;
+  optional float coordX = 4;
+  optional float coordY = 5;
+  optional float coordZ = 6;
+  optional uint32 mapNum = 7;
+  repeated uint32 blockedPlayer_ids = 8;
+  optional uint32 talkInRoom_id = 9;
+  optional bool  talkLocal = 10;
+
+  optional bool setConnect = 11;
+  optional bool setDisconnect = 12;
+
+  repeated bytes extraMSG = 13;
+}
+
+
+message ServerConfig {
+  repeated uint32 maps = 1;
+  uint32 maxCoords = 2;
+  uint32 oneMeterIsEquivalentCoords = 3;
+  uint32 chunkSize = 4;
+  uint32 createRoom_id = 5;
+  uint32 deleteRoom_id = 6;
+  
+  repeated bytes extraClientMSG = 7;
+}

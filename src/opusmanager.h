@@ -13,6 +13,8 @@ private:
     OpusEncoder* encoder;
     OpusDecoder* decoder;
 
+    int bitRate;
+
 public:
 
     data::buffer encode(sf::Int16 *samples);
@@ -21,6 +23,10 @@ public:
     data::buffer decode(data::buffer &buffer, int sampleCount);
     data::buffer decode(const unsigned char* buffer, int bufferSize, int sampleCount);
     data::buffer decodeC(const unsigned char* buffer, int bufferSize, int sampleCount, int isFECbuff);
+
+    void setBitRate(int _bitRate);
+    int getBitRate();
+    void resetBitRate();
 
     OpusManager();
     OpusManager(int sampleRate);

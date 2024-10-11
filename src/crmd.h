@@ -1,5 +1,5 @@
-#ifndef MAIN_H // include guard
-#define MAIN_H
+#ifndef CRMD_H // include guard
+#define CRMD_H
 
 #include <stdint.h>
 
@@ -7,19 +7,32 @@
 extern "C" {
 #endif
 
+#if defined(API_EXPORT)
+
 #if defined(_MSC_VER)
     //  Microsoft 
-    #define EXPORT __declspec(dllexport)
-    #define IMPORT __declspec(dllimport)
+    #define API __declspec(dllexport)
 #elif defined(__GNUC__)
     //  GCC
-    #define EXPORT __attribute__((visibility("default")))
-    #define IMPORT
+    #define API __attribute__((visibility("default")))
 #else
-    //  do nothing and hope for the best?
-    #define EXPORT
-    #define IMPORT
+    #define API
     #pragma warning Unknown dynamic link import/export semantics.
+#endif
+
+#else
+
+#if defined(_MSC_VER)
+    //  Microsoft 
+    #define API __declspec(dllimport)
+#elif defined(__GNUC__)
+    //  GCC
+    #define API
+#else
+    #define API
+    #pragma warning Unknown dynamic link import/export semantics.
+#endif
+
 #endif
 
 #define callInvalidSession
@@ -40,46 +53,131 @@ struct CRMD_SessionDTO{
     float z;
 
     bool needEncrypt;
+
+    bool needEffects;
 };
 
-//First Call
-EXPORT void CRMD_init(CRMD_SessionDTO session);
-EXPORT bool CRMD_needCallNewSession();
+//Supports multithreading, stop everything from lib, use this just to close the app
+API void CRMD_exit();
+//Need execute first
+API void CRMD_init(CRMD_SessionDTO session);
+//Only Windows OS
+API void CRMD_openConsole();
+//Supports multithreading
+API bool CRMD_needCallNewSession();
 
-EXPORT void CRMD_updateMyPos(uint32_t map, float x, float y, float z);
-EXPORT void CRMD_updateMyPos_map(uint32_t map);
-EXPORT void CRMD_updateMyPos_coords(float x, float y, float z);
-EXPORT void CRMD_updateMyRot(float x, float y, float z);
+//Supports multithreading
+API bool CRMD_isTalking();
 
-EXPORT void CRMD_insertPlayer(uint32_t id, float x, float y, float z);
-EXPORT void CRMD_movePlayer(uint32_t id, float x, float y, float z);
-EXPORT void CRMD_updatePlayerAttenuation(uint32_t id, float new_at);
-EXPORT void CRMD_updatePlayerMinDistance(uint32_t id, float new_MD);
-EXPORT void CRMD_enablePlayerEchoEffect(uint32_t id);
-EXPORT void CRMD_disablePlayerEchoEffect(uint32_t id);
-EXPORT void CRMD_updatePlayerEchoEffect(uint32_t id, int value);
-EXPORT void CRMD_removePlayer(uint32_t id);
+//Supports multithreading, don't exaggerate too much
+API void CRMD_sendMyPos();
+//Supports multithreading
+API void CRMD_updateMyPos(uint32_t map, float x, float y, float z);
+//Supports multithreading
+API void CRMD_updateMyPos_map(uint32_t map);
+//Supports multithreading
+API void CRMD_updateMyPos_coords(float x, float y, float z);
+//Only single thread
+API void CRMD_updateMyDir(float x, float y, float z);
+//Only single thread
+API void CRMD_setUpVector(float x, float y, float z);
+/**********************************************************************/
+  /*!
+    @brief  Max 4 seconds, mutex operation
+    @param  isOn    On/Off boolean switch
+    @param  decay    0.0f to 1.0f
+    @param  delay    In samples
+  */
+/**********************************************************************/
+void CRMD_setEcho(bool isOn, float decay, float delay);
 
-EXPORT void CRMD_setTalkRoom(uint32_t id);
-EXPORT void CRMD_talkInRomm();
-EXPORT void CRMD_talkInLocal();
+/**********************************************************************/
+  /*!
+    @brief  Max 6 seconds, mutex operation
+    @param  isOn    On/Off boolean switch
+    @param  decay    0.0f to 1.0f
+    @param  delay    In samples
+  */
+/**********************************************************************/
+void CRMD_setReverb(bool isOn, float decay, float delay);
 
-EXPORT void CRMD_enableRecAudio();
-EXPORT void CRMD_disableRecAudio();
-EXPORT void CRMD_setListenRecAudio(bool needListen);
+//Supports multithreading
+API void CRMD_insertPlayer(uint32_t id, float x, float y, float z);
+//Supports multithreading
+API void CRMD_movePlayer(uint32_t id, float x, float y, float z);
+//Supports multithreading
+API bool CRMD_playerIsTalking(uint32_t id);
+//Supports multithreading, don't exaggerate too much
+API void CRMD_getAllPlayerTalking(uint32_t* playersIds, uint32_t playersIds_size, uint32_t *out_size);
+//Supports multithreading
+API void CRMD_updatePlayerAttenuation(uint32_t id, float new_at);
+//Supports multithreading
+API void CRMD_updatePlayerMinDistance(uint32_t id, float new_MD);
 
-EXPORT float CRMD_getMicVolume();
-EXPORT void CRMD_setMicVolume(float volume);
+//Supports multithreading
+API void CRMD_removePlayer(uint32_t id);
 
-EXPORT float CRMD_getVolumeAudio();
-EXPORT void CRMD_setVolumeAudio(float volume);
+//OFF, do in game server side
+API void CRMD_setTalkRoom(uint32_t id);
+//OFF, do in game server side
+API void CRMD_setTalkInRomm(bool talk);
+//OFF, do in game server side
+API void CRMD_setTalkInLocal(bool talk);
+//OFF, do in game server side
+API void CRMD_setListenRomm(bool listen);
+//OFF, do in game server side
+API void CRMD_setListenLocal(bool listen);
 
-EXPORT bool CRMD_isConnected();
+/**********************************************************************/
+  /*!
+    @brief  Only single thread. This starts the audio management process, only turn off if not necessary in the current context, such as login screens, reconnect or if you need to change the audio device.
+  */
+/**********************************************************************/
+API void CRMD_enableRecAudio();
+/**********************************************************************/
+  /*!
+    @brief  Only single thread. This stops the audio management process, only turn off if not necessary in the current context, such as login screens, reconnect or if you need to change the audio device.
+  */
+/**********************************************************************/
+API void CRMD_disableRecAudio();
+
+//Only single thread recommended, it start to send audio to server
+API void CRMD_enableSendAudio();
+//Only single thread recommended, it stop to send audio to server
+API void CRMD_disableSendAudio();
+
+//Supports multithreading
+API void CRMD_enableAutoDetect();
+//Supports multithreading
+API void CRMD_disableAutoDetect();
+//Supports multithreading, sound sensitivity
+API void CRMD_setAutoDetect(float value);
+
+//Supports multithreading
+API void CRMD_setListenRecAudio(bool needListen);
+
+//Supports multithreading
+API float CRMD_getMicVolume();
+//Supports multithreading
+API void CRMD_setMicVolume(float volume);
+
+//Supports multithreading
+API float CRMD_getVolumeAudio();
+//Supports multithreading
+API void CRMD_setVolumeAudio(float volume);
+
+//Receive 2d array ([devices][names])
+API void CRMD_getMicDevices(char** outDevicesName, size_t maxDevices, size_t maxNameSize, size_t& devicesCount);
+API bool CRMD_setMicDevice(char* name, size_t size);
+
+//Supports multithreading
+API bool CRMD_isConnected();
 
 //Para fins de log e reconexão(o protocolo UDP não depende de conexão, mas a seção possui validade)
-EXPORT int CRMD_getConnectionError(); //RESERVED
+API int CRMD_getConnectionError(); //RESERVED
 
-EXPORT void CRMD_closeSocket();
+//Supports multithreading
+API void CRMD_closeSocket();
 
 #ifdef __cplusplus
 }

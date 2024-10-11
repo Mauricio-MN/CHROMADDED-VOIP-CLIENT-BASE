@@ -5,36 +5,47 @@ package protocol;
 
 import "google/protobuf/timestamp.proto";
 
+message ClientBase {
+  optional ClientAudio clientExtAudio = 1;
+  optional Client clientExt = 2;
+}
+
 // [START messages]
 message Client {
-  optional int32 secret_id = 1; // Secret ID to connect
-  optional int32 id = 2;  // Unique public ID number for this person.
+  optional uint32 secret_id = 1; // Secret ID to connect
+  optional uint32 id = 2;  // Unique public ID number for this person.
   optional bytes audio = 3;
-  optional int32 audioNum = 4;
+  optional uint32 audioNum = 4;
   optional float coordX = 5;
   optional float coordY = 6;
   optional float coordZ = 7;
-  optional int32 mapNum = 8;
-  optional int32 blockPlayer_id = 9;
-  optional int32 talkInRoom_id = 10;
-  optional bool  talkLocal = 11;
-  optional int32 sampleTime = 12;
+  optional uint32 mapNum = 8;
+  optional uint32 sampleTime = 9;
 
-  optional google.protobuf.Timestamp packetTime = 13;
+  optional google.protobuf.Timestamp packetTime = 10;
+}
+
+message ClientAudio {
+  optional uint32 id = 1;
+  optional bytes audio = 2;
+  optional uint32 audioNum = 3;
+  optional uint32 sampleTime = 4;
 }
 
 
 message Server {
   optional bool handShake = 1;
-  int32 id = 2;  // Unique public ID number for this person.
+  uint32 id = 2;  // Unique public ID number for this person.
   optional bytes audio = 3;
-  optional int32 audioNum = 4;
+  optional uint32 audioNum = 4;
   optional float coordX = 5;
   optional float coordY = 6;
   optional float coordZ = 7;
-  optional int32 mapNum = 8;
-  optional int32 sampleTime = 9;
-  optional bool isAllOK = 10;
+  optional uint32 mapNum = 8;
+  optional uint32 sampleTime = 9;
+  optional bool InvalidSession = 10;
+  optional bool isGroup = 11;
 
-  optional google.protobuf.Timestamp packetTime = 11;
+  optional google.protobuf.Timestamp packetTime = 12;
+  repeated bytes extraClientMSG = 13;
 }

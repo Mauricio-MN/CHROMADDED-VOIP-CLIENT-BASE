@@ -17,7 +17,7 @@ public:
     AES_GCM(std::vector<char> key, std::vector<char> iv) {
         keyVct.insert(keyVct.end(), key.begin(), key.end());
         if(keyVct.size() < 32){
-            std::vector<unsigned char> extraSize(keyVct.size() - 32);
+            std::vector<unsigned char> extraSize(32 - keyVct.size());
             for(auto& val : extraSize){
                 val = 0;
             }

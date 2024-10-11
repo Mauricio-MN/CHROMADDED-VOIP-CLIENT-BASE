@@ -745,6 +745,39 @@ namespace data
             return getSampleCountInFrame(readPosC, toPos);
         }
 
+        //thread safe - fast
+        int relativeActualCountSamples(){
+            int readPosActual = getReadPos();
+            int lastPush = getLastPush();
+            int sampleCountInQueue = getSampleCountInFrame(readPosActual, lastPush);
+            return sampleCountInQueue;
+        }
+
+        int relativeActualCountFrames(){
+            int posA = getReadPos();
+            int posB = getLastPush();
+            int absSize = 0;
+            if(posA > posB + 2){
+                for(int i = posA; i < 256; i++){
+                    if(audioState[i].load()){
+                        absSize += 1;
+                    }
+                }
+                for(int i = 0; i <= posB; i++){
+                    if(audioState[i].load()){
+                        absSize += 1;
+                    }
+                }
+            } else {
+                for(int i = posA; i <= posB; i++){
+                    if(audioState[i].load()){
+                        absSize += 1;
+                    }
+                }
+            }
+            return absSize;
+        }
+
         //thread safe - fast - estimativa
         void clearFrames(int from, int to){
             checkPos(from);

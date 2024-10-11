@@ -3,10 +3,11 @@
 
 #include <thread>
 #include <cstring>
+#include <cmath>
 #include <iostream>
 #include <iterator>
 #include <mutex>
-#include <bits/stdc++.h>
+//#include <bits/stdc++.h>
 
 #include <SFML/Audio.hpp>
 #include <SFML/System/Time.hpp>
@@ -14,9 +15,17 @@
 #include <AL/al.h>
 #include <AL/efx.h>
 
+//#include "smbPitchShift.h"
+
 #include "soundmanagerRecorder.h"
 
 #include "smbPitchShift.h"
+
+//#include <soundtouch/SoundTouch.h>
+
+//#include "lib/signalsmith/signalsmith-stretch.h"
+
+#include "protoParse.h"
 
 #define SAMPLE_RATE 16000
 #define SAMPLE_BITS 16
@@ -34,26 +43,39 @@
 
 namespace soundmanager{
 
+  void load_EFX_functions();
 
 namespace listener{
     void movePos(float x, float y, float z);
-    void moveRot(float x, float y, float z);
+    void moveDir(float x, float y, float z);
+    void setUpVector(float x, float y, float z);
 }
 
 class Recorder{
 public:
-
+    //Slow but improve CPU, need be called at init or can work in a boxed thread
     void enableRec();
-
+    //Slow but improve CPU, need be called at init or can work in a boxed thread
     void disableRec();
+
+    //Fast but need enableRec one time (to init record data)
+    void enableSendData();
+    //Fast but need enableRec one time and a "enableSendData" context
+    void disableSendData();
+
+    void setListenAudio(bool needListen);
+
+    bool isTalking();
 
     sf::SoundBuffer recordForTest();
 
     Recorder();
 
-    Recorder(int _sampleRate, sf::Time packetTime);
+    ~Recorder();
 
-    void reConstruct(int _sampleRate, sf::Time packetTime);
+    Recorder(int _sampleRate, sf::Time _packetTime);
+
+    void reConstruct(int _sampleRate, sf::Time _packetTime);
 
     int getSampleTime();
     int getSampleCount();
@@ -61,12 +83,40 @@ public:
     void setVolume(float volume);
     float getVolume();
 
+    void setNeedDetect(bool isNeed);
+    void setDetectValue(float value);
+    float getDetectValue();
+
+    bool swapDevice(std::string device);
+
+    std::vector<std::string> getDevices();
+
+    //thread safe
+    void setIntervalTime(int milliseconds);
+
+    //max 4 seconds, mutex operation
+    void setEcho(bool isOn, float decay, float delay);
+    //max 6 seconds, mutex operation
+    void setReverb(bool isOn, float decay, float delay);
+
 private:
     int sampleRate;
     soundmanager::NetworkBufferRecorder rec;
     sf::Time packetTime;
 
-    void initialize(int _sampleRate, sf::Time packetTime);
+    std::atomic<float> detectValue;
+    std::atomic<bool> detectNeeded;
+    std::atomic<bool> isRecording;
+    std::atomic<bool> canSendData;
+
+    std::atomic<bool> needApplyEcho;
+    std::atomic<bool> needApplyReverb;
+    std::atomic<float> echoDecay;
+    std::atomic<float> reverbDecay;
+    std::atomic<int> echoDelay;
+    std::atomic<int> reverbDelay;
+
+    void initialize(int _sampleRate, sf::Time _packetTime);
 };
 
 class RecorderImpl
@@ -79,6 +129,7 @@ class RecorderImpl
 public:
     static Recorder &getInstance();
     static void fabric(int _sampleRate, sf::Time _packetTime);
+    static void close();
 };
 
 class NetworkAudioStream : public sf::SoundStream
@@ -88,39 +139,18 @@ public:
     /// Default constructor
     ///
     ////////////////////////////////////////////////////////////
-    NetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits) : m_offset(0)
-    {
-        // Set the sound parameters
-        canInitDelay = true;
-        sampleTime = _sampleTime;
-        sampleTime_MS = sampleTime.asMilliseconds();
-        sampleCount = sampleTimeGetCount(_sampleTime, _sampleRate);
-        sampleChannels = _sampleChannels;
-        sampleRate = _sampleRate;
-        sampleBits = _sampleBits;
+    NetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits);
 
-        //m_samples.resize(sampleCount);
+    NetworkAudioStream();
 
-        readsTry = 0;
-
-        initialize(sampleChannels, sampleRate);
-    }
+    static void enableReverb(float density, float diffusion, float gain, float gainHf, float decayTime, float decayHfRatio);
+    static void disableReverb();
+    static void setInitAudioDelay(int delayMS);
 
     //thread safe
-    int resizeSampleTime(sf::Time _sampleTime){
-        geralMutexLockData.lock();
-        bool needStart = false;
-        if(getStatus() == sf::SoundSource::Playing){
-            stop();
-            needStart = true;
-        }
-        sampleTime = _sampleTime;
-        sampleTime_MS = sampleTime.asMilliseconds();
-        sampleCount = sampleTimeGetCount(_sampleTime, sampleRate);
-        if(needStart) play();
-        geralMutexLockData.unlock();
-    }
+    void resizeSampleTime(sf::Time _sampleTime);
 
+    /*
     //thread safe
     int getSampleCount(){
         return sampleCount;
@@ -129,28 +159,17 @@ public:
     //thread safe
     int getSampleTime(){
         return sampleTime_MS;
-    }
+    }*/
 
     //thread safe
-    void insert(int audioNumb, data::buffer& data)
-    {
-        std::vector<sf::Int16> buffer((sf::Int16*)data.getData(), (sf::Int16*)data.getData() + (data.size() / sizeof(sf::Int16)));
+    void insert(int audioNumb, data::buffer& data, int sampleTime);
 
-        audioQueue.push(audioNumb, buffer);
+    void setDelaySamplesPlayData(int samples);
 
-        if(getStatus() != sf::SoundSource::Playing){
-            geralMutexLockData.lock();
-            if(getStatus() != sf::SoundSource::Playing){
-                play();
-            }
-            geralMutexLockData.unlock();
-        }
-            
-    }
+    void clean();
 
-    void clean(){
-        audioQueue.hyperClean();
-    }
+    //Thread safe
+    bool isPlaying();
 
     //thread safe
     /*
@@ -161,295 +180,85 @@ public:
         }
     }*/
 
+    void updateLossPercent();
+
 private:
+    static ALuint effect;
+    static ALuint effectSlot;
+    static std::atomic_bool effectIsOn;
+    static std::mutex effectMutex;
 
-    ////////////////////////////////////////////////////////////
-    /// /see SoundStream::OnGetData
-    ///
-    ////////////////////////////////////////////////////////////
+    std::atomic_bool playing;
+    std::atomic_int lastSampleTime;
+    std::atomic_int lossPercent;
+    std::atomic_int sleepGetDataDelaySamples;
+
+    int maxSkyTerribleTime;
+
+    std::vector<bool> crackleInfo;
+    int cracklePos;
+    int crackleTotal;
+    
+    std::vector<sf::Int16> interpolate(std::vector<sf::Int16>& a, std::vector<sf::Int16>& b);
+
     bool canInitDelay;
-    bool onGetData(sf::SoundStream::Chunk& data) override
-    {
-        if(canInitDelay){
-            std::cout << "i" << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMilliseconds() * 10));
-            canInitDelay = false;
+    int noFailedCount;
+    static std::atomic_int32_t initDelayCountMS;
+    bool onGetData(sf::SoundStream::Chunk& data) override;
 
-            int completeInitTrys = 0;
-            while(sampleCountGetTime(audioQueue.relativeCompleteSize() * sampleCount , sampleRate).asMilliseconds() < 100){
-                completeInitTrys++;
-                std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMilliseconds()));
-                if(completeInitTrys > 2){
-                    std::cout << "break sound init" << std::endl;
-                    break;
-                }
-            }
-            if(audioQueue.absoluteSize() < 3){
-                std::this_thread::sleep_for(std::chrono::milliseconds(sampleTime.asMilliseconds() * 10));
-            }
-        }
-
-        m_samples.clear();
-
-        bool success = audioQueue.pop(m_samples);
-
-        if(!success){
-            std::this_thread::sleep_for(std::chrono::milliseconds(readsTry));
-            //std::cout << "ERROR LOST : " << readsTry << std::endl;
-            readsTry++;
-            std::cout << "LOST: " << readsTry << std::endl;
-            if(readsTry > 6){
-                std::cout << "ERROR LOST" << std::endl;
-                audioQueue.hyperClean();
-                canInitDelay = true;
-                readsTry = 0;
-                return false;
-            }
-            m_samples.resize(sampleCount * readsTry);
-            data.samples = m_samples.data();
-            data.sampleCount = m_samples.size();
-            return true;
-        }
-
-        if(success){
-            readsTry = 0;
-            data.samples = m_samples.data();
-            data.sampleCount = m_samples.size();
-            return true;
-        }
-        return true;
-
-        /*
-
-        auto avaliable = m_r_buffer.readAvailable();
-        if(avaliable > 0){
-            auto readed = m_r_buffer.readBuff(m_circular_temp.data(), sampleCount);
-            data.samples = m_circular_temp.data();
-            data.sampleCount = readed;
-            return true;
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(40 * 5));
-            if(m_r_buffer.readAvailable() <= 0){
-                std::this_thread::sleep_for(std::chrono::milliseconds(40 * 5));
-                if(m_r_buffer.readAvailable() <= 0){
-                    return false;
-                }
-            }
-        }
-        return false;
-        */
-
-        /*
-        size_t readSize = m_hyper_buffer.read(m_circular_temp.data(), m_circular_temp.size());
-        if(readSize > 0){
-            data.samples = m_circular_temp.data();
-            data.sampleCount = readSize;
-            return true;
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(40 * 5));
-            return false;
-        }
-
-        int trynum = 5;
-        while(trynum > 0){
-            bool tryread = m_circular_buffer.read(m_circular_temp.data(), trynum);
-            if(tryread){
-                data.samples = m_circular_temp.data();
-                data.sampleCount = trynum;
-                return true;
-            }
-            trynum--;
-        }
-
-        return false;*/
-
-        /*
-        for(auto item : temp){
-            m_circular_temp.insert(m_circular_temp.end(),item.begin(), item.end());
-        }
-
-        data.samples = m_circular_temp.data();
-            data.sampleCount = m_circular_temp.size();
-        */
-
-        /*if(!buffer.empty()){
-            int count = 0;
-            while(m_circular_buffer.Size() < SAMPLE_COUNT_40MS * 5){
-                sf::sleep(sf::milliseconds(40 * 5));
-                count++;
-                if(count >= 10){
-                    return false;
-                }
-            }
-        }*/
-
-        //m_circular_temp.insert(m_circular_temp.begin(), buffer.begin(), buffer.end());
-
-        /*
-        if(!m_circular_temp.empty()){
-            data.samples = m_circular_temp.data();
-            data.sampleCount = m_circular_temp.size();
-            return true;
-        } else {
-            int count = 0;
-            while(m_circular_buffer.Size() < SAMPLE_COUNT_40MS * 5){
-                sf::sleep(sf::milliseconds(40 * 5));
-                count++;
-                if(count >= 10){
-                    return false;
-                }
-            }
-        }
-
-        return false;
-
-        int wait = 0;
-        int lastSize = m_swapSamples.size();
-
-        if(m_swapSamples.size() <= 0){
-            selectedSpeed = 0;
-            return false;
-        }
-
-        if(selectedSpeed == 0){
-            
-            while (m_swapSamples.size() < SAMPLE_COUNT_40MS*3){
-                wait++;
-                if(wait > WAIT_NEW_PACK_COUNT){
-                    if(m_swapSamples.size() == 0){
-                        return false;
-                    }
-                    break;
-                }
-                if(m_swapSamples.size() == lastSize && wait > 2){
-                    //slow audio
-                } else {
-                    lastSize = m_swapSamples.size();
-                }
-                sf::sleep(sf::milliseconds(40));
-            }
-            selectedSpeed = 3;
-        }
-        */
-        
-        /*
-        if((selectedSpeed == 1 && m_swapSamples.size() >= SAMPLE_COUNT_40MS) || m_swapSamples.size() >= SAMPLE_COUNT_40MS*SPEED_AUDIO_COUNT){
-            selectedSpeed = 1;
-            alterPitch = true;
-            int sSampLastSize = m_swapSamples.size();
-
-            m_tempBuffer.clear();
-            
-            swapSamples();
-
-            float gainTime = 1.0F;
-            float gainPitch = 1.0F;
-            float calcPerc = 0;
-            bool canContinue = true;
-
-            if(sSampLastSize <= 0){
-                selectedSpeed = 0;
-                canContinue = false;
-            } else if(sSampLastSize < SAMPLE_COUNT_40MS*4){
-                calcPerc = (SAMPLE_COUNT_40MS * STRETCH_AUDIO_PERCENT / sSampLastSize) / 100.0F;
-                gainPitch += calcPerc;
-                gainTime -= calcPerc;
-            } else if(sSampLastSize > SAMPLE_COUNT_40MS*SPEED_AUDIO_COUNT){
-                calcPerc = (SAMPLE_COUNT_40MS * SPEED_AUDIO_PERCENT / sSampLastSize) / 100.0F;
-                gainPitch -= calcPerc;
-                gainTime += calcPerc;
-            } else {
-                selectedSpeed = 3;
-                canContinue = false;
-            }
-            if(canContinue){
-
-                setPitch(gainTime);
-
-                float* insamples = new float[m_tempBuffer.size()];
-                float* outsamples = new float[m_tempBuffer.size()];
-
-                float copysample;
-                for(int i = 0; i < (int)m_tempBuffer.size(); i++){
-                    copysample = ((float)m_tempBuffer[i]) / (float)32768.0F;
-                    if( copysample > 1.0F ) copysample = 1.0F;
-                    if( copysample < -1.0F ) copysample = -1.0F;
-
-                    insamples[i] = copysample;
-                    outsamples[i] = copysample;
-                }
-
-                smbPitchShift(gainPitch, m_tempBuffer.size(), 128, 4, SAMPLE_RATE, insamples, outsamples);
-
-                for(int i = 0; i < (int)m_tempBuffer.size(); i++){
-                    outsamples[i] = (outsamples[i] * 32768.0F);
-                    if( outsamples[i] > 32767.0F ) outsamples[i] = 32767.0F;
-                    if( outsamples[i] < -32768.0F ) outsamples[i] = -32768.0F;
-                    m_tempBuffer[i] = (sf::Int16) outsamples[i];
-                }
-
-                delete []outsamples;
-                delete []insamples;
-                m_offset = 0;
-
-                // Fill audio data to pass to the stream
-                data.samples     = m_tempBuffer.data();
-                data.sampleCount = m_tempBuffer.size();
-
-                return true;
-            }
-        }
-        */
-    }
-
-    ////////////////////////////////////////////////////////////
-    /// /see SoundStream::OnSeek
-    ///
-    ////////////////////////////////////////////////////////////
-    void onSeek(sf::Time timeOffset) override
-    {
-        m_offset = static_cast<std::size_t>(timeOffset.asMilliseconds()) * getSampleRate() * getChannelCount() / 1000;
-        //m_offset = static_cast<std::size_t>(timeOffset.asSeconds() * getSampleRate() * getChannelCount());
-        /*if(m_circular_temp.size() < 3){
-            if(m_circular_buffer.Size() > 2){
-                auto temp = m_circular_buffer.Pop(3);
-                for(auto item : temp){
-                    m_circular_temp.insert(m_circular_temp.end(),item.begin(), item.end());
-                }
-            }
-        }*/
-        /*if (!canIgnoreMutex) {
-            if (m_tempBuffer.size() - m_offset <= SAMPLE_COUNT_40MS * 2) {
-                if (m_swapSamples.size() >= SAMPLE_COUNT_40MS * 2) {
-                    std::thread(&NetworkAudioStream::tryIgnoreMutex, this).detach();
-                }
-            }
-        }*/
-    }
+    void onSeek(sf::Time timeOffset) override;
 
     ////////////////////////////////////////////////////////////
     // Member data
     ////////////////////////////////////////////////////////////
     std::vector<std::int16_t> m_samples;
     data::AudioQueue audioQueue;
+    data::AudioQueue audioQueueFEC;
+    data::OpusQueue opusQueue;
     std::size_t               m_offset;
 
-    sf::Time sampleTime;
-    int sampleTime_MS;
-    int sampleCount;
+    //signalsmith::stretch::SignalsmithStretch<float> stretch;
+
+    //sf::Time sampleTime;
+    //int sampleTime_MS;
+    //int sampleCount;
     int sampleChannels;
     int sampleRate;
     int sampleBits;
 
+    OpusManager opusMng;
+
     int readsTry;
+    int samplesStable;
 
     data::buffer bufferAudio;
 
     sf::Clock clock;
 
     std::shared_mutex geralMutexLockData;
+    std::mutex opusMutex;
+    std::mutex advanceMutex;
 };
 
+class OVNetworkAudioStream {
+    private:
+    NetworkAudioStream* audioStream;
+    public:
+    OVNetworkAudioStream(){
+        audioStream = new NetworkAudioStream();
+    }
+    OVNetworkAudioStream(sf::Time _sampleTime, int _sampleChannels, int _sampleRate, int _sampleBits){
+        audioStream = new NetworkAudioStream(_sampleTime, _sampleChannels, _sampleRate, _sampleBits);
+    }
+    ~OVNetworkAudioStream(){
+        if (audioStream != nullptr){
+            delete audioStream;
+        }
+    }
+    
+    NetworkAudioStream* get()
+        { return audioStream; }
+};
 
 }
 

@@ -15,6 +15,20 @@
         return inet_pton(af, src, dst);
       }
       #define oipn
+   #elif defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+       #define TURNOFF_OIPN 
+      //define something for Windows (32-bit only)
+      /*
+      #include <Winsock2.h>
+      #include <Windows.h>
+      #include <ws2tcpip.h>
+
+      #define iswindows true
+      #define osCloseSocket closesocket
+      static int overInetPton(int af, const char *src, void *dst){
+        return inet_pton(af, src, dst);
+      }
+      #define oipn*/
    #else
       //define something for Windows (32-bit only)
       #include <Winsock2.h>
@@ -75,12 +89,14 @@
 #   error "Unknown compiler"
 #endif
 
-#ifndef oipn
+#ifndef TURNOFF_OIPN
+    #ifndef oipn
 
-    static int overInetPton(int af, const char *src, void *dst){
-        return inet_pton(af, src, dst);
-    }
+        static int overInetPton(int af, const char *src, void *dst){
+            return inet_pton(af, src, dst);
+        }
 
+    #endif
 #endif
 
 #endif

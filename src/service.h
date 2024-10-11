@@ -23,7 +23,7 @@ private:
     std::string name;
     std::hash<std::string> hasher;
     std::thread garbageCollector_thread;
-protected:
+    
     Context(std::string _name):hasher(){
         if(_name.size() > 8){
             contextID = hasher(name);

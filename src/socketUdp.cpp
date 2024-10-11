@@ -17,11 +17,11 @@
   void socketUdpImpl::fabric(sf::IpAddress ip, unsigned short port){
     if(initialized){
         instance->close();
+        delete instance;
     }
     ip_ = ip;
     port_ = port;
     initialized = true;
-    delete instance;
     instance = new socketUdp(ip, port);
   }
 
@@ -36,4 +36,12 @@
     initialized = true;
     delete instance;
     instance = new socketUdp(ip_, port_);
+  }
+
+  void socketUdpImpl::close(){
+    if(initialized){
+        instance->close();
+    }
+    initialized = false;
+    delete instance;
   }
