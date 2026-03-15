@@ -6,3 +6,5 @@
 *.exe
 *.elf
 *.dll
+libs/*.*
+src - Copia/*.*
