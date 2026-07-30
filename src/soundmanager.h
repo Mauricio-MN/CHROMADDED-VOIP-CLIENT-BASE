@@ -26,6 +26,7 @@
 //#include "lib/signalsmith/signalsmith-stretch.h"
 
 #include "protoParse.h"
+#include "AudioTimeStretch.h"
 
 #define SAMPLE_RATE 16000
 #define SAMPLE_BITS 16
@@ -180,9 +181,13 @@ public:
         }
     }*/
 
-    void updateLossPercent();
-
 private:
+    float lossPercent;
+    int prevBufferedMS = 0;
+    float smoothDiff = 0.f;
+    float smoothTrend = 0.f;
+    int lastSampleCount = 0;
+
     static ALuint effect;
     static ALuint effectSlot;
     static std::atomic_bool effectIsOn;
@@ -190,7 +195,6 @@ private:
 
     std::atomic_bool playing;
     std::atomic_int lastSampleTime;
-    std::atomic_int lossPercent;
     std::atomic_int sleepGetDataDelaySamples;
 
     int maxSkyTerribleTime;
@@ -198,6 +202,11 @@ private:
     std::vector<bool> crackleInfo;
     int cracklePos;
     int crackleTotal;
+
+    sf::Clock onGetDataClock;
+    int lastExecTime = 0;
+
+    AudioTimeStretch timeStretch{SAMPLE_RATE, SAMPLE_CHANNELS}; 
     
     std::vector<sf::Int16> interpolate(std::vector<sf::Int16>& a, std::vector<sf::Int16>& b);
 
@@ -214,7 +223,7 @@ private:
     std::vector<std::int16_t> m_samples;
     data::AudioQueue audioQueue;
     data::AudioQueue audioQueueFEC;
-    data::OpusQueue opusQueue;
+    data::OpusQueue_alt opusQueue;
     std::size_t               m_offset;
 
     //signalsmith::stretch::SignalsmithStretch<float> stretch;

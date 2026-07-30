@@ -25,6 +25,8 @@
 #include "memusage.h"
 #include <SFML/Window/Keyboard.hpp>
 
+//#define TEST_PROTO true
+
 bool sucess = true;
 void sucessMSG(const char* module, const char* testFunction){
   if(sucess){
@@ -140,6 +142,7 @@ void waitListenSoundStream(soundmanager::NetworkAudioStream &stream){
   }
 }
 
+#ifdef TEST_PROTO
 void test_BufferParser_listen(){
 
   soundmanager::listener::movePos(0,0,0);
@@ -319,7 +322,9 @@ void test_BufferParser_listen(){
   }
 
 }
+#endif
 
+#ifdef TEST_PROTO
 void test_parser_protocol(){
 
   OpusManager opusManager(SAMPLE_RATE);
@@ -355,10 +360,13 @@ void test_parser_protocol(){
   std::cout << "memory check: " << getCurrentRSS() << std::endl;
 
 }
+#endif
+
 
 void test_data_structure_memory_aux(data::buffer buffer){
   data::buffer data(buffer);
 }
+
 
 void test_data_structure_memory(){
 
@@ -393,10 +401,13 @@ void test_data_structure_memory(){
 
   std::cout << "memory check: " << getCurrentRSS() << std::endl;
 
+  #ifdef TEST_PROTO
   test_parser_protocol();
+  #endif
 
   std::cout << "Check server" << std::endl;
 
+  #ifdef TEST_PROTO
   for(int k = 0; k < 3; k++){
 
     for(int i = 0; i < 1000; i++){
@@ -413,10 +424,17 @@ void test_data_structure_memory(){
 
       std::cout << "memory check: " << getCurrentRSS() << std::endl;
   }
+  #else
+    std::cout << "Protocol test skipped" << std::endl;
+  #endif
 
   std::cout << "memory check: " << getCurrentRSS() << std::endl;
 
+  #ifdef TEST_PROTO
   test_parser_protocol();
+  #else
+    std::cout << "Protocol test skipped" << std::endl;
+  #endif
 
   std::cout << "Check queue" << std::endl;
 
@@ -427,11 +445,15 @@ void test_data_structure_memory(){
     for(int i = 0; i < 1000; i++){
 
       for(int j = 0; j < 10; j++){
+        #ifdef TEST_PROTO
         protocol::Server server;
         std::vector<sf::Int16> audio(320);
         server.set_id(10);
         server.set_audio(audio.data(), audio.size());
         queue.push(server);
+        #else
+        std::cout << "Protocol test skipped" << std::endl;
+        #endif
       }
         sf::sleep(sf::milliseconds(1));
       }
@@ -448,8 +470,12 @@ void test_data_structure_memory(){
     for(int i = 0; i < 1000; i++){
 
       for(int j = 0; j < 10; j++){
+        #ifdef TEST_PROTO
         bool success = false;
         protocol::Server server = queue.pop(success); 
+        #else
+        std::cout << "Protocol test skipped" << std::endl;
+        #endif
       }
         sf::sleep(sf::milliseconds(1));
       }
@@ -459,7 +485,11 @@ void test_data_structure_memory(){
 
   std::cout << "memory check: " << getCurrentRSS() << std::endl;
 
+  #ifdef TEST_PROTO
   test_parser_protocol();
+  #else
+    std::cout << "Protocol test skipped" << std::endl;
+  #endif
 
   std::cout << "Audio queue" << std::endl;
 
@@ -503,7 +533,11 @@ void test_data_structure_memory(){
 
   std::cout << "memory check: " << getCurrentRSS() << std::endl;
 
+  #ifdef TEST_PROTO
   test_parser_protocol();
+  #else
+    std::cout << "Protocol test skipped" << std::endl;
+  #endif
 
   std::cout << "..." << std::endl;
 
@@ -536,7 +570,7 @@ add player 1 4 12345678901234567890123456789012 MandyFairy
 add player 3 5 12345678901234567890123456789012 Uchoa
 
   */
-  unsigned char *key = new unsigned char[32];
+  unsigned char *key = new unsigned char[33]; // 32 bytes + null terminator
   strcpy( (char*) key, "12345678901234567890123456789012" );
   
   int myID = 3;
@@ -553,7 +587,7 @@ add player 3 5 12345678901234567890123456789012 Uchoa
     if(argv[1][0] == "2"[0]){
         myID = 5;
         regID = 3;
-        ip = "149.56.67.2";
+        ip = "144.217.168.255";
     }
     if(argv[1][0] == "3"[0]){
       ip = "149.56.67.2";
@@ -562,7 +596,7 @@ add player 3 5 12345678901234567890123456789012 Uchoa
     if(is_number(std::string(argv[1]))){
       arg = std::stoi(std::string(argv[1]));
       if(arg >= 6){
-        ip = "149.56.67.2";
+        ip = "144.217.168.255";
         myID = arg;
         regID = arg;
       }
@@ -589,10 +623,11 @@ add player 3 5 12345678901234567890123456789012 Uchoa
   
   //CRMD_setListenRecAudio(true);
   CRMD_enableRecAudio();
-  CRMD_enableSendAudio();
-  CRMD_setEcho(true, 0.15, 8000);
+  //CRMD_enableSendAudio();
+  //CRMD_setEcho(true, 0.15, 8000);
+  //CRMD_setReverb(true, 0.15, 8000);
   CRMD_enableAutoDetect();
-  //CRMD_setAutoDetect(0.48f);
+  CRMD_setAutoDetect(20.0f);
   CRMD_setMicVolume(4.5f);
   //CRMD_enableReverb(1.0f, 1.0f, 0.32f, 0.89f, 1.49f, 0.83f);
   while(true){
@@ -604,6 +639,9 @@ add player 3 5 12345678901234567890123456789012 Uchoa
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     if(CRMD_needCallNewSession()){
       CRMD_init(mySession);
+      while(!CRMD_needCallNewSession()){
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
     }
     uint32_t* players = new uint32_t[400];
 		uint32_t outsize = 0;
@@ -623,7 +661,11 @@ add player 3 5 12345678901234567890123456789012 Uchoa
 
   testPlayers(); //parcial
 
+  #ifdef TEST_PROTO
   test_BufferParser_listen(); //parcial
+  #else
+    std::cout << "Buffer parser test skipped" << std::endl;
+  #endif
 
   for(int i = 0; i < 3; i++){
     test_data_structure_memory();

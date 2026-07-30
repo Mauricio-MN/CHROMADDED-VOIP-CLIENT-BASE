@@ -1,2 +1,4 @@
 protoc --proto_path=src/proto --cpp_out=src/proto --java_out=src/proto/java src/proto/protocol.proto
 protoc --proto_path=src/proto --cpp_out=src/proto --java_out=src/proto/java src/proto/protocol.proto
+
+./libs/nanopb/generator-bin/protoc --proto_path=src/proto --java_out=src/proto/java src/proto/protocol.proto

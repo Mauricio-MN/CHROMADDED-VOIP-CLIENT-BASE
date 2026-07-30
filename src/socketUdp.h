@@ -11,6 +11,63 @@
 #include "thread"
 #include "config.h"
 
+#include <pb.h>
+#include <pb_decode.h>
+#include <pb_encode.h>
+#include "proto/protocol.pb.h"
+#include "proto/timestamp.pb.h"
+
+static bool decodeAudioCallback(pb_istream_t *stream, const pb_field_t *field, void **arg) {
+    auto* vec = reinterpret_cast<std::vector<uint8_t>*>(*arg);
+    size_t len = stream->bytes_left;
+    vec->resize(len);
+    return pb_read(stream, vec->data(), len);
+}
+
+static bool decodeExtraClientCallback(pb_istream_t *stream, const pb_field_t *field, void **arg) {
+    auto* vec = reinterpret_cast<std::vector<std::vector<uint8_t>>*>(*arg);
+
+    size_t len = stream->bytes_left;
+
+    std::vector<uint8_t> buffer(len);
+    if (!pb_read(stream, buffer.data(), len)) {
+        return false;
+    }
+
+    vec->push_back(std::move(buffer));
+    return true;
+}
+
+struct ServerPacket {
+    protocol_Server server_info;
+    std::vector<uint8_t> audioBuffer;
+    std::vector<std::vector<uint8_t>> extraClientBuffers;
+
+    ServerPacket() {
+        firstStart();
+    }
+
+    void firstStart(){
+        server_info = protocol_Server_init_zero;
+        server_info.audio.funcs.decode = &decodeAudioCallback;
+        server_info.audio.arg = &audioBuffer;
+        server_info.extraClientMSG.funcs.decode = &decodeExtraClientCallback;
+        server_info.extraClientMSG.arg = &extraClientBuffers;
+    }
+
+    ServerPacket(const ServerPacket& other) {
+        server_info = other.server_info;
+        audioBuffer = other.audioBuffer;
+        extraClientBuffers = other.extraClientBuffers;
+
+        // dados já estão nos vectors, zera os callbacks
+        server_info.audio.funcs.decode = nullptr;
+        server_info.audio.arg = nullptr;
+        server_info.extraClientMSG.funcs.decode = nullptr;
+        server_info.extraClientMSG.arg = nullptr;
+    }
+};
+
 class socketUdp{
 
     private:
@@ -45,7 +102,8 @@ class socketUdp{
         return decrypt(bufferVect);
     }
 
-    bool deserialize(protocol::Server &server, sf::Packet &packet){
+    /*bool deserialize(protocol_Server &server, sf::Packet &packet){
+        server
         bool validDecrypted = server.ParseFromArray(packet.getData(),packet.getDataSize());
 
         if(ConfigImpl::getInstance().isNeedCryptography()){
@@ -63,6 +121,37 @@ class socketUdp{
         }
         
         return validDecrypted;
+    }*/
+
+    bool deserialize(ServerPacket &pkt, sf::Packet &packet) {
+        auto tryDecode = [&](const void* data, size_t size) -> bool {
+            // Reset completo e callbacks configurados ANTES do decode
+            pkt.audioBuffer.clear();
+            pkt.extraClientBuffers.clear();
+            pkt.server_info = protocol_Server_init_zero;
+            pkt.server_info.audio.funcs.decode = &decodeAudioCallback;
+            pkt.server_info.audio.arg = &pkt.audioBuffer;
+            pkt.server_info.extraClientMSG.funcs.decode = &decodeExtraClientCallback;
+            pkt.server_info.extraClientMSG.arg = &pkt.extraClientBuffers;
+
+            pb_istream_t stream = pb_istream_from_buffer(
+                reinterpret_cast<const pb_byte_t*>(data), size);
+            return pb_decode(&stream, protocol_Server_fields, &pkt.server_info);
+        };
+
+        if (ConfigImpl::getInstance().isNeedCryptography()) {
+            if (tryDecode(packet.getData(), packet.getDataSize())) {
+                if (pkt.server_info.has_handShake || pkt.server_info.has_InvalidSession) {
+                    return true;
+                }
+            }
+            auto ucharptr = reinterpret_cast<const unsigned char*>(packet.getData());
+            std::vector<unsigned char> bufferToDrcp(ucharptr, ucharptr + packet.getDataSize());
+            std::vector<unsigned char> buffer = decrypt(bufferToDrcp);
+            return tryDecode(buffer.data(), buffer.size());
+        }
+
+        return tryDecode(packet.getData(), packet.getDataSize());
     }
 
     public:
@@ -122,13 +211,84 @@ class socketUdp{
         needClose = false;
     }
 
-    bool send(protocol::ClientBase& client){
+    /*bool send(protocol_ClientBase& client){
         bool hasSecretID = false;
         if(client.has_clientext()){
             hasSecretID = client.mutable_clientext()->has_secret_id();
         }
         std::string buffer = client.SerializeAsString();
         return send(buffer, hasSecretID);
+    }*/
+
+    bool send(protocol_ClientBase& client){
+        bool hasSecretID = false;
+        if(client.has_clientExt){
+            hasSecretID = client.clientExt.has_secret_id;
+        }
+
+        uint8_t buffer[4096];
+        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        if(!pb_encode(&stream, protocol_ClientBase_fields, &client)){
+            return false;
+        }
+
+        return send(buffer, stream.bytes_written, hasSecretID);
+    }
+
+    //thread safe
+    bool send(uint8_t* buffer, size_t buffer_size,  bool has_secret_id){
+
+        if(!isConnected()){
+            return false;
+        }
+
+        std::string strbuffer;
+
+        void* data = buffer;
+        int data_size = buffer_size;
+
+        sf::Socket::Status status = sf::Socket::Status::NotReady;
+        if(ConfigImpl::getInstance().isNeedCryptography() && !has_secret_id){
+            std::vector<unsigned char> vecBuffer(buffer, buffer + buffer_size);
+            std::vector<unsigned char> encrypted =  player::SelfImpl::getInstance().encrypt(vecBuffer);
+            strbuffer = std::string(encrypted.data(), encrypted.data() + encrypted.size());
+            data = strbuffer.data();
+            data_size = strbuffer.size();
+        }
+
+        sf::IpAddress recipientL = recipient;
+        unsigned short portL = port;
+
+        syncSocket.lock_shared();
+        if(!isConnected()){
+            syncSocket.unlock_shared();
+            return false;
+        }
+
+        int attempts = 0;
+        while(attempts < 3){
+            status = socket.send(data, data_size, recipientL, portL);
+
+            if(status == sf::Socket::Status::Done){
+                syncSocket.unlock_shared();
+                return true;
+            }
+
+            if(status != sf::Socket::Status::NotReady){
+                syncSocket.unlock_shared();
+                return false; // erro real
+            }
+
+            std::this_thread::sleep_for(std::chrono::microseconds(200));
+            attempts++;
+        }
+
+        syncSocket.unlock_shared();
+
+        if(status != sf::Socket::Status::Done && status != sf::Socket::Status::NotReady){
+            return false;
+        }
+        return true;
     }
 
     //thread safe
@@ -156,7 +316,25 @@ class socketUdp{
         if(!isConnected()){
             return false;
         }
-        status = socket.send(data, data_size, recipientL, portL);
+
+        int attempts = 0;
+        while(attempts < 3){
+            status = socket.send(data, data_size, recipientL, portL);
+
+            if(status == sf::Socket::Status::Done){
+                syncSocket.unlock_shared();
+                return true;
+            }
+
+            if(status != sf::Socket::Status::NotReady){
+                syncSocket.unlock_shared();
+                return false; // erro real
+            }
+
+            std::this_thread::sleep_for(std::chrono::microseconds(200));
+            attempts++;
+        }
+
         syncSocket.unlock_shared();
 
         if(status != sf::Socket::Status::Done || status != sf::Socket::Status::NotReady){
@@ -186,7 +364,7 @@ class socketUdp{
     void receive(){
         closed = false;
         while(!needClose){
-            protocol::Server server;
+            ServerPacket pkt;
             sf::Packet packet;
             
             const auto retryCount = 10;
@@ -231,10 +409,10 @@ class socketUdp{
                 break; 
             }
 
-            bool isOk = deserialize(server, packet);
+            bool isOk = deserialize(pkt, packet);
 
             if(isOk){
-                protoParser->parse(server);
+                protoParser->parse(pkt);
             }
         }
         closeSocket();

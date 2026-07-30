@@ -28,8 +28,10 @@
 #define chronoTimePointSteady std::chrono::time_point<std::chrono::steady_clock,std::chrono::steady_clock::duration>
 #define chronoDurationSteady std::chrono::steady_clock::duration
 
+struct ServerPacket;
+
 struct TrivialContainerProtocolServer {
-    protocol::Server* data; // Ponteiro para um objeto não trivial
+    ServerPacket* data; // Ponteiro para um objeto não trivial
 };
 
 class ProtocolParser{
@@ -55,12 +57,10 @@ public:
 
     ~ProtocolParser();
 
-    void parse(protocol::Server& serverReceived);
+    void parse(ServerPacket& serverReceived);
 
     //Thread safe
-    static int getLossPercent();
-    //Thread safe
-    static int getTrotling();
+    static int getJitter();
     //readOnly
     static bool isNegativeTimeDiffServer;
     //Thread safe, but is shared_mutex

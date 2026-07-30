@@ -44,7 +44,7 @@ namespace player{
 
         std::atomic_bool localMute;
 
-        void constructPosInfo(protocol::Client* info);
+        void constructPosInfo(protocol_Client* info);
 
     public:
 
@@ -92,6 +92,8 @@ namespace player{
 
         int getAndAddAudioNum();
 
+        int getAudioNum();
+
         SimpleCoords getCoords();
 
         //A little slow, thread safe
@@ -131,6 +133,7 @@ class Player{
 
         std::uint32_t id;
         int waitingCount = 0;
+        std::atomic<bool> condemned;
 
     private:
 
@@ -202,14 +205,19 @@ class Player{
 
         Player(){
             initialize(sf::milliseconds(SAMPLE_TIME_DEFAULT));
+            condemned = false;
         }
 
         Player(sf::Time sampleTime){
             initialize(sampleTime);
+            condemned = false;
         }
 
         ~Player(){
-            removeImportantData();
+            condemned = true;
+            pushMutex.lock(); // espera qualquer push em curso terminar
+            removeImportantData_unsafe();
+            pushMutex.unlock();
         }
 
         void minDistance(float new_MD){
@@ -324,6 +332,14 @@ class Player{
 
         }
 
+        void removeImportantData_unsafe(){
+            if(!streamIsValid.load()) return;
+            soundStream->stop();
+            delete soundStream;
+            streamIsValid = false;
+            pushClock.restart();
+        }
+
         void removeImportantData(){
             if(!streamIsValid.load()) return;
             {
@@ -338,14 +354,16 @@ class Player{
             }
         }
 
-        void actCheck(){
+        bool actCheck(){
             pushMutex.lock();
             if(pushClock.getElapsedTime().asSeconds() >= 10){
+                condemned = true;
+                removeImportantData_unsafe(); // sem lock interno
                 pushMutex.unlock();
-                removeImportantData();
-            } else {
-                pushMutex.unlock();
+                return false;
             }
+            pushMutex.unlock();
+            return true;
         }
 
         void restartSoundStream(sf::Time sampleTime){
@@ -366,7 +384,9 @@ class Player{
 
         //thread safe
         void push(int audioNum, data::buffer &audio, int sampleTime = SAMPLE_TIME_DEFAULT){
+            if(condemned.load()) return;
 
+            //std::cout << "Pushing an: " << audioNum << " to player " << id << std::endl;
             if(!streamIsValid.load()){
                 pushMutex.lock();
                 if(!streamIsValid.load()){

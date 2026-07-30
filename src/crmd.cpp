@@ -57,7 +57,7 @@ void initDbg(){
 std::shared_mutex initSync = std::shared_mutex();
 
 bool CRMD_isTalking(){
-  soundmanager::RecorderImpl::getInstance().isTalking();
+  return soundmanager::RecorderImpl::getInstance().isTalking();
 }
 
 void CRMD_sendMyPos(){
@@ -307,6 +307,17 @@ bool CRMD_needCallNewSession(){
       std::cout << "Socket is closed, call new session" << std::endl;
       initSync.unlock_shared();
       return true;
+    } else {
+      if(player::SelfImpl::getInstance().isConnected()){
+        //precisamos mandar um send connect de novo para o servidor atualizar a conexão sinalizando atividade a cada 5 segundos.
+        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+        static std::chrono::system_clock::time_point lastSendConnect = now;
+        if(std::chrono::duration_cast<std::chrono::seconds>(now - lastSendConnect).count() >= 5){
+          lastSendConnect = now;
+          player::SelfImpl::getInstance().sendConnect();
+        }
+        //O servidor tem um timeout de 30 segundos, mas se o cliente não mandar nada, ele pode ser desconectado, então mandamos um pacote de keep alive a cada 5 segundos.
+      }
     }
   } else {
     std::cout << "Self not exist, call new session" << std::endl;

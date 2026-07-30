@@ -94,6 +94,22 @@
         return outDataBuffer;
     }
 
+    void OpusManager::updateNetworkStats(int pingMs, int jitterMs) {
+        // Quanto maior o jitter, maior a chance de perda — sinaliza pro encoder incluir FEC
+        int estimatedLoss;
+        if (jitterMs > 50 || pingMs > 200) {
+            estimatedLoss = 20;
+        } else if (jitterMs > 20 || pingMs > 100) {
+            estimatedLoss = 10;
+        } else {
+            estimatedLoss = 5; // mínimo para manter FEC ativo
+        }
+        opus_encoder_ctl(encoder, OPUS_SET_PACKET_LOSS_PERC(estimatedLoss));
+
+        // TODO: quando servidor enviar feedback de loss real por player:
+        // opus_encoder_ctl(encoder, OPUS_SET_PACKET_LOSS_PERC(realLossPercent));
+    }
+
     OpusManager::~OpusManager(){
         opus_decoder_destroy(decoder);
         opus_encoder_destroy(encoder);

@@ -19,13 +19,12 @@ namespace service{
 //***Bom funcionamento de contextos é agarantido até 8 caracteres, depois disso é feito hashing
 class Context{
 private:
-    size_t contextID;
     std::string name;
-    std::hash<std::string> hasher;
-    std::thread garbageCollector_thread;
-    
-    Context(std::string _name):hasher(){
-        if(_name.size() > 8){
+    std::shared_mutex locker;
+public:
+
+    Context(std::string _name){ //:hasher(){
+        /*if(_name.size() > 8){
             contextID = hasher(name);
         } else {
             if(_name.size() < 8){
@@ -34,20 +33,27 @@ private:
                 _name.append(addStr, sizeStr);
             }
             contextID = (size_t)*_name.data();
-        }
+        }*/
         name = _name;
     }
 
-public:
     Context(){
         std::string _name("Default");
         Context(_name);
     }
-    size_t getContext(){
-        return contextID;
+    std::string getContext(){
+        return name;
     }
     std::string getName(){
         return name;
+    }
+
+    void lock(){
+        locker.lock();
+    }
+
+    void unlock(){
+        locker.unlock_shared();
     }
 };
 
@@ -55,7 +61,7 @@ public:
 
 class ContextManager {
 private:
-    std::unordered_map<size_t, std::shared_ptr<Context>> contextMap;
+    std::unordered_map<std::string, std::shared_ptr<Context>> contextMap;
     std::thread garbageCollector_thread;
     bool collect;
 public:
@@ -73,7 +79,7 @@ public:
 
     // Método para registrar um contexto
     std::shared_ptr<Context> registerContext(Context context) {
-        size_t contextID = context.getContext();
+        std::string contextID = context.getContext();
 
         auto it = contextMap.find(contextID);
         if (it == contextMap.end()) {
@@ -90,7 +96,7 @@ public:
         return isValidContext(context.getContext());
     }
 
-    bool isValidContext(size_t contextId){
+    bool isValidContext(std::string contextId){
         if(contextMap.find(contextId) != contextMap.end()){
             return true;
         }
@@ -115,7 +121,7 @@ private:
 };
 
 //ServiceProvider é uma Interface de gerenciamento de dependencias, portanto conhece classe chamada e chamadora (ou suas interfaces)
-//Deve ser implementada como <classe Chamada>Service mas referenciar somente a Interface, conhecendo as demais apenas a fim de instanciamento
+//Deve ser implementada como <classe Chamada>Service mas referencia somente a Interface, conhecendo as demais apenas a fim de instanciamento
 //Classe Chamadora conhece somente a interface da classe chamada e o provedor de dependencia (ServiceProvider)
 //Ex: dado a classe chamadora A, interface iB, classe Bnormal e Bdiferente, é criado a classe BService(subClasse de ServiceProvider) e BServiceImpl como singleton,
 //a classe BService contem as regras de implementação para a interface iB, que pode ser Bnormal e Bdiferente, é a classe que define qual dessas implementações serve

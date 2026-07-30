@@ -19,8 +19,8 @@
 #include "socketUdp.h"
 
 struct Task {
-    std::function<void(protocol::Server&)> function;
-    std::shared_ptr<protocol::Server> server;
+    std::function<void(ServerPacket&)> function;
+    std::shared_ptr<ServerPacket> server;
 
     bool valid;
 
@@ -28,7 +28,7 @@ struct Task {
       valid = false;
     }
 
-    Task(std::function<void(protocol::Server&)> f, std::shared_ptr<protocol::Server> s)
+    Task(std::function<void(ServerPacket&)> f, std::shared_ptr<ServerPacket> s)
         : function(std::move(f)), server(s) {
           valid = true;
         }
@@ -45,14 +45,32 @@ struct Task {
 class ThreadPool {
 public:
     ThreadPool(size_t numThreads) : stop(false) {
+      worker_status.reserve(10);
 
-        for (size_t i = 0; i < numThreads; ++i) {
+      for(int i = 0; i < 10; i++){
+        worker_status.emplace_back(std::make_unique<std::atomic<bool>>(true));
+      }
+
+      addWorkers(numThreads);
+    }
+
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool& operator=(const ThreadPool&) = delete;
+
+    void addWorkers(size_t numThreads) {
+        for (size_t i = 0 + workers.size(); i < numThreads; ++i) {
+            if(workers.size() >= 10) return;
+            worker_status[i].get()->store(true);
             workers.emplace_back([this,i] {
                 while (true) {
                     Task task;
                     {
                         std::unique_lock<std::mutex> lock(queueMutex);
                         condition.wait(lock, [this] { return stop || !tasks.empty(); });
+
+                        if (!worker_status[i].get()->load()) {
+                            return;
+                        }
 
                         if (!tasks.empty()){
                           task = std::move(tasks.front());
@@ -70,7 +88,41 @@ public:
         }
     }
 
-    void enqueue(std::function<void(protocol::Server&)> f, std::shared_ptr<protocol::Server> s) {
+    void removeWorkers(size_t numToRemove) {
+      size_t removed = 0;
+      {
+        std::unique_lock<std::mutex> lock(queueMutex);
+        size_t currentSize = workers.size();
+
+        // Ajusta o número de threads a serem removidas
+        if (numToRemove > currentSize) {
+            numToRemove = currentSize;
+        }
+        
+        for (int  i = (int)currentSize - 1; i >= 0 && removed < numToRemove; --i) { // size_t é unsigned, então usamos int para evitar underflow
+            if (worker_status[i].get()->load()) {
+                worker_status[i].get()->store(false); // Sinaliza a thread para encerrar
+                ++removed;
+            }
+        }
+      }
+
+      condition.notify_all(); // Notifica todas as threads para verificar seu status
+
+      // Aguarda o término das threads marcadas para remoção
+      for (size_t i = workers.size() - 1; i >= 0 && numToRemove > 0; --i) {
+          if (!worker_status[i].get()->load()) {
+              if (workers[i].joinable()) {
+                  workers[i].join(); // Espera a thread encerrar
+              }
+              workers.pop_back();    // Remove a thread do vetor
+              --numToRemove;
+          }
+      }
+    }
+
+
+    void enqueue(std::function<void(ServerPacket&)> f, std::shared_ptr<ServerPacket> s) {
         auto task = Task(f, s);
 
         {
@@ -96,6 +148,7 @@ public:
 
 private:
     std::vector<std::thread> workers;
+    std::vector<std::unique_ptr<std::atomic<bool>>> worker_status;
     std::queue<Task> tasks;
 
     std::mutex queueMutex;
@@ -103,103 +156,79 @@ private:
     bool stop;
 };
 
-std::vector<std::atomic_bool> lossInfo(256);
-std::atomic_int lastLossInfo(0);
-std::atomic_int lastLossPerc(0);
 std::atomic_int lastPing(0);
 std::atomic_int medianPing(0);
-std::atomic_int medianTrotling(0);
+std::atomic_int medianJitter(0);
 
-int ProtocolParser::getTrotling(){
-  return medianTrotling.load();
-}
-
-int ProtocolParser::getLossPercent(){
-  return lastLossPerc.load();
+int ProtocolParser::getJitter(){
+  return medianJitter.load();
 }
 
 void updateSoundProcessingTimes(int ping, int initAudioDelay){
   if(ping >= 70){
-      soundmanager::RecorderImpl::getInstance().setIntervalTime(100);
-      soundmanager::NetworkAudioStream::setInitAudioDelay(initAudioDelay);
-    } else if(ping >= 60){
-      soundmanager::RecorderImpl::getInstance().setIntervalTime(60);
-      soundmanager::NetworkAudioStream::setInitAudioDelay(initAudioDelay);
-    } else if (ping >= 25){
+    soundmanager::RecorderImpl::getInstance().setIntervalTime(100);
+    soundmanager::NetworkAudioStream::setInitAudioDelay(initAudioDelay);
+  } else if(ping >= 60){
+    soundmanager::RecorderImpl::getInstance().setIntervalTime(60);
+    soundmanager::NetworkAudioStream::setInitAudioDelay(initAudioDelay);
+  } else if (ping >= 25){
       soundmanager::RecorderImpl::getInstance().setIntervalTime(40);
-      soundmanager::NetworkAudioStream::setInitAudioDelay(initAudioDelay+25);
-    } else {
-      soundmanager::RecorderImpl::getInstance().setIntervalTime(40);
-      soundmanager::NetworkAudioStream::setInitAudioDelay(initAudioDelay+20);
-    }
+      soundmanager::NetworkAudioStream::setInitAudioDelay(initAudioDelay); // era +25
+  } else {
+      soundmanager::RecorderImpl::getInstance().setIntervalTime(40); // frame menor
+      soundmanager::NetworkAudioStream::setInitAudioDelay(initAudioDelay); // era +20
+  }
 }
 
-void parseFunction(protocol::Server& serverReceived){
+void parseFunction(ServerPacket& serverReceived){
 
-  if(serverReceived.has_invalidsession()){
-    if(serverReceived.invalidsession()){
+  if(serverReceived.server_info.has_InvalidSession){
+    if(serverReceived.server_info.InvalidSession){
       ProtocolParser::invalidCalsFromServer += 1;
       if(ProtocolParser::invalidCalsFromServer.load() > 2){
         socketUdpImpl::getInstance().close();
         ProtocolParser::invalidCalsFromServer = 0;
         medianPing = 0;
+        std::cout << "Invalid Session!" << std::endl;
         return;
       }
     }
   }
 
+  if(serverReceived.server_info.has_coordX){
+      //std::cout << "RECEIVED X: " << serverReceived.server_info.coordX << std::endl;
+  }
 
-
-  //Packet inside packet and DUMP network loss controll
-  if(serverReceived.extraclientmsg_size() > 0){
+  // Packet inside packet and DUMP. Network loss controll  foi retirado por ser frágil, cada soundmanager faz seu calculo agora.
+  if(serverReceived.extraClientBuffers.size() > 0){
     int sampleTotalTime = 0;
-    for(int i = 0; i < serverReceived.extraclientmsg_size(); i++){
-      protocol::Server extraServer;
-      auto bufferExtraRef = serverReceived.mutable_extraclientmsg();
-      auto bufferExtra = bufferExtraRef->at(i);
-      bool isParsed = extraServer.ParseFromArray(bufferExtra.data(), bufferExtra.size());
-      if(isParsed){
-        if(extraServer.has_sampletime()){
-          sampleTotalTime += extraServer.sampletime();
-        }
-        parseFunction(extraServer);
+
+    for (auto& buffer : serverReceived.extraClientBuffers) {
+      ServerPacket extraServer;
+
+      pb_istream_t stream = pb_istream_from_buffer(buffer.data(), buffer.size());
+
+      if (pb_decode(&stream, protocol_Server_fields, &extraServer.server_info)) {
+          parseFunction(extraServer);
       }
-    }
-    if(serverReceived.has_audionum()){
-      if(serverReceived.audionum() < 20 && lastLossInfo >= 240){
-        int lossPercentage = 0;
-        int lossCount = 0;
-        for(auto& info : lossInfo){
-          if(!info) lossCount++;
-          info = false;
-        }
-        lossPercentage = lossCount * 100 / 256;
-        if(lastLossPerc > 0){
-          lossPercentage = (lossPercentage + lastLossPerc) / 2;
-        }
-        lastLossPerc = lossPercentage;
-      }
-      lossInfo[serverReceived.audionum()] = true;
-      lastLossInfo = serverReceived.audionum();
     }
   }
 
-  if(serverReceived.has_packettime() && serverReceived.handshake() == false){
+  if(serverReceived.server_info.has_packetTime && serverReceived.server_info.has_handShake == false){
     using namespace std::chrono;
 
-    google::protobuf::Timestamp* PacketTimestamp = serverReceived.mutable_packettime();
-    google::protobuf::Timestamp nowTimestamp;
+    google_protobuf_Timestamp& PacketTimestamp = serverReceived.server_info.packetTime;
     high_resolution_clock::time_point timePoint = high_resolution_clock::now();
 
-    // Converta os tempos para um formato comum
-    system_clock::time_point serverTimePoint = time_point_cast<system_clock::time_point::duration>(system_clock::time_point(seconds(PacketTimestamp->seconds()) + nanoseconds(PacketTimestamp->nanos())));
+    system_clock::time_point serverTimePoint = time_point_cast<system_clock::time_point::duration>(
+      system_clock::time_point(seconds(PacketTimestamp.seconds) + nanoseconds(PacketTimestamp.nanos)));
     system_clock::time_point currentTimePoint = time_point_cast<system_clock::duration>(timePoint);
-    
-    //server no passado
+
+    // server no passado
     if(ProtocolParser::isNegativeTimeDiffServer){
       currentTimePoint -= ProtocolParser::getTimeDiffServer();
     } else {
-      //server no futuro
+      // server no futuro
       currentTimePoint += ProtocolParser::getTimeDiffServer();
     }
 
@@ -207,64 +236,61 @@ void parseFunction(protocol::Server& serverReceived){
     if(millis == 0) millis = 1;
     if(millis < 0){
       millis = 1;
-      //recalcule time server/client
       player::SelfImpl::getInstance().sendConnect();
     }
 
     if(lastPing == 0) lastPing = millis;
-    int trotling = lastPing - millis;
-    if(trotling < 0) trotling = trotling * -1;
-    medianTrotling = (medianTrotling + trotling) / 2;
-    trotling = medianTrotling.load();
+    int Jitter = abs(millis - lastPing);
+    medianJitter = medianJitter + (Jitter - medianJitter) / 8;
+
     lastPing = millis;
-    //std::cout << "TT: " << trotling << std::endl;
 
     medianPing = ((medianPing.load() * 4) + millis) / 5;
     std::cout << "Ping: " << medianPing << std::endl;
     millis = medianPing;
-    int initAudioDelay = millis + (millis*10/100) + trotling; // millis + 10% + trotling
-    
-    updateSoundProcessingTimes((trotling + millis) / 3, initAudioDelay);
-    
+    int initAudioDelay = millis + (millis*10/100) + medianJitter;
+
+    updateSoundProcessingTimes((Jitter + millis) / 3, initAudioDelay);
   }
 
-  if(!serverReceived.has_handshake() || serverReceived.handshake() == false){
-    if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.id())){
-      std::cout << "Player " << serverReceived.id() << " not exist, Added" << std::endl;
+  if(!serverReceived.server_info.has_handShake || serverReceived.server_info.handShake == false){
+    if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.server_info.id)){
+      if(serverReceived.server_info.id == 0) return; // id 0 is invalid, ignore. TODO find a better solution for this
+
+      std::cout << "Player " << serverReceived.server_info.id << " not exist, Added" << std::endl;
       int sampleTime = SAMPLE_TIME_DEFAULT;
-      if(serverReceived.has_sampletime()){
-        sampleTime = serverReceived.sampletime();
+      if(serverReceived.server_info.has_sampleTime){
+        sampleTime = serverReceived.server_info.sampleTime;
       }
       PLAYER player(new Player(sf::milliseconds(sampleTime)));
-      player->id = serverReceived.id();
+      player->id = serverReceived.server_info.id;
       player->setPosition(0,0,0);
       PlayersManagerImpl::getInstance().insertPlayer(player);
-
     }
 
-    if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.id())){
-      std::cout << "Player " << serverReceived.id() << " not exist" << std::endl;
+    if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.server_info.id)){
+      std::cout << "Player " << serverReceived.server_info.id << " not exist" << std::endl;
       return;
     }
 
-    PLAYER player = PlayersManagerImpl::getInstance().getPlayer(serverReceived.id());
+    PLAYER player = PlayersManagerImpl::getInstance().getPlayer(serverReceived.server_info.id);
 
     SimpleCoords pos = player->getPosition();
     bool altCoord = false;
-    if(serverReceived.has_coordx()){
-        pos.x = serverReceived.coordx();
-        altCoord = true;
+    if(serverReceived.server_info.has_coordX){
+      pos.x = serverReceived.server_info.coordX;
+      altCoord = true;
     }
-    if(serverReceived.has_coordy()){
-        pos.y = serverReceived.coordy();
-        altCoord = true;
+    if(serverReceived.server_info.has_coordY){
+      pos.y = serverReceived.server_info.coordY;
+      altCoord = true;
     }
-    if(serverReceived.has_coordz()){
-        pos.z = serverReceived.coordz();
-        altCoord = true;
+    if(serverReceived.server_info.has_coordZ){
+      pos.z = serverReceived.server_info.coordZ;
+      altCoord = true;
     }
-    if(serverReceived.has_isgroup()){
-      if(serverReceived.isgroup()){
+    if(serverReceived.server_info.has_isGroup){
+      if(serverReceived.server_info.isGroup){
         player->setToListenGroup(true);
         altCoord = false;
       } else {
@@ -272,37 +298,37 @@ void parseFunction(protocol::Server& serverReceived){
       }
     }
     if(altCoord){
-      player->setPosition(pos.x,pos.y,pos.z);
+      player->setPosition(pos.x, pos.y, pos.z);
     }
 
-    if(serverReceived.has_audio()){
-        int audioNum = 0;
-        int sampleTime = SAMPLE_TIME_DEFAULT;
-        if(serverReceived.has_audionum()){
-          audioNum = serverReceived.audionum();
-        }
-        if(serverReceived.has_sampletime()){
-          sampleTime = serverReceived.sampletime();
-        }
+    if(serverReceived.audioBuffer.size() > 0){
+      int audioNum = 0;
+      int sampleTime = SAMPLE_TIME_DEFAULT;
+      if(serverReceived.server_info.has_audioNum){
+        audioNum = serverReceived.server_info.audioNum;
+      }
+      if(serverReceived.server_info.has_sampleTime){
+        sampleTime = serverReceived.server_info.sampleTime;
+      }
 
-        int sampleCount = sampleTimeGetCount(sampleTime, SAMPLE_RATE);
-        data::buffer audio(serverReceived.audio().data(), serverReceived.audio().size());
+      int sampleCount = sampleTimeGetCount(sampleTime, SAMPLE_RATE);
+      data::buffer audio(serverReceived.audioBuffer.data(), serverReceived.audioBuffer.size());
 
-        player->push(audioNum, audio, sampleTime);
-        //std::cout << "Player " << player->id << "push audio: " << sampleTime << " ms " << audio.size() << " bytes" << std::endl;
+      player->push(audioNum, audio, sampleTime);
     }
 
   } else {
-    if(serverReceived.handshake()){
-        if(serverReceived.id() == player::SelfImpl::getInstance().getMyID()){
-            player::SelfImpl::getInstance().setConnect(true);
-            if(serverReceived.has_packettime()){
-              using namespace std::chrono;
-              google::protobuf::Timestamp* PacketTimestamp = serverReceived.mutable_packettime();
-              system_clock::time_point serverTimePoint = time_point_cast<system_clock::time_point::duration>(system_clock::time_point(seconds(PacketTimestamp->seconds()) + nanoseconds(PacketTimestamp->nanos())));
-              ProtocolParser::calcTimeDiffServer_andSet(serverTimePoint);
-            }
+    if(serverReceived.server_info.handShake){
+      if(serverReceived.server_info.id == player::SelfImpl::getInstance().getMyID()){
+        player::SelfImpl::getInstance().setConnect(true);
+        if(serverReceived.server_info.has_packetTime){
+          using namespace std::chrono;
+          google_protobuf_Timestamp& PacketTimestamp = serverReceived.server_info.packetTime;
+          system_clock::time_point serverTimePoint = time_point_cast<system_clock::time_point::duration>(
+            system_clock::time_point(seconds(PacketTimestamp.seconds) + nanoseconds(PacketTimestamp.nanos)));
+          ProtocolParser::calcTimeDiffServer_andSet(serverTimePoint);
         }
+      }
     }
   }
 }
@@ -312,74 +338,75 @@ ThreadPool parserThreadPool(4);
 void ProtocolParser::m_Parser_only THREAD_POOL_ARGS_NAMED{
 
   bool success = false;
-  protocol::Server serverReceived = threadPoolL.pop(threadId, success);
+  ServerPacket serverReceived = threadPoolL.pop(threadId, success);
 
   if(!success){
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
     return;
   }
 
-  if(serverReceived.has_invalidsession()){
-    if(serverReceived.invalidsession()){
+  if(serverReceived.server_info.has_InvalidSession){
+    if(serverReceived.server_info.InvalidSession){
       socketUdpImpl::getInstance().close();
     }
   }
 
-  if(!serverReceived.has_handshake() || serverReceived.handshake() == false){
-    if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.id())){
+  if(!serverReceived.server_info.has_handShake || serverReceived.server_info.handShake == false){
+    if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.server_info.id)){
+      if(serverReceived.server_info.id == 0) return; // id 0 is invalid, ignore. TODO find a better solution for this
       int sampleTime = SAMPLE_TIME_DEFAULT;
-      if(serverReceived.has_sampletime()){
-        sampleTime = serverReceived.sampletime();
+      if(serverReceived.server_info.has_sampleTime){
+        sampleTime = serverReceived.server_info.sampleTime;
       }
       PLAYER player(new Player(sf::milliseconds(sampleTime)));
-      player->id = serverReceived.id();
+      player->id = serverReceived.server_info.id;
       player->setPosition(0,0,0);
       PlayersManagerImpl::getInstance().insertPlayer(player);
 
     }
 
-    if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.id())){
+    if(!PlayersManagerImpl::getInstance().existPlayer(serverReceived.server_info.id)){
       return;
     }
 
-    PLAYER player = PlayersManagerImpl::getInstance().getPlayer(serverReceived.id());
+    PLAYER player = PlayersManagerImpl::getInstance().getPlayer(serverReceived.server_info.id);
 
     SimpleCoords pos = player->getPosition();
     bool altCoord = false;
-    if(serverReceived.has_coordx()){
-        pos.x = serverReceived.coordx();
+    if(serverReceived.server_info.has_coordX){
+        pos.x = serverReceived.server_info.coordX;
         altCoord = true;
     }
-    if(serverReceived.has_coordy()){
-        pos.y = serverReceived.coordy();
+    if(serverReceived.server_info.has_coordY){
+        pos.y = serverReceived.server_info.coordY;
         altCoord = true;
     }
-    if(serverReceived.has_coordz()){
-        pos.z = serverReceived.coordz();
+    if(serverReceived.server_info.has_coordZ){
+        pos.z = serverReceived.server_info.coordZ;
         altCoord = true;
     }
     if(altCoord){
       player->setPosition(pos.x,pos.y,pos.z);
     }
 
-    if(serverReceived.has_audio()){
+    if(serverReceived.audioBuffer.size() > 0){
         int audioNum = 0;
         int sampleTime = SAMPLE_TIME_DEFAULT;
-        if(serverReceived.has_audionum()){
-          audioNum = serverReceived.audionum();
+        if(serverReceived.server_info.has_audioNum){
+          audioNum = serverReceived.server_info.audioNum;
         }
-        if(serverReceived.has_sampletime()){
-          sampleTime = serverReceived.sampletime();
+        if(serverReceived.server_info.has_sampleTime){
+          sampleTime = serverReceived.server_info.sampleTime;
         }
 
-        data::buffer audio(serverReceived.audio().data(), serverReceived.audio().size());
+        data::buffer audio(serverReceived.audioBuffer.data(), serverReceived.audioBuffer.size());
 
         player->push(audioNum, audio, sampleTime);
     }
 
   } else {
-    if(serverReceived.handshake()){
-        if(serverReceived.id() == player::SelfImpl::getInstance().getMyID()){
+    if(serverReceived.server_info.handShake){
+        if(serverReceived.server_info.id == player::SelfImpl::getInstance().getMyID()){
             player::SelfImpl::getInstance().setConnect(true);
         }
     }
@@ -387,12 +414,12 @@ void ProtocolParser::m_Parser_only THREAD_POOL_ARGS_NAMED{
   
 }
 
-void ProtocolParser::parse(protocol::Server& serverReceived){
+void ProtocolParser::parse(ServerPacket& serverReceived){
   //std::thread(&ProtocolParser::m_Parser_only, this, serverReceived).detach();
-  std::shared_ptr<protocol::Server> sptr(new protocol::Server(serverReceived));
+  std::shared_ptr<ServerPacket> sptr(new ServerPacket(serverReceived));
   parserThreadPool.enqueue(&parseFunction, sptr);
-  //threadPool.push(serverReceived);
-  //std::thread(&ProtocolParser::parser_Finder, this, serverReceived).detach();
+  //threadPool.push(serverReceived.server_info);
+  //std::thread(&ProtocolParser::parser_Finder, this, serverReceived.server_info).detach();
 }
 
 data::parseThreadPoll& ProtocolParser::getPool(){

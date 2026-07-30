@@ -54,6 +54,13 @@ namespace soundmanager
 
             echoBuffer.resize(getSampleRate() * 4);
             reverbBuffer.resize(getSampleRate() * 6);
+            echoWritePos  = 0;
+            reverbWritePos = 0;
+            echoBuffer.assign(getSampleRate() * 4, 0);
+            reverbBuffer.assign(getSampleRate() * 6, 0);
+
+            draining = false;
+            drainSamplesRemaining = 0;
         }
         
         m_samples.clear();
@@ -87,6 +94,12 @@ namespace soundmanager
     }
 
     void NetworkBufferRecorder::setNeedSendData(bool needSend){
+        if (!needSend && canSendData.load() && !draining) {
+            startDrain();
+        } else if (needSend && draining) {
+            cancelDrain();
+            // samplesBuff e preBuffer já limpos no cancelDrain
+        }
         canSendData = needSend;
     }
 
@@ -195,15 +208,20 @@ namespace soundmanager
     // Função para aplicar o Echo
     void NetworkBufferRecorder::applyEcho(sf::Int16* samples, std::size_t sampleCount) {
         echoMutex.lock();
-        if(!needApplyEcho){
-            echoMutex.unlock();
-            return;
-        }
+        if (!needApplyEcho) { echoMutex.unlock(); return; }
+
+        const size_t bufSize = echoBuffer.size();
+        const size_t delay   = static_cast<size_t>(echoDelay);
+
         for (std::size_t i = 0; i < sampleCount; ++i) {
-            int delayIndex = (i + echoBuffer.size() - echoDelay) % echoBuffer.size();
-            sf::Int16 delayedSample = echoBuffer[delayIndex];
-            samples[i] = std::clamp((int)samples[i] + (int)(echoDecay * delayedSample), -32768, 32767);
-            echoBuffer[i % echoBuffer.size()] = samples[i]; // Atualiza o buffer de Echo
+            size_t readIdx = (echoWritePos + bufSize - delay) % bufSize;
+            sf::Int16 delayed = echoBuffer[readIdx];
+
+            int mixed = static_cast<int>(samples[i]) + static_cast<int>(echoDecay * delayed);
+            samples[i] = static_cast<sf::Int16>(std::clamp(mixed, -32768, 32767));
+
+            echoBuffer[echoWritePos] = samples[i];
+            echoWritePos = (echoWritePos + 1) % bufSize;
         }
         echoMutex.unlock();
     }
@@ -211,55 +229,207 @@ namespace soundmanager
     // Função para aplicar o Reverb
     void NetworkBufferRecorder::applyReverb(sf::Int16* samples, std::size_t sampleCount) {
         reverbMutex.lock();
-        if(!needApplyReverb){
-            reverbMutex.unlock();
-            return;
-        }
+        if (!needApplyReverb) { reverbMutex.unlock(); return; }
+
+        const size_t bufSize = reverbBuffer.size();
+        const size_t delay   = static_cast<size_t>(reverbDelay);
+
         for (std::size_t i = 0; i < sampleCount; ++i) {
-            int delayIndex = (i + reverbBuffer.size() - reverbDelay) % reverbBuffer.size();
-            sf::Int16 delayedSample = reverbBuffer[delayIndex];
-            samples[i] = std::clamp((int)samples[i] + (int)(reverbDecay * delayedSample), -32768, 32767);
-            reverbBuffer[i % reverbBuffer.size()] = samples[i]; // Atualiza o buffer de Reverb
+            size_t readIdx = (reverbWritePos + bufSize - delay) % bufSize;
+            sf::Int16 delayed = reverbBuffer[readIdx];
+
+            int mixed = static_cast<int>(samples[i]) + static_cast<int>(reverbDecay * delayed);
+            samples[i] = static_cast<sf::Int16>(std::clamp(mixed, -32768, 32767));
+
+            reverbBuffer[reverbWritePos] = samples[i];
+            reverbWritePos = (reverbWritePos + 1) % bufSize;
         }
         reverbMutex.unlock();
     }
 
+    static const int PRE_FRAMES = 2;
+
+    void NetworkBufferRecorder::pushPreFrame(const sf::Int16* samples, std::size_t count) {
+        int sampleCountToProcess = atomicSampleCountToProcess.load();
+        int sampleCountToPrebuffer = sampleCountToProcess * PRE_FRAMES;
+
+        preBuffer.insert(preBuffer.end(), samples, samples + count);
+
+        if(preBuffer.size() > sampleCountToPrebuffer){
+            preBuffer.erase(preBuffer.begin(), preBuffer.begin() + (preBuffer.size() - sampleCountToPrebuffer));
+        }
+
+    }
+
+    void NetworkBufferRecorder::flushPreBuffer() {
+        int sampleCountToProcess = atomicSampleCountToProcess.load();
+
+        if(preBuffer.empty()) return;
+        if(preBuffer.size() != sampleCountToProcess * PRE_FRAMES){
+            return;
+        }
+
+        // processa o flat buffer em chunks de sampleCountToProcess
+        size_t offset = 0;
+        while (offset + sampleCountToProcess <= preBuffer.size()) {
+            int sampleTime = sampleCountGetTimeMS(sampleCountToProcess, getSampleRate());
+            data::buffer encoded = opusManager->encode(
+                preBuffer.data() + offset, sampleCountToProcess);
+            (*send)(encoded, sampleTime);
+            offset += sampleCountToProcess;
+        }
+        preBuffer.clear();
+    }
+
+    void NetworkBufferRecorder::flushSamplesBuff() {
+        int sampleCountToProcess = atomicSampleCountToProcess.load();
+
+        if (draining) {
+            if (drainClock.getElapsedTime().asMilliseconds() >= drainDurationMs) {
+                draining = false;
+                samplesBuff.clear();
+                preBuffer.clear();
+                echoBuffer.assign(echoBuffer.size(), 0);
+                reverbBuffer.assign(reverbBuffer.size(), 0);
+                echoWritePos = reverbWritePos = 0;
+                return;
+            }
+
+            // completa com silêncio para escoar a cauda
+            if ((int)samplesBuff.size() < sampleCountToProcess)
+                samplesBuff.resize(sampleCountToProcess, 0);
+        }
+
+        if (samplesBuff.empty()) return;
+
+        applyEcho(samplesBuff.data(), sampleCountToProcess);
+        applyReverb(samplesBuff.data(), sampleCountToProcess);
+
+        for (auto& s : samplesBuff)
+            s = static_cast<sf::Int16>(static_cast<float>(s) * getVolume());
+
+        int sampleTime = sampleCountGetTimeMS(sampleCountToProcess, getSampleRate());
+        data::buffer encoded = opusManager->encode(samplesBuff.data(), sampleCountToProcess);
+        (*send)(encoded, sampleTime);
+        samplesBuff.clear();
+    }
+
+    void NetworkBufferRecorder::startDrain() {
+
+        echoMutex.lock();
+        bool temp_applyEcho = needApplyEcho;
+        echoMutex.unlock();
+        reverbMutex.lock();
+        bool temp_applyReverb = needApplyReverb;
+        reverbMutex.unlock();
+
+        if (temp_applyEcho || temp_applyReverb) {
+            float maxDelaySamples = std::max(
+                temp_applyEcho   ? (float)echoDelay   : 0.f,
+                temp_applyReverb ? (float)reverbDelay : 0.f
+            );
+            drainDurationMs = (int)((maxDelaySamples / getSampleRate()) * 1000.f) * 2;
+        } else {
+            drainDurationMs = 0;
+            draining = false; // nem entra em drain
+            samplesBuff.clear(); // descarta o resíduo
+            preBuffer.clear();
+            return;
+        }
+        draining = true;
+        drainClock.restart();
+        flushSamplesBuff();  // envia o que ficou no buffer antes de começar o silêncio
+    }
+
+    void NetworkBufferRecorder::cancelDrain() {
+        draining = false;
+        drainDurationMs = 0;
+        samplesBuff.clear();  // evita re-entrada de dados velhos
+        preBuffer.clear();    // idem
+    }
+
     bool NetworkBufferRecorder::onProcessSamples(const sf::Int16* samples, std::size_t sampleCount)
     {
-        if(detectNeeded.load()){
-            //auto volume = procMicVolume(samples, sampleCount, medianVolume);
-            //auto volume = procMicVolumeAbs(samples, sampleCount, medianVolume, detectValue);
-            std::vector<int16_t> sampleVct;
-            sampleVct.insert(sampleVct.begin(), samples, samples + sampleCount);
-            auto volume = normalizeDB(calculateLoudness(sampleVct, getSampleRate()));
-            actualDetectValue = volume;
-            //if(volume < detectValue){
-            if(voice_activity_detection(samples, sampleCount, 10000.0f * detectValue)){
-                if(firstDownVolumeVoiceDetect == false){
-                    firstDownVolumeVoiceDetect = true;
-                    clockVoiceDetect.restart();
+        if (detectNeeded.load()) {
+
+            pushPreFrame(samples, sampleCount);
+
+            double energy = calculate_energy(samples, sampleCount);
+            float threshold = 10000.0f * detectValue.load();
+            bool hasVoice = energy > threshold;
+
+            actualDetectValue = (float)(energy / (threshold > 0 ? threshold : 1.0f));
+
+            if (hasVoice) {
+                if (!talking) {
+                    flushPreBuffer();
+                } else {
+                    preBuffer.clear(); // já tá falando, pré-buffer não serve mais
                 }
-                if(clockVoiceDetect.getElapsedTime().asMilliseconds() >= 120){
-                    samplesBuff.clear();
-                    talking = false;
-                    firstDownVolumeVoiceDetect = false;
+                firstDownVolumeVoiceDetect = false;
+                talking = true;
+
+                if (draining) {
+                    cancelDrain();
+                }
+
+            } else {
+                if (talking) {
+                    // hang-time
+                    if (!firstDownVolumeVoiceDetect) {
+                        firstDownVolumeVoiceDetect = true;
+                        clockVoiceDetect.restart();
+                    }
+                    if (clockVoiceDetect.getElapsedTime().asMilliseconds() >= 300) {
+                            samplesBuff.clear();
+                            startDrain();
+                            talking = false;
+                            firstDownVolumeVoiceDetect = false;
+                            return true;
+                    }
+                    // dentro do hang-time: deixa cair no processamento normal abaixo
+                } else if (!draining) {
+                    // silêncio contínuo, não estava falando
                     return true;
                 }
             }
+
         } else {
-            if(!canSendData.load()){
-                samplesBuff.clear();
-                talking = false;
-                return true;
+            if (!canSendData.load()) {
+                if(talking){
+                    // se não tá detectando voz e não pode enviar, assume que parou de falar
+                    startDrain();
+                    samplesBuff.clear();
+                    talking = false;
+                } else if (!draining) {
+                    // se não tá detectando voz, não pode enviar e não tá drenando, ignora o áudio
+                    return true;
+                } else {
+                    // se não tá detectando voz, não pode enviar mas tá drenando, deixa drenar
+                }
+            } else {
+                talking = true; // se não tá detectando voz mas pode enviar, assume que tá falando
+                if (draining) {
+                    cancelDrain();
+                }
             }
         }
 
-        talking = true;
+        //drena um echo/reverb residual se tiver parado de falar
+        if (draining) {
+            int sampleCountToProcess = atomicSampleCountToProcess.load();
+            drainSampleCumulative += (int)sampleCount;
+            if(drainSampleCumulative >= sampleCountToProcess){
+                drainSampleCumulative -= sampleCountToProcess;
+                flushSamplesBuff();
+            }
+            /*int sampleCountToProcess = atomicSampleCountToProcess.load();
+            int sampleTime = sampleCountGetTimeMS(sampleCountToProcess, getSampleRate());
+            std::this_thread::sleep_for(std::chrono::milliseconds((sampleTime / 2))); // evita drift do clock de envio*/
+            return true;
+        }
 
-        //sf::Clock clock;
-        //clock.restart();
-
-        //std::cout << "AudioNumb: " << sampleCount << std::endl;
+        // --- processamento normal ---
         int sampleCountToProcess = atomicSampleCountToProcess.load();
 
         if(sampleCount + samplesBuff.size() < sampleCountToProcess){
@@ -290,6 +460,7 @@ namespace soundmanager
         for(int i = 0; i < totalSize; i++){
             int offset = (i * sampleCountToProcess);
 
+            //denoiser.process(audio.data() + offset, sampleCountToProcess);
             applyEcho(audio.data() + offset, sampleCountToProcess);
             applyReverb(audio.data() + offset, sampleCountToProcess);
 
@@ -302,8 +473,13 @@ namespace soundmanager
 
             if(listen.load()){
                 audioNumber++;
-                if(audioNumber >= 256) audioNumber = 0;
+                if(audioNumber > 255) audioNumber = 0;
                 debugSound->insert(audioNumber.load(), encoded, sampleTime);
+
+                if(audioNumber == 1){
+                    sf::Vector3f position = sf::Listener::getPosition();
+                    debugSound->setPosition(position);
+                }
                 //std::cout << "debugNumb: " << audioNumber.load() << std::endl;
             }
         }
@@ -445,6 +621,7 @@ namespace soundmanager
         } else {
             if(!listen.load()){
                 debugSound = new NetworkAudioStream(sf::milliseconds(20), SAMPLE_CHANNELS, SAMPLE_RATE, SAMPLE_BITS);
+                debugSound->play();
                 listen = true;
             }
         }

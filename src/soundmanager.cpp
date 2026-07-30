@@ -16,6 +16,9 @@
 #include <AL/efx-creative.h>
 #include <AL/efx-presets.h>
 
+#include "AudioTimeStretch.h"
+//AudioTimeStretch timeStretch{SAMPLE_RATE, SAMPLE_CHANNELS}; // sampleRate, channels
+
 namespace soundmanager{
 
     std::atomic_bool efxOn = {false};
@@ -226,6 +229,7 @@ bool Recorder::swapDevice(std::string device){
   {
     return false;
   }
+  reConstruct(sampleRate, packetTime);
   return true;
 }
 
@@ -258,7 +262,7 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
 
         readsTry = 0;
 
-        lossPercent = 0;
+        lossPercent = 0.0f;
 
         crackleInfo.resize(256);
         for(auto crackle : crackleInfo){
@@ -369,6 +373,20 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
     //thread safe
     void NetworkAudioStream::insert(int audioNumb, data::buffer& data, int sampleTime)
     {
+        opusQueue.push(audioNumb, sampleTimeGetCount(sampleTime, sampleRate), data.getVector());
+        lastSampleTime = sampleTime;
+
+        // Só começa a tocar quando há buffer suficiente
+        int minFrames = std::max(2, initDelayCountMS.load() / sampleTime);
+        if(!playing.load() && opusQueue.size() >= minFrames){
+            opusQueue.setReadPos(audioNumb);
+            playing = true;
+            canInitDelay = true;
+            std::cout << "Starting playback, initial delay: " << initDelayCountMS.load() << " ms, sampleTime: " << sampleTime << " ms, minFrames: " << minFrames << std::endl;
+        }
+
+        return;
+
         int sampleCountTime = opusQueue.relativeActualCountSamples();
         if(sampleCountTime == 0){
             opusQueue.setReadPos(audioNumb);
@@ -462,10 +480,6 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
             queueBuff.Enqueue(frame);
         }
     }*/
-
-    void NetworkAudioStream::updateLossPercent(){
-        lossPercent = ((lossPercent * 1.5) + ProtocolParser::getLossPercent()) / 3.5;
-    }
     
     std::vector<sf::Int16> NetworkAudioStream::interpolate(std::vector<sf::Int16>& a, std::vector<sf::Int16>& b){
         int itSize = a.size();
@@ -493,11 +507,318 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
 
     bool NetworkAudioStream::onGetData(sf::SoundStream::Chunk& data)
     {
+        {
+        if (playing.load() == false){
+            m_samples.resize(320);
+            std::fill(m_samples.begin(), m_samples.end(), 0);
+            data.samples = m_samples.data();
+            data.sampleCount = m_samples.size();
+            return true;
+        }
+
+        // Regula o ritmo pelo clock
+        /*if(lastSampleTime.load() > 0) {
+            int elapsed = onGetDataClock.getElapsedTime().asMilliseconds();
+            int waitTime = lastSampleTime.load() - elapsed;
+            if(waitTime > 2) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(waitTime));
+            }
+            onGetDataClock.restart();
+        }*/
+
+        if(canInitDelay){
+            int targetMS = (initDelayCountMS.load() * 2) + sampleCountGetTimeMS(sleepGetDataDelaySamples.load(), sampleRate);
+            int alreadyMS = sampleCountGetTimeMS(opusQueue.relativeActualCountSamples(), sampleRate);
+            int waitMS = targetMS - alreadyMS;
+            if(waitMS > 0)
+                std::this_thread::sleep_for(std::chrono::milliseconds(waitMS));
+            canInitDelay = false;
+            onGetDataClock.restart();
+        }
+
+        // -----------------------------------------------------------------------
+        // Loss detection: se existe slot futuro preenchido mas o atual está vazio
+        // → perda confirmada (não apenas underrun temporário)
+        // -----------------------------------------------------------------------
+        {
+            int readPos = opusQueue.getReadPos();
+            bool currentMissing = !opusQueue.slotState(readPos);
+
+            if (currentMissing) {
+                // Verifica se tem algum pacote futuro nos próximos N slots
+                // Se sim, o atual foi realmente perdido (não é só atraso)
+                constexpr int LOOK_AHEAD = 8; // ~160ms a 20ms/frame
+                bool futureExists = false;
+                for (int i = 1; i <= LOOK_AHEAD; ++i) {
+                    int futurePos = (readPos + i) & 0xFF;
+                    if (opusQueue.slotState(futurePos)) {
+                        futureExists = true;
+                        break;
+                    }
+                }
+
+                if (futureExists) {
+                    // Perda real confirmada
+                    // Decai lento (1 perda = +5%), recupera rápido (-1% por callback)
+                    lossPercent = std::min(lossPercent + 5.0f, 50.0f);
+                    std::cout << "[LOST] " << lossPercent << "\n";
+                }
+            } else {
+                // Frame disponível — recupera gradualmente
+                lossPercent = std::max(lossPercent - 1.0f, 0.0f);
+            }
+        }
+
+        // -----------------------------------------------------------------------
+        // Target dinâmico baseado na perda atual: quanto maior a perda, mais buffer queremos para compensar
+        // -----------------------------------------------------------------------
+        //int baseTargetMS  = initDelayCountMS.load();
+        int baseTargetMS = std::max(initDelayCountMS.load(), 140);
+        float lossMarginMS = lossPercent * 2.0f; // 2ms por ponto de perda
+        int targetMS      = baseTargetMS + (int)lossMarginMS;
+
+        // Precisamos determinar se o buffer está perto do fim real
+        // para sabermos que ao chegar perto do fim real do buffer não desacelerar demais (hunting)
+        // o fim real não deve ser desacelerado pois é realmetne o fim do buffer, não um atraso temporário
+        // o que causa hunting é o fato do algoritmo de controle de velocidade reagir a um atraso temporário como se fosse o buffer real, e ao desacelerar para compensar esse atraso, na verdade só aumenta o atraso, criando um ciclo vicioso
+        // para detectar isso, podemos usar a tendência do buffer: se o buffer está crescendo, provavelmente não estamos perto do fim real, se o buffer está constantemente diminuindo, provavelmente estamos perto do fim real
+        // para isso, podemos usar uma média móvel da diferença do buffer: se a diferença está consistentemente negativa, estamos perto do fim real, se a diferença está consistenteemente positiva, estamos longe do fim real
+        // com isso, podemos ajustar o targetMS para ser mais conservador (maior) quando estamos perto do fim real, e mais agressivo (menor) quando estamos longe do fim real, evitando assim o hunting
+        bool nearRealEnd = false;
+        {
+            int bufferedMS = sampleCountGetTimeMS(opusQueue.relativeActualCountSamples(), sampleRate);
+            int diffMS = bufferedMS - prevBufferedMS;
+            prevBufferedMS = bufferedMS;
+
+            // Média móvel da diferença (tendência)
+            smoothTrend = smoothTrend * 0.9f + diffMS * 0.1f;
+
+            // Se a tendência é consistentemente negativa, estamos perto do fim real
+            if (smoothTrend < -5.0f) {
+                nearRealEnd = true;
+                targetMS = std::max(targetMS, baseTargetMS + 50); // ser mais conservador
+            } else if (smoothTrend > 5.0f) {
+                nearRealEnd = false;
+                targetMS = std::min(targetMS, baseTargetMS); // ser mais agressivo
+            }
+        }
+
+        // -----------------------------------------------------------------------
+        // Adaptive speed control
+        // -----------------------------------------------------------------------
+        /*if(opusQueue.relativeActualCountSamples() > 0){
+            constexpr float MAX_SPEEDUP   = 0.25f;
+            constexpr float MAX_SLOWDOWN  = 0.15f;
+            //constexpr float SPEED_STEP    = 0.015f;
+            constexpr float SPEED_STEP = 0.005f;
+
+            // Dead-band escala com o target — quanto maior o buffer alvo,
+            // mais tolerância antes de corrigir (evita hunting)
+            //int deadBand   = std::max(15, targetMS / 6);
+            int deadBand = std::max(30, targetMS / 4);
+
+            int bufferedSamples = opusQueue.relativeActualCountSamples();
+            int bufferedMS      = sampleCountGetTimeMS(bufferedSamples, sampleRate);
+            int diffMS          = bufferedMS - targetMS;
+            static float smoothDiff = 0;
+            smoothDiff = smoothDiff * 0.9f + diffMS * 0.1f;
+
+            float targetSpeed;
+            if (smoothDiff > deadBand) {
+                float ratio = (float)(smoothDiff - deadBand) / std::max(targetMS, 1);
+                targetSpeed = 1.0f + std::min(ratio, MAX_SPEEDUP);
+            } else if (smoothDiff < -deadBand) {
+                float ratio = (float)(-smoothDiff - deadBand) / std::max(targetMS, 1);
+                targetSpeed = 1.0f - std::min(ratio, MAX_SLOWDOWN);
+            } else {
+                targetSpeed = 1.0f;
+            }
+
+            float current  = timeStretch.getSpeed();
+            float newSpeed = current + std::clamp(targetSpeed - current, -SPEED_STEP, SPEED_STEP);
+            timeStretch.setSpeed(newSpeed);
+
+            std::cout << "[Speed] bufMS=" << bufferedMS
+                    << " tgtMS=" << targetMS
+                    << " base="  << baseTargetMS
+                    << " loss="  << lossPercent << "%"
+                    << " dead="  << deadBand
+                    << " diff="  << smoothDiff
+                    << " spd="   << newSpeed << "\n";
+        } else {
+            timeStretch.setSpeed(1.0f);
+        }*/
+       if (opusQueue.relativeActualCountSamples() > 0) {
+            constexpr float MAX_SPEEDUP  = 0.06f;  // nunca mais que 6% acima
+            constexpr float MAX_SLOWDOWN = 0.04f;  // nunca mais que 4% abaixo
+            constexpr float SPEED_STEP   = 0.002f; // rampa bem lenta
+
+            int bufferedMS = sampleCountGetTimeMS(opusQueue.relativeActualCountSamples(), sampleRate);
+            int diffMS     = bufferedMS - targetMS;
+
+            // Smooth lento para ignorar variações momentâneas
+            smoothDiff = smoothDiff * 0.95f + diffMS * 0.05f;
+
+            // Dead-band fixo e generoso: só age se desvio > 60ms
+            constexpr int DEAD_BAND = 60;
+
+            float targetSpeed = 1.0f;
+            if (smoothDiff > DEAD_BAND) {
+                float ratio = (float)(smoothDiff - DEAD_BAND) / std::max(targetMS, 1);
+                targetSpeed = 1.0f + std::min(ratio, MAX_SPEEDUP);
+            } else if (smoothDiff < -DEAD_BAND) {
+                float ratio = (float)(-smoothDiff - DEAD_BAND) / std::max(targetMS, 1);
+                targetSpeed = 1.0f - std::min(ratio, MAX_SLOWDOWN);
+            }
+
+            float current  = timeStretch.getSpeed();
+            float newSpeed = current + std::clamp(targetSpeed - current, -SPEED_STEP, SPEED_STEP);
+
+            timeStretch.setSpeed(newSpeed);
+
+            /*std::cout << "[Speed] bufMS=" << bufferedMS
+                    << " tgtMS=" << targetMS
+                    << " smoothDiff=" << smoothDiff
+                    << " spd=" << newSpeed << "\n";*/
+            std::cout << "[Speed] " << newSpeed << "\n";
+        } else {
+            smoothDiff  = 0;
+            smoothTrend = 0;
+            prevBufferedMS = 0;
+            timeStretch.setSpeed(1.0f);
+        }
+
+        std::vector<sf::Int16> a;
+        m_samples.swap(a);
+
+        int lastPoped = opusQueue.getLastPoped();
+        std::vector<char> bufferOpus;
+        int sampleCount = opusQueue.pop(bufferOpus);
+
+        // Espera até ter dado
+        /*if(sampleCount == 0) {
+            int maxWait = lastSampleTime.load();
+            int waited = 0;
+            int actualpop = lastPoped + 1;
+            if (actualpop > 255) actualpop = 0;
+            while(sampleCount == 0 && waited < maxWait) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                waited++;
+                opusQueue.setReadPos(actualpop);
+                sampleCount = opusQueue.pop(bufferOpus);
+            }
+        }*/
+
+        data::buffer decoded;
+        std::vector<sf::Int16> decodedSF;
+
+        if(sampleCount > 0) {
+            decoded = opusMng.decode((const unsigned char*)bufferOpus.data(), bufferOpus.size(), sampleCount);
+            sf::Int16* decRI = reinterpret_cast<sf::Int16*>(decoded.getData());
+            decodedSF.insert(decodedSF.end(), decRI, decRI + (decoded.size() / sizeof(sf::Int16)));
+
+            float lastTMSspeed = timeStretch.getSpeed();
+            float newSpeed = timeStretch.getSpeed();
+            if(lossPercent > 10.0f){
+                float tnlp = 1.0f - (lossPercent / 100.0f);
+                newSpeed *= tnlp;
+                std::cout << "[TNLP] " << tnlp << "\n";
+            }
+            timeStretch.setSpeed(newSpeed);
+            // Aplica WSOLA (speed + pitch)
+            decodedSF = timeStretch.process(decodedSF);
+            timeStretch.setSpeed(lastTMSspeed); //back normal
+
+            m_samples.insert(m_samples.end(), decodedSF.begin(), decodedSF.end());
+            readsTry = 0;
+            std::cout << "Exec " << m_samples.size() << std::endl;
+
+            lastSampleCount = sampleCount;
+        } else {
+            // FEC
+            int readPos = opusQueue.getReadPos(); // O slot atual está vazio, mas e o próximo? Se o próximo estiver preenchido, podemos usar ele para FEC e recuperar parte do áudio perdido
+            if(opusQueue.slotState(readPos)) {
+                sampleCount = opusQueue.preview(bufferOpus);
+                decoded = opusMng.decodeC((const unsigned char*)bufferOpus.data(), bufferOpus.size(), sampleCount, 1);
+                sf::Int16* decRI = reinterpret_cast<sf::Int16*>(decoded.getData());
+                decodedSF.insert(decodedSF.end(), decRI, decRI + (decoded.size() / sizeof(sf::Int16)));
+
+                float lastTMSspeed = timeStretch.getSpeed();
+                // Aplica WSOLA (speed + pitch)
+                timeStretch.setSpeed(0.5f);
+                decodedSF = timeStretch.process(decodedSF);
+                timeStretch.setSpeed(lastTMSspeed); //back normal
+
+                if(sampleCount > 0) {
+                    int framesLost = (readPos - lastPoped - 1) & 0xFF;
+                    if (framesLost <= 1) {
+                        m_samples = interpolate(a, decodedSF);
+                    } else {
+                        m_samples.insert(m_samples.end(), decodedSF.begin(), decodedSF.end());
+                    }
+                    std::cout << "FEC: " << readPos << std::endl;
+                    lastSampleCount = sampleCount;
+                }
+            }
+
+            if(m_samples.empty()) {
+                readsTry++;
+                std::cout << "LOST: " << readsTry << std::endl;
+                //we need check if we can recover with PCL, but need have next frame in queue to do that
+                if(readsTry == 1 && opusQueue.slotState((readPos + 1) & 0xFF)) {
+                    //try recover with PCL
+                    decoded = opusMng.decodeC(nullptr, 0, lastSampleCount, 0);
+                    sf::Int16* decRI = reinterpret_cast<sf::Int16*>(decoded.getData());
+                    decodedSF.insert(decodedSF.end(), decRI, decRI + (decoded.size() / sizeof(sf::Int16)));
+                    if(lastSampleCount > 0) {
+                        int readCompare = readPos - 2;
+                        if(readCompare < 0) readCompare += 256;
+                        if(lastPoped == readCompare){
+                            m_samples = interpolate(a, decodedSF);
+                        } else {
+                            m_samples.insert(m_samples.end(), decodedSF.begin(), decodedSF.end());
+                        }
+                        std::cout << "PCL: " << readPos << std::endl;
+                    }
+                } else {
+                    if(readsTry > 6) {
+                        opusQueue.clearFrames(0, 255);
+                        canInitDelay = true;
+                        readsTry = 0;
+                        playing = false;
+                        lossPercent = 0.0f;
+                    }
+                    int sampleCountDelay = sampleTimeGetCount(lastSampleTime.load(), sampleRate);
+                    if(sampleCountDelay < 320) sampleCountDelay = 320;
+                    m_samples.resize(sampleCountDelay);
+                    std::fill(m_samples.begin(), m_samples.end(), 0);
+                }
+            }
+        }
+
+        data.samples = m_samples.data();
+        data.sampleCount = m_samples.size();
+        return true;
+        }
+
+        /*static int noisePhase = 0;
+        int numSamples = 640;
+        
+        m_samples.resize(numSamples);
+        for(int i = 0; i < numSamples; i++){
+            // White noise simples
+            m_samples[i] = (sf::Int16)(((rand() % 65536) - 32768) * 0.3f);
+        }
+        
+        data.samples = m_samples.data();
+        data.sampleCount = m_samples.size();
+        return true;*/
+
         //setPitch(1.0f);
         //sf::Clock clock;
         //clock.restart();
 
-        if (playing.load() == false){
+        /*if (playing.load() == false){
           int sleepSamples = sleepGetDataDelaySamples.load();
           if (sleepSamples <= 0) sleepSamples = 320; //20ms
           m_samples.resize(sleepSamples);
@@ -558,8 +879,13 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
 
         int readPosActual = opusQueue.getReadPos();
         int lastPush = opusQueue.getLastPush();
-        int sampleCountInQueue = opusQueue.getSampleCountInFrame(readPosActual, lastPush);
-        int sampleTimeInQueue = sampleCountGetTimeMS(sampleCountInQueue, sampleRate);
+        int sampleCountInQueue = opusQueue.getSampleCountInFrame(readPosActual, lastPush);*/
+        /*if(sampleCountInQueue <= 640*2){
+            std::cout << "Force more samples" << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(120));
+            int sampleCountInQueue = opusQueue.getSampleCountInFrame(readPosActual, lastPush);
+        }*/
+        /*int sampleTimeInQueue = sampleCountGetTimeMS(sampleCountInQueue, sampleRate);
         int maxSampleTimeInQueue = (initDelayCountMS_temp * 4) + sampleCountGetTimeMS(opusQueue.getSampleCountInFrame(readPosActual), sampleRate);
         maxSampleTimeInQueue = maxSampleTimeInQueue + (maxSampleTimeInQueue*20/100); // + 20%
         maxSampleTimeInQueue = maxSampleTimeInQueue + (maxSampleTimeInQueue*10/100); // + 10%
@@ -587,11 +913,15 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
         } else if (lossPercent > 2){
             maxSkyTerribleTime = 420/2;
         } else {
+            maxSkyTerribleTime = 320/2;
             if(crackleTotal >= 10){
                 maxSkyTerribleTime += 60;
                 std::cout << "Terrible craclink, max NOW: " << maxSkyTerribleTime << std::endl;
             }
         }
+
+        int minSky = lastSampleTime * 12; // nunca menos que 12× o frame atual
+        if(maxSkyTerribleTime < minSky) maxSkyTerribleTime = minSky;
 
         bool skipCrackle = true;
 
@@ -599,7 +929,12 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
             samplesStable = maxSampleTimeInQueue;
         }
 
-        if((sampleTimeInQueue > maxSampleTimeInQueue && sampleTimeInQueue > 200/2) || sampleTimeInQueue > maxSkyTerribleTime){
+        //if((sampleTimeInQueue > maxSampleTimeInQueue && sampleTimeInQueue > 200/2) || sampleTimeInQueue > maxSkyTerribleTime){
+        if((sampleTimeInQueue > maxSampleTimeInQueue && sampleTimeInQueue > initDelayCountMS_temp * 2) || sampleTimeInQueue > maxSkyTerribleTime){
+
+            std::cout << "DISCARD triggered. sampleTimeInQueue: " << sampleTimeInQueue 
+                << " maxSample: " << maxSampleTimeInQueue 
+                << " maxSky: " << maxSkyTerribleTime << std::endl;
 
             if(samplesStable == 0){
                 samplesStable = sampleTimeInQueue;
@@ -612,9 +947,18 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
 
                 int removeSamplesCount = 0;
 
+                // Antes do while de remoção, calcule quantos samples MANTER
+                int samplesToKeep = sampleTimeGetCount(lastSampleTime * 2, sampleRate);
+
                 while(removeSamplesCount < maxSampleTimeInQueue){
+                    if(opusQueue.relativeActualCountSamples() <= samplesToKeep){
+                        break;
+                    }
+
                     std::vector<char> bufferOpus;
-                    removeSamplesCount += opusQueue.pop(bufferOpus);
+                    int popped = opusQueue.pop(bufferOpus);
+                    if(popped == 0) break; // fila vazia, sai
+                    removeSamplesCount += popped;
                 }
 
                 int lastPoped = opusQueue.getLastPoped();
@@ -642,6 +986,17 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
         int lastPoped = opusQueue.getLastPoped();
         std::vector<char> bufferOpus;
         int sampleCount = opusQueue.pop(bufferOpus);
+
+        if(sampleCount == 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds( (int)((float)(lastSampleTime.load()) / 1.5f)) );
+            int readPos = lastPoped += 1;
+            if(readPos >= 256) readPos = 0;
+            if(opusQueue.slotState(readPos)){
+                opusQueue.setReadPos(readPos);
+                sampleCount = opusQueue.pop(bufferOpus);
+            }
+        }
+
         data::buffer decoded;
         std::vector<sf::Int16> decodedSF;
         if(sampleCount > 0){
@@ -694,8 +1049,8 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
             }
             //std::this_thread::sleep_for(std::chrono::milliseconds(readsTry));
             std::cout << "LOST: " << readsTry << std::endl;
-            if(readsTry >= 3 && readsTry <= 4){
-              canInitDelay = true;
+            if(readsTry >= 5 && readsTry <= 6){
+                canInitDelay = true;
             }
             if(readsTry > 6){
                 std::cout << "ERROR LOST" << std::endl;
@@ -721,7 +1076,7 @@ void Recorder::initialize(int _sampleRate, sf::Time _packetTime){
             return true;
         }
 
-        return true;
+        return true;*/
         
         /*
         sf::Clock clock;

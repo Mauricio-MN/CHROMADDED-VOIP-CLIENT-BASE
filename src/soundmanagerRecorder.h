@@ -13,6 +13,8 @@
 #include "data.h"
 #include "opusmanager.h"
 
+#include "rnnoiseProcessor.h"
+
 inline sf::Time sampleCountGetTime(int sampleCount, int sampleRate = 16000){
     int mill = (int)(sampleCount) * 1000 / sampleRate;
     return sf::milliseconds(mill);
@@ -73,7 +75,29 @@ namespace soundmanager
         [[nodiscard]] bool onProcessSamples(const sf::Int16* samples, std::size_t sampleCount) override;
         void onStop() override;
 
+        void pushPreFrame(const sf::Int16* samples, std::size_t count);
+        void flushPreBuffer();
+
+        void flushSamplesBuff();
+        void startDrain();
+        void cancelDrain();
+
     private:
+
+        RNNoiseDenoiser denoiser;
+
+        sf::Clock drainClock;
+        int drainDurationMs = 0;
+        int drainSampleCumulative = 0;
+
+        // índices de escrita persistentes entre callbacks
+        size_t echoWritePos  = 0;
+        size_t reverbWritePos = 0;
+        std::atomic<bool> draining;
+        std::atomic<int> drainSamplesRemaining;
+
+        std::vector<sf::Int16> preBuffer;
+
         sf::Clock clockVoiceDetect;
         bool firstDownVolumeVoiceDetect;
 

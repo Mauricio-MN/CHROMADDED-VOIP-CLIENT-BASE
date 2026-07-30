@@ -190,26 +190,51 @@ namespace player
         return result;
     }
 
-    void Self::constructPosInfo(protocol::Client* info){
-        info->set_mapnum(coordinates.getMap());
-        info->set_coordx(coordinates.getX());
-        info->set_coordy(coordinates.getY());
-        info->set_coordz(coordinates.getZ());
+    int Self::getAudioNum(){
+        return audioNumb.load();
     }
 
-    void Self::sendPosInfo(){
+    void Self::constructPosInfo(protocol_Client* info){
+        info->mapNum  = coordinates.getMap();
+        info->has_mapNum = true;
+        info->coordX = coordinates.getX();
+        info->has_coordX = true;
+        info->coordY = coordinates.getY();
+        info->has_coordY = true;
+        info->coordZ = coordinates.getZ();
+        info->has_coordZ = true;
+
+        /*info->set_mapnum(coordinates.getMap());
+        info->set_coordx(coordinates.getX());
+        info->set_coordy(coordinates.getY());
+        info->set_coordz(coordinates.getZ());*/
+    }
+
+    /*void Self::sendPosInfo(){
         if(isConnected()){
-            protocol::ClientBase cb;
-            protocol::Client* info = cb.mutable_clientext();
+            protocol_ClientBase cb;
+            protocol_Client* info = cb.mutable_clientext();
             info->set_id(my_id);
             constructPosInfo(info);
             socketUdpImpl::getInstance().send(cb);
         }
+    }*/
+   void Self::sendPosInfo(){
+        if(isConnected()){
+            protocol_ClientBase cb = protocol_ClientBase_init_zero;
+            
+            cb.has_clientExt = true;
+            cb.clientExt.has_id = true;
+            cb.clientExt.id = my_id;
+            constructPosInfo(&cb.clientExt);
+            
+            socketUdpImpl::getInstance().send(cb);
+        }
     }
 
-    void Self::sendConnect(){
-        protocol::ClientBase cb;
-        protocol::Client* info = cb.mutable_clientext();
+    /*void Self::sendConnect(){
+        protocol_ClientBase cb;
+        protocol_Client* info = cb.mutable_clientext();
 
         info->set_id(my_id);
         info->set_secret_id(my_secret_id);
@@ -225,19 +250,42 @@ namespace player
         system_clock::time_point currentTimePoint = time_point_cast<system_clock::duration>(timePoint);
         ProtocolParser::setTimeConnectSend(currentTimePoint);
         std::cout << "Recalcule time server/client" << std::endl;
+    }*/
+   void Self::sendConnect(){
+        protocol_ClientBase cb = protocol_ClientBase_init_zero;
+        
+        cb.has_clientExt = true;
+        cb.clientExt.has_id = true;
+        cb.clientExt.id = my_id;
+        cb.clientExt.has_secret_id = true;
+        cb.clientExt.secret_id = my_secret_id;
+
+        using namespace std::chrono;
+        high_resolution_clock::time_point timePoint = high_resolution_clock::now();
+        auto duration = duration_cast<nanoseconds>(timePoint.time_since_epoch());
+
+        cb.clientExt.has_packetTime = true;
+        cb.clientExt.packetTime.seconds = duration_cast<seconds>(duration).count();
+        cb.clientExt.packetTime.nanos = duration.count() % 1'000'000'000;
+
+        socketUdpImpl::getInstance().send(cb);
+
+        system_clock::time_point currentTimePoint = time_point_cast<system_clock::duration>(timePoint);
+        ProtocolParser::setTimeConnectSend(currentTimePoint);
+        std::cout << "Recalcule time server/client" << std::endl;
     }
 
-    void Self::sendAudio(data::buffer &buffer, int sampleTime)
+    /*void Self::sendAudio(data::buffer &buffer, int sampleTime)
     {
         if(SelfImpl::getInstance().isConnected()){
-            protocol::ClientBase cb;
-            protocol::ClientAudio* infoAud = cb.mutable_clientextaudio();
+            protocol_ClientBase cb;
+            protocol_ClientAudio* infoAud = cb.mutable_clientextaudio();
             infoAud->set_audio(buffer.getData(), buffer.size());
             int audioNum = SelfImpl::getInstance().getAndAddAudioNum();
             infoAud->set_audionum(audioNum);
             infoAud->set_sampletime(sampleTime);
             //se for par medir ping
-            if(audioNum % 2 == 0){
+            if(audioNum % 2 == 0){*/
                 /*
                 google::protobuf::Timestamp* timestamp = info->mutable_packettime();
                 using namespace std::chrono;
@@ -253,16 +301,61 @@ namespace player
 
                 auto duration = duration_cast<nanoseconds>(timePoint.time_since_epoch());
                 timestamp->set_seconds(duration_cast<seconds>(duration).count());
-                timestamp->set_nanos(duration.count() % 1'000'000'000);*/
-            }
+                timestamp->set_nanos(duration.count() % 1'000'000'000);
+            }*/
             //std::cout << "SAudio: " << info->audionum() << " : " << sampleTimeGetCount(sampleTime, SAMPLE_RATE) << std::endl;
-            socketUdpImpl::getInstance().send(cb);
+            /*socketUdpImpl::getInstance().send(cb);
             if(audioNum == 0){
-                protocol::ClientBase cb_;
-                protocol::Client* info_ = cb_.mutable_clientext();
+                protocol_ClientBase cb_;
+                protocol_Client* info_ = cb_.mutable_clientext();
                 SelfImpl::getInstance().constructPosInfo(info_);
                 socketUdpImpl::getInstance().send(cb_);
                 SelfImpl::getInstance().sendConnect();
+            }
+        }
+    }*/
+
+    void Self::sendAudio(data::buffer &buffer, int sampleTime)
+    {
+        if(SelfImpl::getInstance().isConnected()){
+            protocol_ClientBase cb = protocol_ClientBase_init_zero;
+
+            cb.has_clientExtAudio = true;
+            cb.clientExtAudio.has_audioNum = true;
+            cb.clientExtAudio.audioNum = SelfImpl::getInstance().getAndAddAudioNum();
+            cb.clientExtAudio.has_sampleTime = true;
+            cb.clientExtAudio.sampleTime = sampleTime;
+
+            // callback para encode do audio
+            bool checkEnc = cb.clientExtAudio.audio.funcs.encode = [](pb_ostream_t *stream, const pb_field_t *field, void * const *arg) -> bool {
+                auto* buf = reinterpret_cast<data::buffer*>(*arg);
+                if (!pb_encode_tag_for_field(stream, field)) return false;
+                return pb_encode_string(stream, reinterpret_cast<const pb_byte_t*>(buf->getData()), buf->size());
+            };
+            cb.clientExtAudio.audio.arg = &buffer;
+
+            // se for par medir ping (comentado igual ao original)
+            // if(cb.clientExtAudio.audioNum % 2 == 0){ ... }
+
+            bool sendResult = socketUdpImpl::getInstance().send(cb);
+
+            //std::cout << "Sent an: " << SelfImpl::getInstance().getAudioNum() << std::endl;
+            if(!checkEnc){
+                std::cerr << "Failed to set audio callback for encoding." << std::endl;
+            }
+
+            if(cb.clientExtAudio.audioNum == 0){
+                protocol_ClientBase cb_ = protocol_ClientBase_init_zero;
+                cb_.has_clientExt = true;
+                SelfImpl::getInstance().constructPosInfo(&cb_.clientExt);
+                sendResult = socketUdpImpl::getInstance().send(cb_);
+                SelfImpl::getInstance().sendConnect();
+            }
+
+            if(sendResult == false){
+                std::cerr << "Disconnected from server." << std::endl;
+                SelfImpl::getInstance().setConnect(false);
+                SelfImpl::getInstance().setNeedCallNewSession(true);
             }
         }
     }
@@ -384,11 +477,22 @@ namespace player
 
     void PlayersManager::playersActCheckThread(bool &canRun){
         while(canRun){
+            std::vector<uint32_t> toRemove;
+
             syncMutex.lock_shared();
             for(auto& playerPair : players){
-                playerPair.second->actCheck();
+                bool isActive = playerPair.second->actCheck();
+                if(!isActive){
+                    toRemove.push_back(playerPair.first);
+                }
             }
             syncMutex.unlock_shared();
+
+            for(auto& id : toRemove){
+                removePlayer(id);
+                std::cout << "Player " << id << " removed (inactive)" << std::endl;
+            }
+
             std::this_thread::sleep_for(std::chrono::milliseconds(10000));
         }
     }

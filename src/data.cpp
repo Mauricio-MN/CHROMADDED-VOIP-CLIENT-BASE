@@ -9,6 +9,8 @@
 #include <mutex>
 #include <condition_variable>
 
+#include "socketUdp.h"
+
 namespace data{
 
     void asyncQueue::objNumCheck(int &num){
@@ -38,7 +40,7 @@ namespace data{
     }
 
     //thread safe
-    void asyncQueue::push(protocol::Server& objPack){
+    void asyncQueue::push(ServerPacket& objPack){
         pushMutex.lock();
             int pos = writePos;
             writePos++;
@@ -58,11 +60,11 @@ namespace data{
     }
 
     //thread safe
-    protocol::Server asyncQueue::pop(bool& result){
+    ServerPacket asyncQueue::pop(bool& result){
         popMutex.lock();
         result = false;
 
-        protocol::Server objectptc;
+        ServerPacket objectptc;
         int pos = readPos;
 
         if(objState[pos].load()){
@@ -130,23 +132,23 @@ namespace data{
     }
 
     //thread safe
-    void parseThreadPoll::push(int threadID, protocol::Server& received){
+    void parseThreadPoll::push(int threadID, ServerPacket& received){
         syncMutex.lock_shared();
         queue[threadID]->push(received);
         syncMutex.unlock_shared();
     }
 
     //no safe
-    void parseThreadPoll::push(protocol::Server& received){
+    void parseThreadPoll::push(ServerPacket& received){
         push(position, received);
         position++;
         if(position >= size) position = 0;
     }
 
     //thread safe
-    protocol::Server parseThreadPoll::pop(int threadID, bool& result){
+    ServerPacket parseThreadPoll::pop(int threadID, bool& result){
         syncMutex.lock_shared();
-        protocol::Server serverReceive = queue[threadID]->pop(result);
+        ServerPacket serverReceive = queue[threadID]->pop(result);
         syncMutex.unlock_shared();
         return serverReceive;
     }

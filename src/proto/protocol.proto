@@ -3,7 +3,9 @@ syntax = "proto3";
 option java_package = "pasaud.voip.protocol";
 package protocol;
 
-import "google/protobuf/timestamp.proto";
+option optimize_for = LITE_RUNTIME; 
+
+import "timestamp.proto";
 
 message ClientBase {
   optional ClientAudio clientExtAudio = 1;

@@ -28,6 +28,8 @@ public:
     int getBitRate();
     void resetBitRate();
 
+    void updateNetworkStats(int pingMs, int jitterMs);
+
     OpusManager();
     OpusManager(int sampleRate);
 

@@ -11,7 +11,10 @@
 #include <math.h>
 #include <thread>
 #include <shared_mutex>
+#include <functional>
 #include "proto/protocol.pb.h"
+
+struct ServerPacket;
 
 #define ERROR_NO_ERROR        0
 #define ERROR_TRY_AGAIN       10
@@ -543,6 +546,340 @@ namespace data
         }
     };
 
+    /**
+ * OpusQueue — Thread-safe circular buffer para pacotes de áudio Opus (VOIP)
+ *
+ * Modelo de concorrência:
+ *   - push()  → pode ser chamado por N threads simultaneamente
+ *   - pop()   → deve ser chamado por apenas 1 thread consumidora
+ *   - leituras (getReadPos, slotState, etc.) → thread-safe, sem lock
+ *
+ * Layout de slots: 256 slots circulares (índice 0–255)
+ * Cada slot protegido por seu próprio mutex → máxima granularidade
+ *
+ * Invariantes garantidos:
+ *   - audioState[i] só transita true→false DENTRO do mutex[i]
+ *   - _size é mantido via fetch_add/fetch_sub com ordering correto
+ *   - lastPoped e lastPush são escritos com release, lidos com acquire
+ */
+ 
+static constexpr int QUEUE_CAPACITY = 256;
+static constexpr int QUEUE_MASK     = QUEUE_CAPACITY - 1; // 0xFF
+ 
+class OpusQueue_alt {
+public:
+    // -----------------------------------------------------------------------
+    // Construtor
+    // -----------------------------------------------------------------------
+    OpusQueue_alt()
+        : _mutexes(QUEUE_CAPACITY)
+        , _audioState(QUEUE_CAPACITY)
+        , _audioSize(QUEUE_CAPACITY)
+        , _audio(QUEUE_CAPACITY)
+    {
+        for (int i = 0; i < QUEUE_CAPACITY; ++i) {
+            _audioState[i].store(false, std::memory_order_relaxed);
+            _audioSize[i].store(0,     std::memory_order_relaxed);
+            _audio[i].reserve(256);
+        }
+        _readPos.store(0,  std::memory_order_relaxed);
+        _lastPopped.store(-1, std::memory_order_relaxed);
+        _lastPush.store(-1,  std::memory_order_relaxed);
+        _size.store(0,     std::memory_order_relaxed);
+    }
+ 
+    // Não-copiável, não-movível (mutexes não são copiáveis)
+    OpusQueue_alt(const OpusQueue_alt&)            = delete;
+    OpusQueue_alt& operator=(const OpusQueue_alt&) = delete;
+ 
+    // -----------------------------------------------------------------------
+    // push — thread-safe, múltiplos produtores
+    // -----------------------------------------------------------------------
+    void push(int slot, int sampleCount, const std::vector<char>& audioPack) {
+        slot = wrapSlot(slot);
+ 
+        std::lock_guard<std::mutex> lk(_mutexes[slot]);
+ 
+        // Se slot estava vazio, incrementa contador
+        if (!_audioState[slot].load(std::memory_order_relaxed)) {
+            _size.fetch_add(1, std::memory_order_relaxed);
+        }
+ 
+        _audio[slot]     = audioPack;
+        _audioSize[slot].store(sampleCount,  std::memory_order_relaxed);
+        _audioState[slot].store(true, std::memory_order_release); // release: visível a leitores
+ 
+        _lastPush.store(slot, std::memory_order_release);
+    }
+ 
+    // -----------------------------------------------------------------------
+    // pop — deve ser chamado por apenas 1 thread consumidora
+    // Retorna: número de samples do frame lido, ou 0 se vazio
+    // -----------------------------------------------------------------------
+    int pop(std::vector<char>& result) {
+        int pos = _readPos.load(std::memory_order_relaxed) & QUEUE_MASK;
+ 
+        // Tenta recuperar pacote atrasado (jitter recovery)
+        int recovered = findLatePacket(pos);
+        if (recovered >= 0) {
+            pos = recovered;
+            _readPos.store(pos, std::memory_order_relaxed);
+        }
+ 
+        int returnSize = 0;
+ 
+        // Double-checked locking: primeiro sem lock, depois com lock
+        if (_audioState[pos].load(std::memory_order_acquire)) {
+            std::lock_guard<std::mutex> lk(_mutexes[pos]);
+ 
+            if (_audioState[pos].load(std::memory_order_relaxed)) {
+                result.insert(result.end(), _audio[pos].begin(), _audio[pos].end());
+                returnSize = _audioSize[pos].load(std::memory_order_relaxed);
+ 
+                // Limpa slot — tudo dentro do lock
+                _audio[pos].clear();
+                _audioSize[pos].store(0,     std::memory_order_relaxed);
+                _audioState[pos].store(false, std::memory_order_release);
+                _lastPopped.store(pos,       std::memory_order_release);
+                _size.fetch_sub(1, std::memory_order_relaxed);
+            }
+        }
+ 
+        // Avança posição de leitura
+        _readPos.store((pos + 1) & QUEUE_MASK, std::memory_order_relaxed);
+        return returnSize;
+    }
+ 
+    // -----------------------------------------------------------------------
+    // preview — lê sem consumir (1 thread consumidora)
+    // -----------------------------------------------------------------------
+    int preview(std::vector<char>& result) const {
+        int pos = _readPos.load(std::memory_order_relaxed) & QUEUE_MASK;
+        int returnSize = 0;
+ 
+        if (_audioState[pos].load(std::memory_order_acquire)) {
+            std::lock_guard<std::mutex> lk(_mutexes[pos]);
+            if (_audioState[pos].load(std::memory_order_relaxed)) {
+                result.insert(result.end(), _audio[pos].begin(), _audio[pos].end());
+                returnSize = _audioSize[pos].load(std::memory_order_relaxed);
+            }
+        }
+        return returnSize;
+    }
+ 
+    // -----------------------------------------------------------------------
+    // clearFrames — limpa range [from, to] (circulares)
+    // AVISO: não deve ser chamado concorrentemente com pop()
+    // -----------------------------------------------------------------------
+    void clearFrames(int from, int to) {
+        from = wrapSlot(from);
+        to   = wrapSlot(to);
+ 
+        auto clearSlot = [this](int i) {
+            std::lock_guard<std::mutex> lk(_mutexes[i]);
+            if (_audioState[i].load(std::memory_order_relaxed)) {
+                _audioState[i].store(false, std::memory_order_release);
+                _audioSize[i].store(0,     std::memory_order_relaxed);
+                _audio[i].clear();
+                _size.fetch_sub(1, std::memory_order_relaxed);
+            }
+        };
+ 
+        if (from > to) {
+            for (int i = from; i < QUEUE_CAPACITY; ++i) clearSlot(i);
+            for (int i = 0;    i <= to;             ++i) clearSlot(i);
+        } else {
+            for (int i = from; i <= to; ++i) clearSlot(i);
+        }
+    }
+ 
+    // -----------------------------------------------------------------------
+    // hyperClean — remove todos os slots antes de readPos
+    // -----------------------------------------------------------------------
+    void hyperClean() {
+        int pos = _readPos.load(std::memory_order_acquire);
+        for (int i = 0; i < pos; ++i) {
+            if (_audioState[i].load(std::memory_order_acquire)) {
+                std::lock_guard<std::mutex> lk(_mutexes[i]);
+                if (_audioState[i].load(std::memory_order_relaxed)) {
+                    _audioState[i].store(false, std::memory_order_release);
+                    _audioSize[i].store(0,     std::memory_order_relaxed);
+                    _audio[i].clear();
+                    _size.fetch_sub(1, std::memory_order_relaxed);
+                }
+            }
+        }
+    }
+ 
+    // -----------------------------------------------------------------------
+    // hyperSearch — salta para o primeiro slot ocupado a partir de readPos
+    // -----------------------------------------------------------------------
+    void hyperSearch() {
+        int pos = _readPos.load(std::memory_order_relaxed);
+        for (int i = 0; i < QUEUE_CAPACITY; ++i) {
+            int candidate = (pos + i) & QUEUE_MASK;
+            if (_audioState[candidate].load(std::memory_order_acquire)) {
+                _readPos.store(candidate, std::memory_order_release);
+                return;
+            }
+        }
+    }
+ 
+    // -----------------------------------------------------------------------
+    // setReadPos — thread-safe (uso criterioso: sincronize externamente)
+    // -----------------------------------------------------------------------
+    void setReadPos(int pos) {
+        _readPos.store(wrapSlot(pos), std::memory_order_release);
+    }
+ 
+    // -----------------------------------------------------------------------
+    // Getters — thread-safe, lock-free
+    // -----------------------------------------------------------------------
+    int  getReadPos()    const { return _readPos.load(std::memory_order_acquire);    }
+    int  getLastPoped() const { return _lastPopped.load(std::memory_order_acquire); }
+    int  getLastPush()   const { return _lastPush.load(std::memory_order_acquire);   }
+    int  size()          const { return _size.load(std::memory_order_relaxed);       }
+    bool canReadNext()   const { return slotState(_readPos.load(std::memory_order_relaxed)); }
+ 
+    bool slotState(int slot) const {
+        slot = wrapSlot(slot);
+        return _audioState[slot].load(std::memory_order_acquire);
+    }
+ 
+    int getSampleCountInSlot(int slot) const {
+        slot = wrapSlot(slot);
+        if (_audioState[slot].load(std::memory_order_acquire))
+            return _audioSize[slot].load(std::memory_order_relaxed);
+        return 0;
+    }
+ 
+    // -----------------------------------------------------------------------
+    // Contagem de samples no intervalo [posA, posB] (circular)
+    // -----------------------------------------------------------------------
+    int getSampleCountInFrame(int posA, int posB) const {
+        posA = wrapSlot(posA);
+        posB = wrapSlot(posB);
+        int total = 0;
+ 
+        if (posA > posB) {
+            for (int i = posA; i < QUEUE_CAPACITY; ++i)
+                total += getSampleCountInSlot(i);
+            for (int i = 0; i <= posB; ++i)
+                total += getSampleCountInSlot(i);
+        } else {
+            for (int i = posA; i <= posB; ++i)
+                total += getSampleCountInSlot(i);
+        }
+        return total;
+    }
+
+    int getSampleCountInFrame(int pos) const {
+        return getSampleCountInSlot(pos);
+    }
+ 
+    int absoluteSize() const {
+        int count = 0;
+        for (int i = 0; i < QUEUE_CAPACITY; ++i)
+            if (_audioState[i].load(std::memory_order_acquire)) ++count;
+        return count;
+    }
+ 
+    // Frames contíguos prontos a partir de readPos
+    int relativeCompleteSize() const {
+        int pos = _readPos.load(std::memory_order_acquire);
+        int count = 0;
+        for (int i = 0; i < QUEUE_CAPACITY; ++i) {
+            int slot = (pos + i) & QUEUE_MASK;
+            if (!_audioState[slot].load(std::memory_order_acquire)) break;
+            ++count;
+        }
+        return count;
+    }
+ 
+    // Estimativa de samples nos próximos 10 frames
+    int relativeCompleteCountSamples() const {
+        int pos   = _readPos.load(std::memory_order_acquire);
+        int toPos = (pos + 10) & QUEUE_MASK;
+        return getSampleCountInFrame(pos, toPos);
+    }
+ 
+    int relativeActualCountSamples() const {
+        return getSampleCountInFrame(getReadPos(), getLastPush());
+    }
+ 
+    int relativeActualCountFrames() const {
+        int posA = getReadPos();
+        int posB = getLastPush();
+        if (posB < 0) return 0;
+        int count = 0;
+ 
+        if (posA > posB) {
+            for (int i = posA; i < QUEUE_CAPACITY; ++i)
+                if (_audioState[i].load(std::memory_order_acquire)) ++count;
+            for (int i = 0; i <= posB; ++i)
+                if (_audioState[i].load(std::memory_order_acquire)) ++count;
+        } else {
+            for (int i = posA; i <= posB; ++i)
+                if (_audioState[i].load(std::memory_order_acquire)) ++count;
+        }
+        return count;
+    }
+ 
+private:
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+    static int wrapSlot(int slot) {
+        return ((slot % QUEUE_CAPACITY) + QUEUE_CAPACITY) % QUEUE_CAPACITY;
+    }
+ 
+    /**
+     * Recuperação de pacotes atrasados (jitter buffer):
+     * Procura nos últimos 5 slots antes de pos se há algum pacote
+     * que ainda não foi consumido e não é anterior ao lastPopped.
+     * Retorna o índice do candidato mais antigo válido, ou -1.
+     */
+    int findLatePacket(int pos) const {
+        int lastPop = _lastPopped.load(std::memory_order_acquire);
+        int result  = -1;
+ 
+        for (int i = 1; i <= 5; ++i) {
+            int candidate = (pos - i + QUEUE_CAPACITY) & QUEUE_MASK;
+ 
+            // Só recupera se: tem dados E é mais recente que o último consumido
+            if (_audioState[candidate].load(std::memory_order_acquire)) {
+                // Evita regredir além do lastPopped
+                bool isAhead = (lastPop < 0) ||
+                               (candidate != lastPop &&
+                                distanceForward(lastPop, candidate) < QUEUE_CAPACITY / 2);
+                if (isAhead) {
+                    result = candidate; // pega o mais próximo (i menor = mais próximo)
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+ 
+    // Distância circular de `from` até `to` no sentido crescente
+    static int distanceForward(int from, int to) {
+        return (to - from + QUEUE_CAPACITY) & QUEUE_MASK;
+    }
+ 
+    // -----------------------------------------------------------------------
+    // Membros
+    // -----------------------------------------------------------------------
+    mutable std::vector<std::mutex>       _mutexes;     // 1 mutex por slot
+    std::vector<std::atomic<bool>>        _audioState;  // slot ocupado?
+    std::vector<std::atomic<int>>         _audioSize;   // sample count
+    std::vector<std::vector<char>>        _audio;       // dados PCM/Opus
+ 
+    std::atomic<int> _readPos{0};
+    std::atomic<int> _lastPopped{-1};
+    std::atomic<int> _lastPush{-1};
+    std::atomic<int> _size{0};
+};
+
     class OpusQueue{
 
     private:
@@ -848,7 +1185,7 @@ namespace data
     class asyncQueue{
 
     private:
-        std::vector<protocol::Server> obj;
+        std::vector<ServerPacket> obj;
         std::vector<std::atomic<bool>> objState;
         std::vector<std::mutex> mutexes;
         std::atomic_int writePos;
@@ -868,9 +1205,9 @@ namespace data
 
         asyncQueue(size_t _size);
 
-        void push(protocol::Server& objPack);
+        void push(ServerPacket& objPack);
 
-        protocol::Server pop(bool& result);
+        ServerPacket pop(bool& result);
 
         int getAvaliable();
     };
@@ -897,13 +1234,13 @@ namespace data
         void insertThread(std::function<void THREAD_POOL_ARGS> parse);
 
         //thread safe
-        void push(int threadID, protocol::Server& received);
+        void push(int threadID, ServerPacket& received);
 
         //no safe
-        void push(protocol::Server& received);
+        void push(ServerPacket& received);
 
         //thread safe
-        protocol::Server pop(int threadID, bool& result);
+        ServerPacket pop(int threadID, bool& result);
 
         //thread safe
         void stopAll();
